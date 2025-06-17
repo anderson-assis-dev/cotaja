@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function LoginScreen() {
@@ -15,12 +15,26 @@ export default function LoginScreen() {
     }
   };
 
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword' as never);
+  };
+
+  const handleRegister = () => {
+    navigation.navigate('Register' as never);
+  };
+
   return (
     <View className="flex-1 items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
-      <Text className="text-4xl font-bold text-white mb-8">MeuApp</Text>
+      <Image 
+        source={require('../../assets/logo.png')} 
+        className="w-32 h-32 mb-8"
+        resizeMode="contain"
+      />
 
       <View className="bg-white rounded-xl w-full p-6 shadow-xl">
-        <Text className="text-xl font-semibold mb-2">Email</Text>
+        <Text className="text-2xl font-bold text-center mb-6">Bem-vindo de volta!</Text>
+
+        <Text className="text-lg font-semibold mb-2">Email</Text>
         <TextInput
           className="border border-gray-300 rounded-lg p-3 mb-4"
           placeholder="Digite seu email"
@@ -30,9 +44,9 @@ export default function LoginScreen() {
           autoCapitalize="none"
         />
 
-        <Text className="text-xl font-semibold mb-2">Senha</Text>
+        <Text className="text-lg font-semibold mb-2">Senha</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg p-3 mb-6"
+          className="border border-gray-300 rounded-lg p-3 mb-4"
           placeholder="Digite sua senha"
           value={senha}
           onChangeText={setSenha}
@@ -40,11 +54,25 @@ export default function LoginScreen() {
         />
 
         <TouchableOpacity
-          className="bg-indigo-600 rounded-lg p-4"
+          onPress={handleForgotPassword}
+          className="mb-6"
+        >
+          <Text className="text-indigo-600 text-right">Esqueceu sua senha?</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          className="bg-indigo-600 rounded-lg p-4 mb-4"
           onPress={handleLogin}
         >
           <Text className="text-center text-white font-bold text-lg">Entrar</Text>
         </TouchableOpacity>
+
+        <View className="flex-row justify-center">
+          <Text className="text-gray-600">Não tem uma conta? </Text>
+          <TouchableOpacity onPress={handleRegister}>
+            <Text className="text-indigo-600 font-semibold">Cadastre-se</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

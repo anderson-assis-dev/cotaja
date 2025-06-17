@@ -1,0 +1,124 @@
+import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+const services = [
+  {
+    id: '1',
+    title: 'Demandas Disponíveis',
+    description: 'Veja pedidos de serviços',
+    icon: require('../../../assets/splash-icon.png'),
+    screen: 'AvailableDemands',
+  },
+  {
+    id: '2',
+    title: 'Enviar Proposta',
+    description: 'Proponha seus serviços',
+    icon: require('../../../assets/splash-icon.png'),
+    screen: 'SendProposal',
+  },
+  {
+    id: '3',
+    title: 'Leilão em Andamento',
+    description: 'Acompanhe seus leilões',
+    icon: require('../../../assets/splash-icon.png'),
+    screen: 'ProviderAuction',
+  },
+  {
+    id: '4',
+    title: 'Meus Serviços',
+    description: 'Gerencie seus serviços',
+    icon: require('../../../assets/splash-icon.png'),
+    screen: 'MyServices',
+  },
+];
+
+// Dados mockados para exemplo
+const mockStats = {
+  rating: 4.8,
+  completedServices: 45,
+  activeServices: 3,
+  earnings: 'R$ 12.500,00',
+};
+
+export default function ProviderHomeScreen() {
+  const navigation = useNavigation();
+
+  return (
+    <ScrollView className="flex-1 bg-gray-100">
+      <View className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
+        <Text className="text-2xl font-bold text-white mb-2">Olá, João!</Text>
+        <Text className="text-white opacity-80">
+          Como vai seu trabalho hoje?
+        </Text>
+      </View>
+
+      <View className="p-6">
+        <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
+          <View className="flex-row justify-between items-center mb-6">
+            <View>
+              <Text className="text-gray-500">Avaliação</Text>
+              <View className="flex-row items-center">
+                <Text className="text-2xl font-bold">{mockStats.rating}</Text>
+                <Text className="text-yellow-500 ml-1">★</Text>
+              </View>
+            </View>
+            <View>
+              <Text className="text-gray-500">Serviços Concluídos</Text>
+              <Text className="text-2xl font-bold">{mockStats.completedServices}</Text>
+            </View>
+            <View>
+              <Text className="text-gray-500">Serviços Ativos</Text>
+              <Text className="text-2xl font-bold">{mockStats.activeServices}</Text>
+            </View>
+          </View>
+
+          <View className="bg-indigo-50 rounded-lg p-4">
+            <Text className="text-gray-500 mb-1">Ganhos Totais</Text>
+            <Text className="text-2xl font-bold text-indigo-600">
+              {mockStats.earnings}
+            </Text>
+          </View>
+        </View>
+
+        <Text className="text-xl font-bold mb-4">Serviços</Text>
+        <View className="flex-row flex-wrap justify-between">
+          {services.map((service) => (
+            <TouchableOpacity
+              key={service.id}
+              className="bg-white rounded-xl p-4 mb-4 w-[48%] shadow-sm"
+              onPress={() => navigation.navigate(service.screen as never)}
+            >
+              <Image
+                source={service.icon}
+                className="w-12 h-12 mb-3"
+                resizeMode="contain"
+              />
+              <Text className="font-bold text-gray-800 mb-1">
+                {service.title}
+              </Text>
+              <Text className="text-gray-600 text-sm">
+                {service.description}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text className="text-xl font-bold mb-4 mt-6">Próximos Serviços</Text>
+        <View className="bg-white rounded-xl p-4 shadow-sm">
+          <Text className="text-gray-600 text-center">
+            Você não tem serviços agendados
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          className="bg-indigo-600 rounded-lg p-4 mt-6"
+          onPress={() => navigation.navigate('AvailableDemands' as never)}
+        >
+          <Text className="text-center text-white font-bold text-lg">
+            Ver Demandas Disponíveis
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+} 
