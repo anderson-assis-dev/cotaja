@@ -16,6 +16,8 @@ import OrderDetailsScreen from '../screens/client/OrderDetailsScreen';
 import MyOrdersScreen from '../screens/client/MyOrdersScreen';
 import ActiveAuctionScreen from '../screens/client/ActiveAuctionScreen';
 import RateProviderScreen from '../screens/client/RateProviderScreen';
+import CheckoutScreen from '../screens/client/CheckoutScreen';
+import PaymentScreen from '../screens/client/PaymentScreen';
 
 // Telas do Prestador
 import ProviderHomeScreen from '../screens/provider/HomeScreen';
@@ -53,6 +55,8 @@ export default function AppNavigator() {
         <Stack.Screen name="MyOrders" component={MyOrdersScreen} />
         <Stack.Screen name="ActiveAuction" component={ActiveAuctionScreen} />
         <Stack.Screen name="RateProvider" component={RateProviderScreen} />
+        <Stack.Screen name="Checkout" component={CheckoutScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
 
         {/* Rotas do Prestador */}
         <Stack.Screen name="ProviderHome" component={ProviderHomeScreen} />
