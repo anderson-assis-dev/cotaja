@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileSelectionScreen() {
   const navigation = useNavigation();
@@ -12,9 +13,9 @@ export default function ProfileSelectionScreen() {
       navigation.navigate('ProviderHome' as never);
     }
   };
-
+  const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
+    <View className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6" style={{ paddingTop: insets.top }}>
       <Text className="text-3xl font-bold text-white text-center mb-8">
         Escolha seu Perfil
       </Text>

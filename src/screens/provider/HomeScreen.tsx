@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const services = [
   {
     id: '1',
@@ -42,12 +42,12 @@ const mockStats = {
 
 export default function ProviderHomeScreen() {
   const navigation = useNavigation();
-
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView className="flex-1 bg-gray-100">
+    <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
-        <Text className="text-2xl font-bold text-white mb-2">Olá, João!</Text>
-        <Text className="text-white opacity-80">
+        <Text className="text-2xl font-bold text-black mb-2">Olá, João!</Text>
+        <Text className="text-black opacity-80">
           Como vai seu trabalho hoje?
         </Text>
       </View>

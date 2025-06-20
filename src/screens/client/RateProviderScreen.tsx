@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Dados mockados para exemplo
 const mockService = {
@@ -36,9 +37,9 @@ export default function RateProviderScreen() {
       ]
     );
   };
-
+  const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
         <Text className="text-2xl font-bold mb-6">Avaliar Serviço</Text>
 

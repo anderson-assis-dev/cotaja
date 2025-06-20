@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Dados mockados para exemplo
 const mockDemands = [
@@ -34,9 +35,9 @@ const mockDemands = [
 
 export default function AvailableDemandsScreen() {
   const navigation = useNavigation();
-
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView className="flex-1 bg-gray-100">
+    <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
         <Text className="text-2xl font-bold mb-6">Demandas Disponíveis</Text>
 

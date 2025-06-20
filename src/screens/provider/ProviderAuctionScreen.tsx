@@ -1,5 +1,6 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Dados mockados para exemplo
 const mockAuctions = [
@@ -33,9 +34,9 @@ const mockAuctions = [
 
 export default function ProviderAuctionScreen() {
   const navigation = useNavigation();
-
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView className="flex-1 bg-gray-100">
+    <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
         <Text className="text-2xl font-bold mb-6">Leilões em Andamento</Text>
 

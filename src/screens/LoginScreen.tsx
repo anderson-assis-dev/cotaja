@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
@@ -24,7 +26,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View className="flex-1 items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
+    <View style={{ paddingTop: insets.top }} className="flex-1 items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
       <Image 
         source={require('../../assets/logo.png')} 
         className="w-32 h-32 mb-8"

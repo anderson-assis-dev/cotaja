@@ -1,11 +1,13 @@
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function InitialScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
+    <View style={{ paddingTop: insets.top }} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
       <View className="flex-1 items-center justify-center">
         <Image 
           source={require('../../assets/logo.png')} 

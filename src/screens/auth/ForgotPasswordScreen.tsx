@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
+  const insets = useSafeAreaInsets();
 
   const handleResetPassword = () => {
     if (!email) {
@@ -26,7 +28,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
+    <View style={{ paddingTop: insets.top }} className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
       <View className="flex-1 justify-center">
         <Text className="text-3xl font-bold text-white text-center mb-8">
           Recuperar Senha

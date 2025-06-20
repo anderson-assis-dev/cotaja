@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Dimensions, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -9,19 +10,19 @@ const slides = [
     id: '1',
     title: 'Bem-vindo ao Cotaja',
     description: 'A plataforma que conecta clientes e prestadores de serviços de forma simples e segura.',
-    image: require('../../../assets/splash-icon.png'),
+    image: require('../../../assets/logo.png'),
   },
   {
     id: '2',
     title: 'Encontre Profissionais',
     description: 'Busque e contrate profissionais qualificados para realizar seus serviços.',
-    image: require('../../../assets/splash-icon.png'),
+    image: require('../../../assets/logo.png'),
   },
   {
     id: '3',
     title: 'Ofereça seus Serviços',
     description: 'Cadastre-se como prestador e encontre novos clientes para seus serviços.',
-    image: require('../../../assets/splash-icon.png'),
+    image: require('../../../assets/logo.png'),
   },
 ];
 
@@ -29,6 +30,7 @@ export default function OnboardingScreen() {
   const navigation = useNavigation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (currentIndex < slides.length - 1) {
@@ -56,7 +58,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View style={{ flex: 1, paddingTop: insets.top }} className="bg-white">
       <FlatList
         ref={flatListRef}
         data={slides}

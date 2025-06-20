@@ -28,6 +28,7 @@ import RateClientScreen from '../screens/provider/RateClientScreen';
 
 // Telas de Gerenciamento
 import ProfileScreen from '../screens/management/ProfileScreen';
+import MyServicesScreen from '../screens/provider/MyServicesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -35,7 +36,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Initial"
+        initialRouteName="Profile"
         screenOptions={{
           headerShown: false,
         }}
@@ -64,9 +65,11 @@ export default function AppNavigator() {
         <Stack.Screen name="SendProposal" component={SendProposalScreen} />
         <Stack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
         <Stack.Screen name="RateClient" component={RateClientScreen} />
+        <Stack.Screen name="MyServices" component={MyServicesScreen} />
 
         {/* Rotas de Gerenciamento */}
         <Stack.Screen name="Profile" component={ProfileScreen} />
+  
       </Stack.Navigator>
     </NavigationContainer>
   );

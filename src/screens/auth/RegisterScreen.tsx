@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -29,11 +30,15 @@ export default function RegisterScreen() {
       }
     ]);
   };
-
+  const insets = useSafeAreaInsets();
   return (
-    <ScrollView className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600">
+    <ScrollView className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600" style={{ paddingTop: insets.top }}>
       <View className="p-6">
-        <Text className="text-3xl font-bold text-white text-center mb-8">Criar Conta</Text>
+        
+        <View className="items-center">
+          <Image source={require('../../../assets/logo.png')} className="w-80 h-40" resizeMode="contain" />
+        </View>
+        <Text className="text-3xl font-bold text-black text-center mb-8">Criar Conta</Text>
 
         <View className="bg-white rounded-xl p-6 shadow-xl">
           <Text className="text-lg font-semibold mb-2">Nome Completo</Text>
