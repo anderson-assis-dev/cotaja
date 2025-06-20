@@ -62,9 +62,14 @@ function MyOrdersStackNavigator() {
 }
 
 const MyServicesStack = createNativeStackNavigator();
-function MyServicesStackNavigator() {
+function MyServicesStackNavigator({ route }: any) {
+    const initialRouteName = route?.params?.initialScreen || 'MyServices';
+    
     return (
-        <MyServicesStack.Navigator screenOptions={{ headerShown: false }}>
+        <MyServicesStack.Navigator 
+            screenOptions={{ headerShown: false }}
+            initialRouteName={initialRouteName}
+        >
             <MyServicesStack.Screen name="MyServices" component={MyServicesScreen} />
             <MyServicesStack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
             <MyServicesStack.Screen name="RateClient" component={RateClientScreen} />
@@ -79,6 +84,16 @@ function AvailableDemandsStackNavigator() {
             <AvailableDemandsStack.Screen name="AvailableDemands" component={AvailableDemandsScreen} />
             <AvailableDemandsStack.Screen name="SendProposal" component={SendProposalScreen} />
         </AvailableDemandsStack.Navigator>
+    );
+}
+
+const AuctionsStack = createNativeStackNavigator();
+function AuctionsStackNavigator() {
+    return (
+        <AuctionsStack.Navigator screenOptions={{ headerShown: false }}>
+            <AuctionsStack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
+            <AuctionsStack.Screen name="SendProposal" component={SendProposalScreen} />
+        </AuctionsStack.Navigator>
     );
 }
 
@@ -129,6 +144,8 @@ function ProviderTabNavigator() {
               iconName = 'build';
             } else if (route.name === 'AvailableDemandsTab') {
               iconName = 'assignment';
+            } else if (route.name === 'AuctionsTab') {
+              iconName = 'gavel';
             } else if (route.name === 'ProfileTab') {
               iconName = 'person';
             } else {
@@ -141,8 +158,14 @@ function ProviderTabNavigator() {
         })}
     >
         <Tab.Screen name="Home" component={ProviderHomeScreen} options={{ title: 'Início' }} />
-        <Tab.Screen name="MyServicesTab" component={MyServicesStackNavigator} options={{ title: 'Meus Serviços' }}/>
+        <Tab.Screen 
+            name="MyServicesTab" 
+            component={MyServicesStackNavigator} 
+            options={{ title: 'Meus Serviços' }}
+            initialParams={{ initialScreen: 'MyServices' }}
+        />
         <Tab.Screen name="AvailableDemandsTab" component={AvailableDemandsStackNavigator} options={{ title: 'Demandas' }}/>
+        <Tab.Screen name="AuctionsTab" component={AuctionsStackNavigator} options={{ title: 'Leilões' }}/>
         <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }}/>
     </Tab.Navigator>
   );
