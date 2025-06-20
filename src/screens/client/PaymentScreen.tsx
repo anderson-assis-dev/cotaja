@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from 'reac
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 type PaymentMethod = 'credit' | 'debit' | 'pix';
 
@@ -130,48 +131,25 @@ export default function PaymentScreen() {
 
             <View className="flex-row justify-between mb-6">
               <TouchableOpacity
-                className={`flex-1 p-4 rounded-lg mr-2 ${
-                  selectedMethod === 'credit' ? 'bg-indigo-600' : 'bg-gray-200'
-                }`}
+                className={`flex-1 p-4 rounded-lg mr-2 flex-row items-center justify-center ${selectedMethod === 'credit' ? 'bg-indigo-600' : 'bg-gray-200'}`}
                 onPress={() => setSelectedMethod('credit')}
               >
-                <Text
-                  className={`text-center font-bold ${
-                    selectedMethod === 'credit' ? 'text-white' : 'text-gray-800'
-                  }`}
-                >
-                  Crédito
-                </Text>
+                <Icon name="credit-card" size={22} color={selectedMethod === 'credit' ? '#fff' : '#4f46e5'} />
+                <Text className={`ml-2 font-bold ${selectedMethod === 'credit' ? 'text-white' : 'text-gray-800'}`}>Crédito</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                className={`flex-1 p-4 rounded-lg mx-2 ${
-                  selectedMethod === 'debit' ? 'bg-indigo-600' : 'bg-gray-200'
-                }`}
+                className={`flex-1 p-4 rounded-lg mx-2 flex-row items-center justify-center ${selectedMethod === 'debit' ? 'bg-indigo-600' : 'bg-gray-200'}`}
                 onPress={() => setSelectedMethod('debit')}
               >
-                <Text
-                  className={`text-center font-bold ${
-                    selectedMethod === 'debit' ? 'text-white' : 'text-gray-800'
-                  }`}
-                >
-                  Débito
-                </Text>
+                <Icon name="credit-card" size={22} color={selectedMethod === 'debit' ? '#fff' : '#4f46e5'} />
+                <Text className={`ml-2 font-bold ${selectedMethod === 'debit' ? 'text-white' : 'text-gray-800'}`}>Débito</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                className={`flex-1 p-4 rounded-lg ml-2 ${
-                  selectedMethod === 'pix' ? 'bg-indigo-600' : 'bg-gray-200'
-                }`}
+                className={`flex-1 p-4 rounded-lg ml-2 flex-row items-center justify-center ${selectedMethod === 'pix' ? 'bg-indigo-600' : 'bg-gray-200'}`}
                 onPress={() => setSelectedMethod('pix')}
               >
-                <Text
-                  className={`text-center font-bold ${
-                    selectedMethod === 'pix' ? 'text-white' : 'text-gray-800'
-                  }`}
-                >
-                  PIX
-                </Text>
+                <Icon name="qr-code" size={22} color={selectedMethod === 'pix' ? '#fff' : '#4f46e5'} />
+                <Text className={`ml-2 font-bold ${selectedMethod === 'pix' ? 'text-white' : 'text-gray-800'}`}>PIX</Text>
               </TouchableOpacity>
             </View>
 
@@ -270,23 +248,28 @@ export default function PaymentScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              className="bg-indigo-600 rounded-lg p-4 mb-4"
-              onPress={handlePayment}
-            >
-              <Text className="text-center text-white font-bold text-lg">
-                {selectedMethod === 'pix' ? 'Gerar QR Code PIX' : 'Pagar'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="bg-gray-200 rounded-lg p-4"
-              onPress={() => navigation.goBack()}
-            >
-              <Text className="text-center text-gray-800 font-bold text-lg">
-                Voltar
-              </Text>
-            </TouchableOpacity>
+            <View className="flex-row justify-center space-x-8 mt-6">
+              <TouchableOpacity
+                accessibilityLabel={selectedMethod === 'pix' ? 'Gerar QR Code PIX' : 'Pagar'}
+                onPress={handlePayment}
+              >
+                <View className="bg-green-100 p-4 rounded-full">
+                  <Icon name="check-circle" size={36} color="#22c55e" />
+                </View>
+                <Text className="text-center text-green-700 mt-2">
+                  {selectedMethod === 'pix' ? 'PIX' : 'Pagar'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityLabel="Cancelar"
+                onPress={() => navigation.goBack()}
+              >
+                <View className="bg-red-100 p-4 rounded-full">
+                  <Icon name="close-circle" size={36} color="#ef4444" />
+                </View>
+                <Text className="text-center text-red-700 mt-2">Cancelar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>

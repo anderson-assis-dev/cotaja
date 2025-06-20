@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function CheckoutScreen() {
   const navigation = useNavigation();
@@ -49,23 +50,26 @@ export default function CheckoutScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity
-            className="bg-indigo-600 rounded-lg p-4 mb-4"
-            onPress={handleAcceptProposal}
-          >
-            <Text className="text-center text-white font-bold text-lg">
-              Aceitar Proposta
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="bg-gray-200 rounded-lg p-4"
-            onPress={() => navigation.goBack()}
-          >
-            <Text className="text-center text-gray-800 font-bold text-lg">
-              Voltar
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row justify-center space-x-8 mt-6">
+            <TouchableOpacity
+              accessibilityLabel="Confirmar proposta"
+              onPress={handleAcceptProposal}
+            >
+              <View className="bg-green-100 p-4 rounded-full">
+                <Icon name="check-circle" size={36} color="#22c55e" />
+              </View>
+              <Text className="text-center text-green-700 mt-2">Confirmar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityLabel="Cancelar"
+              onPress={() => navigation.goBack()}
+            >
+              <View className="bg-red-100 p-4 rounded-full">
+                <Icon name="close-circle" size={36} color="#ef4444" />
+              </View>
+              <Text className="text-center text-red-700 mt-2">Cancelar</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ScrollView>

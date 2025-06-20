@@ -15,7 +15,6 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import ClientHomeScreen from '../screens/client/HomeScreen';
 import CreateOrderScreen from '../screens/client/CreateOrderScreen';
 import OrderDetailsScreen from '../screens/client/OrderDetailsScreen';
-import MyOrdersScreen from '../screens/client/MyOrdersScreen';
 import ActiveAuctionScreen from '../screens/client/ActiveAuctionScreen';
 import RateProviderScreen from '../screens/client/RateProviderScreen';
 import CheckoutScreen from '../screens/client/CheckoutScreen';
@@ -26,7 +25,7 @@ import SearchScreen from '../screens/client/SearchScreen';
 import ProviderHomeScreen from '../screens/provider/HomeScreen';
 import AvailableDemandsScreen from '../screens/provider/AvailableDemandsScreen';
 import SendProposalScreen from '../screens/provider/SendProposalScreen';
-import ProviderAuctionScreen from '../screens/provider/ProviderAuctionScreen';
+import AuctionScreen from '../screens/provider/ProviderAuctionScreen';
 import RateClientScreen from '../screens/provider/RateClientScreen';
 import MyServicesScreen from '../screens/provider/MyServicesScreen';
 
@@ -51,9 +50,9 @@ const MyOrdersStack = createNativeStackNavigator();
 function MyOrdersStackNavigator() {
   return (
     <MyOrdersStack.Navigator screenOptions={{ headerShown: false }}>
-      <MyOrdersStack.Screen name="MyOrders" component={MyOrdersScreen} />
+      <MyOrdersStack.Screen name="MyOrders" component={AuctionScreen} />
       <MyOrdersStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-      <MyOrdersStack.Screen name="ActiveAuction" component={ActiveAuctionScreen} />
+      <MyOrdersStack.Screen name="ActiveAuction" component={AuctionScreen} />
       <MyOrdersStack.Screen name="RateProvider" component={RateProviderScreen} />
       <MyOrdersStack.Screen name="Checkout" component={CheckoutScreen} />
       <MyOrdersStack.Screen name="Payment" component={PaymentScreen} />
@@ -71,7 +70,7 @@ function MyServicesStackNavigator({ route }: any) {
             initialRouteName={initialRouteName}
         >
             <MyServicesStack.Screen name="MyServices" component={MyServicesScreen} />
-            <MyServicesStack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
+            <MyServicesStack.Screen name="ProviderAuction" component={AuctionScreen} />
             <MyServicesStack.Screen name="RateClient" component={RateClientScreen} />
         </MyServicesStack.Navigator>
     );
@@ -91,7 +90,7 @@ const AuctionsStack = createNativeStackNavigator();
 function AuctionsStackNavigator() {
     return (
         <AuctionsStack.Navigator screenOptions={{ headerShown: false }}>
-            <AuctionsStack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
+            <AuctionsStack.Screen name="ProviderAuction" component={AuctionScreen} />
             <AuctionsStack.Screen name="SendProposal" component={SendProposalScreen} />
         </AuctionsStack.Navigator>
     );

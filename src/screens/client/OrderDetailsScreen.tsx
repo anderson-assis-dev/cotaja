@@ -1,6 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 // Dados mockados para exemplo
 const mockOrder = {
@@ -106,14 +107,24 @@ export default function OrderDetailsScreen() {
               </View>
             </View>
 
-            <TouchableOpacity
-              className="bg-indigo-600 rounded-lg p-4 mt-4"
-              onPress={() => navigation.navigate('Checkout' as never)}
-            >
-              <Text className="text-center text-white font-bold">
-                Aceitar Proposta
-              </Text>
-            </TouchableOpacity>
+            <View className="flex-row items-center space-x-4 self-end mt-2">
+              <TouchableOpacity
+                accessibilityLabel="Aceitar proposta"
+                onPress={() => (navigation as any).navigate('Checkout', { proposal })}
+              >
+                <View className="bg-green-100 p-2 rounded-full">
+                  <Icon name="check-circle" size={28} color="#22c55e" />
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                accessibilityLabel="Recusar proposta"
+                onPress={() => {/* lógica de recusa, se desejar */}}
+              >
+                <View className="bg-red-100 p-2 rounded-full">
+                  <Icon name="cancel" size={28} color="#ef4444" />
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         ))}
       </View>

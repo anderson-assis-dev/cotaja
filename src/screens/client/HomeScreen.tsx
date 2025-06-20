@@ -53,7 +53,16 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={service.id}
               className="bg-white rounded-xl p-4 mb-4 w-[48%] shadow-sm"
-              onPress={() => navigation.navigate(service.screen as never)}
+              onPress={() => {
+                if (service.screen === 'ActiveAuction') {
+                  (navigation as any).navigate('MyOrdersTab', {
+                    screen: 'ActiveAuction',
+                    params: { profileType: 'client', clientId: '1' }
+                  });
+                } else {
+                  (navigation as any).navigate(service.screen);
+                }
+              }}
             >
               <View className="bg-indigo-100 rounded-full w-12 h-12 items-center justify-center mb-3">
                 <Icon name={service.iconName} size={28} color="#4f46e5" />
