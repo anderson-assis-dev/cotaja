@@ -8,9 +8,9 @@ export default function ProfileSelectionScreen() {
   const handleProfileSelection = (type: 'client' | 'provider') => {
     // Simulação de seleção de perfil
     if (type === 'client') {
-      navigation.navigate('ClientHome' as never);
+      navigation.navigate('Client' as never);
     } else {
-      navigation.navigate('ProviderHome' as never);
+      navigation.navigate('Provider' as never);
     }
   };
   const insets = useSafeAreaInsets();

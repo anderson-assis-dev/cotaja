@@ -11,7 +11,7 @@ export default function LoginScreen() {
 
   const handleLogin = () => {
     if (email === 'admin@admin.com' && senha === '123456') {
-      navigation.navigate('Home' as never);
+      navigation.navigate('ProfileSelection' as never);
     } else {
       Alert.alert('Erro', 'Email ou senha inválidos');
     }
@@ -29,7 +29,7 @@ export default function LoginScreen() {
     <View style={{ paddingTop: insets.top }} className="flex-1 items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-6">
       <Image 
         source={require('../../assets/logo.png')} 
-        className="w-32 h-32 mb-8"
+        className="w-100 h-32 "
         resizeMode="contain"
       />
 
