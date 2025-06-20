@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
+import DocumentPicker, { DocumentPickerResponse } from 'react-native-document-picker';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const categories = [
   'Limpeza',
@@ -20,10 +23,50 @@ export default function CreateOrderScreen() {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [address, setAddress] = useState('');
+  const [attachments, setAttachments] = useState<(DocumentPickerResponse | { uri: string; name: string; type: string })[]>([]);
+
+  const handleCamera = async () => {
+    const result = await launchCamera({ mediaType: 'photo', quality: 0.7 });
+    if (result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setAttachments([...attachments, { uri: asset.uri!, name: asset.fileName!, type: asset.type! }]);
+    }
+  };
+
+  const handleGallery = async () => {
+    const result = await launchImageLibrary({ mediaType: 'mixed', quality: 0.7 });
+    if (result.assets && result.assets.length > 0) {
+      const newAssets = result.assets.map(asset => ({ uri: asset.uri!, name: asset.fileName!, type: asset.type! }));
+      setAttachments([...attachments, ...newAssets]);
+    }
+  };
+
+  const handleDocumentPick = async () => {
+    try {
+      const results = await DocumentPicker.pick({
+        type: [DocumentPicker.types.pdf],
+        allowMultiSelection: true,
+      });
+      setAttachments([...attachments, ...results]);
+    } catch (err) {
+      if (DocumentPicker.isCancel(err)) {
+        // User cancelled the picker
+      } else {
+        throw err;
+      }
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    const newAttachments = [...attachments];
+    newAttachments.splice(index, 1);
+    setAttachments(newAttachments);
+  };
 
   const handleSubmit = () => {
-    if (!title || !category || !description || !budget || !deadline) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+    if (!title || !category || !description || !budget || !deadline || !address) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
@@ -86,6 +129,45 @@ export default function CreateOrderScreen() {
             multiline
             textAlignVertical="top"
           />
+
+          <Text className="text-lg font-semibold mb-2">Endereço do Serviço</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg p-3 mb-4"
+            placeholder="Ex: Rua das Flores, 123, Bairro, Cidade - UF"
+            value={address}
+            onChangeText={setAddress}
+          />
+
+          <Text className="text-lg font-semibold mb-2">Anexos</Text>
+          <View className="flex-row justify-around bg-gray-100 rounded-lg p-3 mb-4">
+            <TouchableOpacity onPress={handleCamera} className="items-center space-y-1">
+              <Icon name="photo-camera" size={30} color="#4f46e5" />
+              <Text className="text-xs text-indigo-600">Câmera</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleGallery} className="items-center space-y-1">
+              <Icon name="photo-library" size={30} color="#4f46e5" />
+              <Text className="text-xs text-indigo-600">Galeria</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDocumentPick} className="items-center space-y-1">
+              <Icon name="attach-file" size={30} color="#4f46e5" />
+              <Text className="text-xs text-indigo-600">PDF</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Lista de Anexos */}
+          {attachments.length > 0 && (
+            <View className="mb-4">
+              {attachments.map((file, index) => (
+                <View key={index} className="flex-row items-center justify-between bg-gray-50 p-2 rounded-lg mb-2">
+                  <Icon name={file.type === 'application/pdf' ? 'picture-as-pdf' : 'image'} size={24} color="#6b7280" />
+                  <Text className="flex-1 mx-3 text-gray-700" numberOfLines={1}>{file.name}</Text>
+                  <TouchableOpacity onPress={() => removeAttachment(index)}>
+                    <Icon name="close" size={20} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
           <Text className="text-lg font-semibold mb-2">Orçamento (R$)</Text>
           <TextInput

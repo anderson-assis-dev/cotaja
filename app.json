@@ -13,7 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.developer-anderson.cotaja",
+      "deploymentTarget": "17.5"
     },
     "android": {
       "adaptiveIcon": {
