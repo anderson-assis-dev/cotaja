@@ -1,34 +1,36 @@
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 const services = [
   {
     id: '1',
     title: 'Demandas Disponíveis',
     description: 'Veja pedidos de serviços',
-    icon: require('../../../assets/splash-icon.png'),
-    screen: 'AvailableDemands',
+    iconName: 'assignment',
+    screen: 'AvailableDemandsTab',
   },
   {
     id: '2',
     title: 'Enviar Proposta',
     description: 'Proponha seus serviços',
-    icon: require('../../../assets/splash-icon.png'),
+    iconName: 'send',
     screen: 'SendProposal',
   },
   {
     id: '3',
     title: 'Leilão em Andamento',
     description: 'Acompanhe seus leilões',
-    icon: require('../../../assets/splash-icon.png'),
+    iconName: 'gavel',
     screen: 'ProviderAuction',
   },
   {
     id: '4',
     title: 'Meus Serviços',
     description: 'Gerencie seus serviços',
-    icon: require('../../../assets/splash-icon.png'),
-    screen: 'MyServices',
+    iconName: 'build',
+    screen: 'MyServicesTab',
   },
 ];
 
@@ -88,11 +90,9 @@ export default function ProviderHomeScreen() {
               className="bg-white rounded-xl p-4 mb-4 w-[48%] shadow-sm"
               onPress={() => navigation.navigate(service.screen as never)}
             >
-              <Image
-                source={service.icon}
-                className="w-12 h-12 mb-3"
-                resizeMode="contain"
-              />
+              <View className="bg-indigo-100 rounded-full w-12 h-12 items-center justify-center mb-3">
+                <Icon name={service.iconName} size={28} color="#4f46e5" />
+              </View>
               <Text className="font-bold text-gray-800 mb-1">
                 {service.title}
               </Text>

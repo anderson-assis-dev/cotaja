@@ -36,6 +36,52 @@ import ProfileScreen from '../screens/management/ProfileScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// --- Pilhas de Navegação para as Abas ---
+const ClientHomeStack = createNativeStackNavigator();
+function ClientHomeStackNavigator() {
+  return (
+    <ClientHomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <ClientHomeStack.Screen name="ClientHomeScreen" component={ClientHomeScreen} />
+      <ClientHomeStack.Screen name="CreateOrder" component={CreateOrderScreen} />
+    </ClientHomeStack.Navigator>
+  );
+}
+
+const MyOrdersStack = createNativeStackNavigator();
+function MyOrdersStackNavigator() {
+  return (
+    <MyOrdersStack.Navigator screenOptions={{ headerShown: false }}>
+      <MyOrdersStack.Screen name="MyOrders" component={MyOrdersScreen} />
+      <MyOrdersStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
+      <MyOrdersStack.Screen name="ActiveAuction" component={ActiveAuctionScreen} />
+      <MyOrdersStack.Screen name="RateProvider" component={RateProviderScreen} />
+      <MyOrdersStack.Screen name="Checkout" component={CheckoutScreen} />
+      <MyOrdersStack.Screen name="Payment" component={PaymentScreen} />
+    </MyOrdersStack.Navigator>
+  );
+}
+
+const MyServicesStack = createNativeStackNavigator();
+function MyServicesStackNavigator() {
+    return (
+        <MyServicesStack.Navigator screenOptions={{ headerShown: false }}>
+            <MyServicesStack.Screen name="MyServices" component={MyServicesScreen} />
+            <MyServicesStack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
+            <MyServicesStack.Screen name="RateClient" component={RateClientScreen} />
+        </MyServicesStack.Navigator>
+    );
+}
+
+const AvailableDemandsStack = createNativeStackNavigator();
+function AvailableDemandsStackNavigator() {
+    return (
+        <AvailableDemandsStack.Navigator screenOptions={{ headerShown: false }}>
+            <AvailableDemandsStack.Screen name="AvailableDemands" component={AvailableDemandsScreen} />
+            <AvailableDemandsStack.Screen name="SendProposal" component={SendProposalScreen} />
+        </AvailableDemandsStack.Navigator>
+    );
+}
+
 // --- Navegador de Abas do Cliente ---
 function ClientTabNavigator() {
   return (
@@ -61,8 +107,8 @@ function ClientTabNavigator() {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Home" component={ClientHomeScreen} options={{ title: 'Início' }} />
-      <Tab.Screen name="MyOrdersTab" component={MyOrdersScreen} options={{ title: 'Meus Pedidos' }}/>
+      <Tab.Screen name="Home" component={ClientHomeStackNavigator} options={{ title: 'Início' }} />
+      <Tab.Screen name="MyOrdersTab" component={MyOrdersStackNavigator} options={{ title: 'Meus Pedidos' }}/>
       <Tab.Screen name="SearchTab" component={SearchScreen} options={{ title: 'Buscar' }} />
       <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
@@ -95,8 +141,8 @@ function ProviderTabNavigator() {
         })}
     >
         <Tab.Screen name="Home" component={ProviderHomeScreen} options={{ title: 'Início' }} />
-        <Tab.Screen name="MyServicesTab" component={MyServicesScreen} options={{ title: 'Meus Serviços' }}/>
-        <Tab.Screen name="AvailableDemandsTab" component={AvailableDemandsScreen} options={{ title: 'Demandas' }}/>
+        <Tab.Screen name="MyServicesTab" component={MyServicesStackNavigator} options={{ title: 'Meus Serviços' }}/>
+        <Tab.Screen name="AvailableDemandsTab" component={AvailableDemandsStackNavigator} options={{ title: 'Demandas' }}/>
         <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }}/>
     </Tab.Navigator>
   );
@@ -125,16 +171,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Client" component={ClientTabNavigator} />
         <Stack.Screen name="Provider" component={ProviderTabNavigator} />
 
-        {/* Telas que abrem sobre as abas (sem a barra de abas) */}
-        <Stack.Screen name="CreateOrder" component={CreateOrderScreen} />
-        <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-        <Stack.Screen name="ActiveAuction" component={ActiveAuctionScreen} />
-        <Stack.Screen name="RateProvider" component={RateProviderScreen} />
-        <Stack.Screen name="Checkout" component={CheckoutScreen} />
-        <Stack.Screen name="Payment" component={PaymentScreen} />
-        <Stack.Screen name="SendProposal" component={SendProposalScreen} />
-        <Stack.Screen name="ProviderAuction" component={ProviderAuctionScreen} />
-        <Stack.Screen name="RateClient" component={RateClientScreen} />
+        {/* As telas foram movidas para dentro das suas respectivas pilhas de abas */}
 
       </Stack.Navigator>
     </NavigationContainer>
