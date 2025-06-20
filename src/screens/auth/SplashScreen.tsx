@@ -40,7 +40,7 @@ export default function SplashScreen() {
       >
         <Image
           source={require('../../../assets/logo.png')}
-          className="w-48 h-48"
+          className="w-80 h-80"
           resizeMode="contain"
         />
       </Animated.View>
