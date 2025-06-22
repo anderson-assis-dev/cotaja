@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
 // --- Dados Mockados Enriquecidos ---
 const mockCompanies = [
@@ -47,10 +48,15 @@ const CompanyCard = ({ company, onPress }: { company: Company, onPress: () => vo
 // --- Tela Principal ---
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
+  const route = useRoute();
+  const navigation = useNavigation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
+  const isRatingMode = (route.params as any)?.isRatingMode || false;
+  
   const filteredCompanies = useMemo(() => {
     let companies = mockCompanies;
 
@@ -82,6 +88,14 @@ export default function SearchScreen() {
 
   const handleCloseModal = () => {
     setSelectedCompany(null);
+  };
+
+  const handleNavigateToRate = (company: Company) => {
+    handleCloseModal();
+    (navigation as any).navigate('MyOrdersTab', {
+      screen: 'RateProvider',
+      params: { companyToRate: company }
+    });
   };
 
   return (
@@ -170,12 +184,21 @@ export default function SearchScreen() {
                     </View>
                 </ScrollView>
 
-                <TouchableOpacity 
+                {isRatingMode ? (
+                  <TouchableOpacity 
+                    className="bg-amber-500 rounded-lg p-4 mt-4"
+                    onPress={() => handleNavigateToRate(selectedCompany!)}
+                  >
+                    <Text className="text-center text-white font-bold text-lg">Avaliar Empresa</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity 
                     className="bg-indigo-600 rounded-lg p-4 mt-4"
                     onPress={() => { /* Navegar para criar pedido */ handleCloseModal(); }}
-                >
+                  >
                     <Text className="text-center text-white font-bold text-lg">Solicitar Orçamento</Text>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                )}
               </>
             )}
           </View>

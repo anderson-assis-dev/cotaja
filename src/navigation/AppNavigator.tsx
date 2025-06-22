@@ -296,7 +296,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="ProfileSelection"
+        initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
         }}

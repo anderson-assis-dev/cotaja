@@ -78,6 +78,13 @@ export default function HomeScreen() {
                       clientInfo: clientInfo
                     }
                   });
+                } else if (service.screen === 'RateProvider') {
+                  (navigation as any).navigate('SearchTab', {
+                    isRatingMode: true,
+                    userType: userType, 
+                    clientId: clientId,
+                    clientInfo: clientInfo
+                  });
                 } else {
                   (navigation as any).navigate(service.screen, {
                     userType: userType,
