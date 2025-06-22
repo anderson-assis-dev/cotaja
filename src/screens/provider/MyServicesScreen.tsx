@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, Modal, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface Service {
   id: string;
@@ -13,6 +14,12 @@ interface Service {
   rating: number;
   completedJobs: number;
 }
+
+// Categorias disponíveis
+const categories = [
+  'Limpeza', 'Reparos', 'Tecnologia', 'Aulas', 'Design', 'Eventos',
+  'Pintura', 'Elétrica', 'Encanamento', 'Jardinagem', 'Transporte', 'Outros'
+];
 
 export default function MyServicesScreen() {
   const navigation = useNavigation();
@@ -50,6 +57,16 @@ export default function MyServicesScreen() {
       completedJobs: 28
     }
   ]);
+
+  // Estados para o modal de novo serviço
+  const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+  const [newService, setNewService] = useState({
+    title: '',
+    description: '',
+    price: '',
+    category: '',
+    status: 'active' as 'active' | 'inactive'
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,6 +126,50 @@ export default function MyServicesScreen() {
     Alert.alert('Editar Serviço', `Editar: ${service.title}`);
   };
 
+  const handleAddNewService = () => {
+    if (!newService.title || !newService.description || !newService.price || !newService.category) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    const price = parseFloat(newService.price);
+    if (isNaN(price) || price <= 0) {
+      Alert.alert('Erro', 'Por favor, insira um preço válido');
+      return;
+    }
+
+    const service: Service = {
+      id: Date.now().toString(),
+      title: newService.title,
+      description: newService.description,
+      price: price,
+      status: newService.status,
+      category: newService.category,
+      rating: 0,
+      completedJobs: 0
+    };
+
+    setServices(prevServices => [...prevServices, service]);
+    setShowNewServiceModal(false);
+    setNewService({
+      title: '',
+      description: '',
+      price: '',
+      category: '',
+      status: 'active'
+    });
+  };
+
+  const resetNewServiceForm = () => {
+    setNewService({
+      title: '',
+      description: '',
+      price: '',
+      category: '',
+      status: 'active' as 'active' | 'inactive'
+    });
+  };
+
   return (
     <ScrollView className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600" style={{ paddingTop: insets.top }}>
       <View className="p-6">
@@ -116,10 +177,10 @@ export default function MyServicesScreen() {
         <View className="flex-row items-center justify-between mb-6">
           <Text className="text-2xl font-bold text-black">Meus Serviços</Text>
           <TouchableOpacity
-            className="bg-white rounded-lg px-4 py-2"
-            onPress={() => Alert.alert('Adicionar Serviço', 'Funcionalidade em desenvolvimento')}
+            className="bg-white rounded-full p-3 shadow-lg"
+            onPress={() => setShowNewServiceModal(true)}
           >
-            <Text className="text-indigo-600 font-semibold">+ Novo</Text>
+            <Icon name="add" size={24} color="#4f46e5" />
           </TouchableOpacity>
         </View>
 
@@ -171,29 +232,31 @@ export default function MyServicesScreen() {
                 </View>
               </View>
 
-              {/* Action Buttons */}
-              <View className="flex-row space-x-2">
+              {/* Action Icons */}
+              <View className="flex-row justify-end space-x-3">
                 <TouchableOpacity
-                  className="flex-1 bg-indigo-600 rounded-lg py-2"
+                  className="bg-indigo-100 p-2 rounded-full"
                   onPress={() => editService(service)}
                 >
-                  <Text className="text-white text-center font-medium">Editar</Text>
+                  <Icon name="edit" size={20} color="#4f46e5" />
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  className="flex-1 bg-gray-600 rounded-lg py-2"
+                  className="bg-gray-100 p-2 rounded-full"
                   onPress={() => toggleServiceStatus(service.id)}
                 >
-                  <Text className="text-white text-center font-medium">
-                    {service.status === 'active' ? 'Desativar' : 'Ativar'}
-                  </Text>
+                  <Icon 
+                    name={service.status === 'active' ? 'pause' : 'play-arrow'} 
+                    size={20} 
+                    color={service.status === 'active' ? '#6b7280' : '#22c55e'} 
+                  />
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                  className="bg-red-500 rounded-lg px-3 py-2"
+                  className="bg-red-100 p-2 rounded-full"
                   onPress={() => deleteService(service.id)}
                 >
-                  <Text className="text-white font-medium">Excluir</Text>
+                  <Icon name="delete" size={20} color="#ef4444" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -210,6 +273,149 @@ export default function MyServicesScreen() {
           </View>
         )}
       </View>
+
+      {/* Modal para Novo Serviço */}
+      <Modal
+        visible={showNewServiceModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
+          <View className="flex-row justify-between items-center p-6 border-b border-gray-200">
+            <Text className="text-xl font-bold">Novo Serviço</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                setShowNewServiceModal(false);
+                resetNewServiceForm();
+              }}
+            >
+              <Icon name="close" size={24} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView className="flex-1 p-6">
+            {/* Informações do Serviço */}
+            <View className="bg-gray-50 rounded-xl p-6 mb-6">
+              <Text className="text-lg font-bold mb-4">Informações do Serviço</Text>
+              
+              <Text className="text-gray-700 font-semibold mb-2">Título do Serviço *</Text>
+              <TextInput
+                className="bg-white border border-gray-300 rounded-lg p-3 mb-4"
+                placeholder="Ex: Limpeza Residencial"
+                value={newService.title}
+                onChangeText={(text) => setNewService(prev => ({ ...prev, title: text }))}
+              />
+
+              <Text className="text-gray-700 font-semibold mb-2">Categoria *</Text>
+              <View className="bg-white border border-gray-300 rounded-lg p-3 mb-4">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row space-x-2">
+                    {categories.map((category) => (
+                      <TouchableOpacity
+                        key={category}
+                        className={`px-3 py-2 rounded-full ${
+                          newService.category === category 
+                            ? 'bg-indigo-600' 
+                            : 'bg-gray-200'
+                        }`}
+                        onPress={() => setNewService(prev => ({ ...prev, category }))}
+                      >
+                        <Text className={`${
+                          newService.category === category 
+                            ? 'text-white' 
+                            : 'text-gray-700'
+                        } font-medium`}>
+                          {category}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              <Text className="text-gray-700 font-semibold mb-2">Descrição *</Text>
+              <TextInput
+                className="bg-white border border-gray-300 rounded-lg p-3 mb-4"
+                placeholder="Descreva seu serviço em detalhes..."
+                value={newService.description}
+                onChangeText={(text) => setNewService(prev => ({ ...prev, description: text }))}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+
+              <Text className="text-gray-700 font-semibold mb-2">Preço (R$) *</Text>
+              <TextInput
+                className="bg-white border border-gray-300 rounded-lg p-3 mb-4"
+                placeholder="0,00"
+                value={newService.price}
+                onChangeText={(text) => setNewService(prev => ({ ...prev, price: text }))}
+                keyboardType="numeric"
+              />
+
+              <Text className="text-gray-700 font-semibold mb-2">Status</Text>
+              <View className="flex-row space-x-3">
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg ${
+                    newService.status === 'active' 
+                      ? 'bg-green-600' 
+                      : 'bg-gray-200'
+                  }`}
+                  onPress={() => setNewService(prev => ({ ...prev, status: 'active' }))}
+                >
+                  <Text className={`${
+                    newService.status === 'active' 
+                      ? 'text-white' 
+                      : 'text-gray-700'
+                  } font-medium`}>
+                    Ativo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg ${
+                    newService.status === 'inactive' 
+                      ? 'bg-gray-600' 
+                      : 'bg-gray-200'
+                  }`}
+                  onPress={() => setNewService(prev => ({ ...prev, status: 'inactive' }))}
+                >
+                  <Text className={`${
+                    newService.status === 'inactive' 
+                      ? 'text-white' 
+                      : 'text-gray-700'
+                  } font-medium`}>
+                    Inativo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Botões de Ação */}
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                className="flex-1 bg-gray-600 rounded-lg p-4"
+                onPress={() => {
+                  setShowNewServiceModal(false);
+                  resetNewServiceForm();
+                }}
+              >
+                <Text className="text-center text-white font-bold text-lg">
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                className="flex-1 bg-indigo-600 rounded-lg p-4"
+                onPress={handleAddNewService}
+              >
+                <Text className="text-center text-white font-bold text-lg">
+                  Criar Serviço
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 } 
