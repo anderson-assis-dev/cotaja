@@ -60,12 +60,14 @@ export default function MyServicesScreen() {
 
   // Estados para o modal de novo serviço
   const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingServiceId, setEditingServiceId] = useState<string>('');
   const [newService, setNewService] = useState({
     title: '',
     description: '',
     price: '',
     category: '',
-    status: 'active' as 'active' | 'inactive'
+    status: 'active' as 'active' | 'inactive' | 'pending'
   });
 
   const getStatusColor = (status: string) => {
@@ -122,8 +124,17 @@ export default function MyServicesScreen() {
   };
 
   const editService = (service: Service) => {
-    // Navegar para tela de edição (implementar depois)
-    Alert.alert('Editar Serviço', `Editar: ${service.title}`);
+    // Preencher o modal com os dados do serviço para edição
+    setNewService({
+      title: service.title,
+      description: service.description,
+      price: service.price.toString(),
+      category: service.category,
+      status: service.status
+    });
+    setEditingServiceId(service.id);
+    setIsEditing(true);
+    setShowNewServiceModal(true);
   };
 
   const handleAddNewService = () => {
@@ -138,26 +149,58 @@ export default function MyServicesScreen() {
       return;
     }
 
-    const service: Service = {
-      id: Date.now().toString(),
-      title: newService.title,
-      description: newService.description,
-      price: price,
-      status: newService.status,
-      category: newService.category,
-      rating: 0,
-      completedJobs: 0
-    };
+    if (isEditing) {
+      // Atualizar serviço existente
+      setServices(prevServices =>
+        prevServices.map(service =>
+          service.id === editingServiceId
+            ? {
+                ...service,
+                title: newService.title,
+                description: newService.description,
+                price: price,
+                status: newService.status,
+                category: newService.category
+              }
+            : service
+        )
+      );
+      
+      // TODO: Enviar PUT para backend Laravel com editingServiceId
+      console.log('PUT /api/services/' + editingServiceId, {
+        title: newService.title,
+        description: newService.description,
+        price: price,
+        status: newService.status,
+        category: newService.category
+      });
+      
+      Alert.alert('Sucesso', 'Serviço atualizado com sucesso!');
+    } else {
+      // Criar novo serviço
+      const service: Service = {
+        id: Date.now().toString(),
+        title: newService.title,
+        description: newService.description,
+        price: price,
+        status: newService.status,
+        category: newService.category,
+        rating: 0,
+        completedJobs: 0
+      };
 
-    setServices(prevServices => [...prevServices, service]);
+      setServices(prevServices => [...prevServices, service]);
+      
+      // TODO: Enviar POST para backend Laravel
+      console.log('POST /api/services', service);
+      
+      Alert.alert('Sucesso', 'Serviço criado com sucesso!');
+    }
+
     setShowNewServiceModal(false);
-    setNewService({
-      title: '',
-      description: '',
-      price: '',
-      category: '',
-      status: 'active'
-    });
+    resetNewServiceForm();
+    setIsEditing(false);
+    setEditingServiceId('');
   };
 
   const resetNewServiceForm = () => {
@@ -166,8 +209,10 @@ export default function MyServicesScreen() {
       description: '',
       price: '',
       category: '',
-      status: 'active' as 'active' | 'inactive'
+      status: 'active' as 'active' | 'inactive' | 'pending'
     });
+    setIsEditing(false);
+    setEditingServiceId('');
   };
 
   return (
@@ -282,7 +327,9 @@ export default function MyServicesScreen() {
       >
         <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
           <View className="flex-row justify-between items-center p-6 border-b border-gray-200">
-            <Text className="text-xl font-bold">Novo Serviço</Text>
+            <Text className="text-xl font-bold">
+              {isEditing ? 'Editar Serviço' : 'Novo Serviço'}
+            </Text>
             <TouchableOpacity 
               onPress={() => {
                 setShowNewServiceModal(false);
@@ -385,6 +432,22 @@ export default function MyServicesScreen() {
                       : 'text-gray-700'
                   } font-medium`}>
                     Inativo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className={`px-4 py-2 rounded-lg ${
+                    newService.status === 'pending' 
+                      ? 'bg-yellow-600' 
+                      : 'bg-gray-200'
+                  }`}
+                  onPress={() => setNewService(prev => ({ ...prev, status: 'pending' }))}
+                >
+                  <Text className={`${
+                    newService.status === 'pending' 
+                      ? 'text-white' 
+                      : 'text-gray-700'
+                  } font-medium`}>
+                    Pendente
                   </Text>
                 </TouchableOpacity>
               </View>
