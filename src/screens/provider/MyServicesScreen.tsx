@@ -391,26 +391,22 @@ export default function MyServicesScreen() {
             </View>
 
             {/* Botões de Ação */}
-            <View className="flex-row space-x-3">
+            <View className="flex-row justify-end space-x-3">
               <TouchableOpacity
-                className="flex-1 bg-gray-600 rounded-lg p-4"
+                className="bg-gray-100 p-3 rounded-full"
                 onPress={() => {
                   setShowNewServiceModal(false);
                   resetNewServiceForm();
                 }}
               >
-                <Text className="text-center text-white font-bold text-lg">
-                  Cancelar
-                </Text>
+                <Icon name="close" size={24} color="#6b7280" />
               </TouchableOpacity>
               
               <TouchableOpacity
-                className="flex-1 bg-indigo-600 rounded-lg p-4"
+                className="bg-indigo-100 p-3 rounded-full"
                 onPress={handleAddNewService}
               >
-                <Text className="text-center text-white font-bold text-lg">
-                  Criar Serviço
-                </Text>
+                <Icon name="check" size={24} color="#4f46e5" />
               </TouchableOpacity>
             </View>
           </ScrollView>
