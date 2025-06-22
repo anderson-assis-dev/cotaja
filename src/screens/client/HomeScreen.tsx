@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
@@ -36,14 +36,29 @@ const services = [
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const insets = useSafeAreaInsets();
+  
+  // Acessando os parâmetros do cliente
+  const clientInfo = (route.params as any)?.clientInfo || {};
+  const clientId = (route.params as any)?.clientId || null;
+  const userType = (route.params as any)?.userType || 'client';
+  
+  // Nome do cliente para exibição
+  const clientName = clientInfo.name || 'Cliente';
+  
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
-        <Text className="text-2xl font-bold text-black mb-2">Olá, João!</Text>
+        <Text className="text-2xl font-bold text-black mb-2">Olá, {clientName}!</Text>
         <Text className="text-black opacity-80">
           Como podemos ajudar você hoje?
         </Text>
+        {clientId && (
+          <Text className="text-black opacity-60 text-sm mt-1">
+            ID: {clientId}
+          </Text>
+        )}
       </View>
 
       <View className="p-6">
@@ -57,10 +72,18 @@ export default function HomeScreen() {
                 if (service.screen === 'ActiveAuction') {
                   (navigation as any).navigate('MyOrdersTab', {
                     screen: 'ActiveAuction',
-                    params: { profileType: 'client', clientId: '1' }
+                    params: { 
+                      userType: userType, 
+                      clientId: clientId,
+                      clientInfo: clientInfo
+                    }
                   });
                 } else {
-                  (navigation as any).navigate(service.screen);
+                  (navigation as any).navigate(service.screen, {
+                    userType: userType,
+                    clientId: clientId,
+                    clientInfo: clientInfo
+                  });
                 }
               }}
             >
@@ -86,7 +109,11 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           className="bg-indigo-600 rounded-lg p-4 mt-6"
-          onPress={() => navigation.navigate('CreateOrder' as never)}
+          onPress={() => (navigation as any).navigate('CreateOrder', {
+            userType: userType,
+            clientId: clientId,
+            clientInfo: clientInfo
+          })}
         >
           <Text className="text-center text-white font-bold text-lg">
             Criar Novo Pedido

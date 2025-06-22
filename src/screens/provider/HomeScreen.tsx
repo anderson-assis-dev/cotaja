@@ -88,7 +88,17 @@ export default function ProviderHomeScreen() {
             <TouchableOpacity
               key={service.id}
               className="bg-white rounded-xl p-4 mb-4 w-[48%] shadow-sm"
-              onPress={() => (navigation as any).navigate(service.screen)}
+              onPress={() => {
+                if (service.screen === 'AuctionsTab') {
+                  // Reseta a navegação para a tela de leilões sem filtros
+                  (navigation as any).navigate('AuctionsTab', {
+                    screen: 'ProviderAuction',
+                    params: { selectedCategory: undefined, fromSearch: false },
+                  });
+                } else {
+                  (navigation as any).navigate(service.screen);
+                }
+              }}
             >
               <View className="bg-indigo-100 rounded-full w-12 h-12 items-center justify-center mb-3">
                 <Icon name={service.iconName} size={28} color="#4f46e5" />

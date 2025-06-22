@@ -38,25 +38,95 @@ const Tab = createBottomTabNavigator();
 
 // --- Pilhas de Navegação para as Abas ---
 const ClientHomeStack = createNativeStackNavigator();
-function ClientHomeStackNavigator() {
+function ClientHomeStackNavigator({ route }: any) {
+  const clientInfo = route?.params?.clientInfo || {};
+  const clientId = route?.params?.clientId || null;
+  
   return (
     <ClientHomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <ClientHomeStack.Screen name="ClientHomeScreen" component={ClientHomeScreen} />
-      <ClientHomeStack.Screen name="CreateOrder" component={CreateOrderScreen} />
+      <ClientHomeStack.Screen 
+        name="ClientHomeScreen" 
+        component={ClientHomeScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <ClientHomeStack.Screen 
+        name="CreateOrder" 
+        component={CreateOrderScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
     </ClientHomeStack.Navigator>
   );
 }
 
 const MyOrdersStack = createNativeStackNavigator();
-function MyOrdersStackNavigator() {
+function MyOrdersStackNavigator({ route }: any) {
+  const clientInfo = route?.params?.clientInfo || {};
+  const clientId = route?.params?.clientId || null;
+  
   return (
     <MyOrdersStack.Navigator screenOptions={{ headerShown: false }}>
-      <MyOrdersStack.Screen name="MyOrders" component={AuctionScreen} />
-      <MyOrdersStack.Screen name="OrderDetails" component={OrderDetailsScreen} />
-      <MyOrdersStack.Screen name="ActiveAuction" component={AuctionScreen} />
-      <MyOrdersStack.Screen name="RateProvider" component={RateProviderScreen} />
-      <MyOrdersStack.Screen name="Checkout" component={CheckoutScreen} />
-      <MyOrdersStack.Screen name="Payment" component={PaymentScreen} />
+      <MyOrdersStack.Screen 
+        name="MyOrders" 
+        component={ActiveAuctionScreen} 
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <MyOrdersStack.Screen 
+        name="OrderDetails" 
+        component={OrderDetailsScreen}
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <MyOrdersStack.Screen 
+        name="ActiveAuction" 
+        component={ActiveAuctionScreen}
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <MyOrdersStack.Screen 
+        name="RateProvider" 
+        component={RateProviderScreen}
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <MyOrdersStack.Screen 
+        name="Checkout" 
+        component={CheckoutScreen}
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <MyOrdersStack.Screen 
+        name="Payment" 
+        component={PaymentScreen}
+        initialParams={{ 
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
     </MyOrdersStack.Navigator>
   );
 }
@@ -109,7 +179,10 @@ function SearchStackNavigator() {
 }
 
 // --- Navegador de Abas do Cliente ---
-function ClientTabNavigator() {
+function ClientTabNavigator({ route }: any) {
+  const clientInfo = route?.params?.clientInfo || {};
+  const clientId = route?.params?.clientId || null;
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -133,10 +206,46 @@ function ClientTabNavigator() {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Home" component={ClientHomeStackNavigator} options={{ title: 'Início' }} />
-      <Tab.Screen name="MyOrdersTab" component={MyOrdersStackNavigator} options={{ title: 'Meus Pedidos' }}/>
-      <Tab.Screen name="SearchTab" component={SearchScreen} options={{ title: 'Buscar' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }} />
+      <Tab.Screen 
+        name="Home" 
+        component={ClientHomeStackNavigator} 
+        options={{ title: 'Início' }}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <Tab.Screen 
+        name="MyOrdersTab" 
+        component={MyOrdersStackNavigator} 
+        options={{ title: 'Meus Pedidos' }}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <Tab.Screen 
+        name="SearchTab" 
+        component={SearchScreen} 
+        options={{ title: 'Buscar' }}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <Tab.Screen 
+        name="ProfileTab" 
+        component={ProfileScreen} 
+        options={{ title: 'Perfil' }}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
     </Tab.Navigator>
   );
 }

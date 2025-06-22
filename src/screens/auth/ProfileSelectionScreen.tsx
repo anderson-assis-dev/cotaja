@@ -9,9 +9,21 @@ export default function ProfileSelectionScreen() {
   const handleProfileSelection = (type: 'client' | 'provider') => {
     // Simulação de seleção de perfil
     if (type === 'client') {
-      navigation.navigate('Client' as never);
+      // Dados simulados do cliente - em produção, viriam do login/autenticação
+      const clientInfo = {
+        id: 'client_123',
+        name: 'João Silva',
+        email: 'joao@example.com',
+        phone: '(11) 99999-9999',
+        address: 'Rua das Flores, 123 - São Paulo, SP'
+      };
+      
+      (navigation as any).navigate('Client', {
+        clientId: clientInfo.id,
+        clientInfo: clientInfo
+      });
     } else {
-      navigation.navigate('Provider' as never);
+      (navigation as any).navigate('Provider');
     }
   };
   const insets = useSafeAreaInsets();

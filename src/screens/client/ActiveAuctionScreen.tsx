@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Dados mockados para exemplo
 const mockAuction = {
@@ -36,7 +37,12 @@ const mockAuction = {
 
 export default function ActiveAuctionScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
+  const insets = useSafeAreaInsets();
   const [timeLeft, setTimeLeft] = useState('');
+
+  // Acessando os parâmetros do cliente
+  const { clientInfo, clientId, userType } = (route.params as any) || {};
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -58,7 +64,7 @@ export default function ActiveAuctionScreen() {
 
     return () => clearInterval(timer);
   }, []);
-  const insets = useSafeAreaInsets();
+
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
@@ -112,14 +118,26 @@ export default function ActiveAuctionScreen() {
                 </View>
               </View>
 
-              <TouchableOpacity
-                className="bg-indigo-600 rounded-lg p-4 mt-4"
-                onPress={() => navigation.navigate('Checkout' as never)}
-              >
-                <Text className="text-center text-white font-bold">
-                  Aceitar Proposta
-                </Text>
-              </TouchableOpacity>
+              <View className="flex-row justify-end space-x-4 mt-4">
+                <TouchableOpacity 
+                  className="bg-red-100 p-3 rounded-full"
+                  onPress={() => { /* Lógica para recusar */ }}
+                >
+                  <Icon name="close" size={24} color="#ef4444" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  className="bg-blue-100 p-3 rounded-full"
+                  onPress={() => { /* Lógica para chat */ }}
+                >
+                  <Icon name="chat" size={24} color="#3b82f6" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  className="bg-green-100 p-3 rounded-full"
+                  onPress={() => navigation.navigate('Checkout' as never)}
+                >
+                  <Icon name="check" size={24} color="#22c55e" />
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
         </View>
