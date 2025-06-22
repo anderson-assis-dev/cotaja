@@ -28,6 +28,8 @@ interface Auction {
   proposals: Proposal[];
   insights: string[];
   clientId: string;
+  hasActiveAuction: boolean;
+  isNewDemand: boolean;
 }
 
 // Dados mockados para exemplo - demandas com propostas recebidas
@@ -42,6 +44,8 @@ const mockAuctions: Auction[] = [
     description: 'Preciso pintar um apartamento de 80m², 2 quartos, sala, cozinha e banheiro. Cores neutras.',
     location: 'São Paulo, SP',
     clientRating: 4.8,
+    hasActiveAuction: true,
+    isNewDemand: false,
     proposals: [
       {
         id: 'p1',
@@ -89,6 +93,8 @@ const mockAuctions: Auction[] = [
     description: 'Instalar ar condicionado split 12.000 BTUs na sala. Já tenho o aparelho.',
     location: 'Rio de Janeiro, RJ',
     clientRating: 4.6,
+    hasActiveAuction: true,
+    isNewDemand: false,
     proposals: [
       {
         id: 'p4',
@@ -127,6 +133,8 @@ const mockAuctions: Auction[] = [
     description: 'Limpeza completa de casa após reforma. 120m², 3 quartos, 2 banheiros.',
     location: 'Belo Horizonte, MG',
     clientRating: 4.9,
+    hasActiveAuction: true,
+    isNewDemand: false,
     proposals: [
       {
         id: 'p6',
@@ -155,6 +163,48 @@ const mockAuctions: Auction[] = [
     ],
     clientId: '1',
   },
+  {
+    id: '4',
+    title: 'Manutenção de computador',
+    category: 'Tecnologia',
+    budget: 'R$ 200,00',
+    deadline: '2 dias',
+    status: 'Aguardando propostas',
+    description: 'Meu computador está lento e com problemas. Preciso de manutenção e limpeza.',
+    location: 'São Paulo, SP',
+    clientRating: 4.5,
+    hasActiveAuction: false,
+    isNewDemand: true,
+    proposals: [],
+    insights: [
+      'O orçamento médio da categoria é R$ 180,00',
+      'Prazo médio de execução: 1.5 dias',
+      'Você tem avaliação superior à média (4.9 vs 4.4)',
+      'Sugestão: Ofereça R$ 180,00 em 1 dia para ser competitivo'
+    ],
+    clientId: '3',
+  },
+  {
+    id: '5',
+    title: 'Aula de inglês online',
+    category: 'Aulas',
+    budget: 'R$ 50,00',
+    deadline: 'Flexível',
+    status: 'Aguardando propostas',
+    description: 'Preciso de aulas de inglês para conversação. 2x por semana, 1 hora cada.',
+    location: 'Online',
+    clientRating: 4.7,
+    hasActiveAuction: false,
+    isNewDemand: true,
+    proposals: [],
+    insights: [
+      'O orçamento médio da categoria é R$ 45,00',
+      'Prazo médio de execução: Flexível',
+      'Você tem avaliação superior à média (4.9 vs 4.5)',
+      'Sugestão: Ofereça R$ 45,00 por aula para ser competitivo'
+    ],
+    clientId: '4',
+  },
 ];
 
 export default function AuctionScreen() {
@@ -167,14 +217,26 @@ export default function AuctionScreen() {
   const [closedAuctions, setClosedAuctions] = useState<string[]>([]);
   const [cancelledProposals, setCancelledProposals] = useState<{ [auctionId: string]: boolean }>({});
 
-  // Recebe profileType: 'client' | 'provider' (default: provider)
+  // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'provider';
-  const clientId = (route.params as any)?.clientId || '1'; // mock id do cliente logado
+  const clientId = (route.params as any)?.clientId || '1';
+  const selectedCategory = (route.params as any)?.selectedCategory;
+  const fromSearch = (route.params as any)?.fromSearch || false;
 
-  // Filtra as demandas conforme o tipo de usuário
-  const filteredAuctions = profileType === 'client'
+  // Filtra as demandas conforme o tipo de usuário e categoria
+  let filteredAuctions = profileType === 'client'
     ? mockAuctions.filter(a => a.clientId === clientId)
     : mockAuctions;
+
+  // Aplica filtro por categoria se selecionada
+  if (selectedCategory) {
+    filteredAuctions = filteredAuctions.filter(a => a.category === selectedCategory);
+  }
+
+  // Remove demandas encerradas e propostas canceladas
+  filteredAuctions = filteredAuctions.filter(
+    (auction) => !closedAuctions.includes(auction.id) && !cancelledProposals[auction.id]
+  );
 
   const handleAuctionPress = (auction: Auction) => {
     setSelectedAuction(auction);
@@ -255,78 +317,135 @@ export default function AuctionScreen() {
     }
   };
 
+  const getPageTitle = () => {
+    if (fromSearch) {
+      return selectedCategory ? `Demandas - ${selectedCategory}` : 'Todas as Demandas';
+    }
+    return 'Leilões em Andamento';
+  };
+
+  const getPageSubtitle = () => {
+    if (fromSearch) {
+      return selectedCategory 
+        ? `Demandas disponíveis na categoria ${selectedCategory}`
+        : 'Demandas disponíveis em todas as categorias';
+    }
+    return 'Demandas da sua região e categoria com propostas recebidas';
+  };
+
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
-        <Text className="text-2xl font-bold mb-6">Leilões em Andamento</Text>
+        <Text className="text-2xl font-bold mb-6">{getPageTitle()}</Text>
         <Text className="text-gray-600 mb-6">
-          Demandas da sua região e categoria com propostas recebidas
+          {getPageSubtitle()}
         </Text>
 
-        {filteredAuctions
-          .filter((auction) => !closedAuctions.includes(auction.id) && !cancelledProposals[auction.id])
-          .map((auction) => (
-            <TouchableOpacity
-              key={auction.id}
-              className="bg-white rounded-xl p-6 shadow-sm mb-4"
-              onPress={() => handleAuctionPress(auction)}
-            >
-              <View className="flex-row justify-between items-start mb-4">
-                <Text className="text-lg font-bold flex-1 mr-4">
-                  {auction.title}
-                </Text>
+        {filteredAuctions.map((auction) => (
+          <TouchableOpacity
+            key={auction.id}
+            className="bg-white rounded-xl p-6 shadow-sm mb-4"
+            onPress={() => handleAuctionPress(auction)}
+          >
+            <View className="flex-row justify-between items-start mb-4">
+              <Text className="text-lg font-bold flex-1 mr-4">
+                {auction.title}
+              </Text>
+              <View className="flex-row items-center">
+                {/* Ícone de leilão ativo */}
+                {auction.hasActiveAuction && (
+                  <View className="bg-orange-100 p-1 rounded-full mr-2">
+                    <Icon name="gavel" size={16} color="#f97316" />
+                  </View>
+                )}
+                {/* Ícone de nova demanda */}
+                {auction.isNewDemand && (
+                  <View className="bg-green-100 p-1 rounded-full mr-2">
+                    <Icon name="new-releases" size={16} color="#22c55e" />
+                  </View>
+                )}
                 <View className="bg-green-100 px-3 py-1 rounded-full">
                   <Text className="text-green-600">{auction.status}</Text>
                 </View>
               </View>
+            </View>
 
-              <View className="flex-row items-center mb-4">
-                <View className="bg-indigo-100 px-3 py-1 rounded-full">
-                  <Text className="text-indigo-600">{auction.category}</Text>
-                </View>
-                <Text className="text-gray-500 ml-4">
-                  Orçamento: {auction.budget}
-                </Text>
+            <View className="flex-row items-center mb-4">
+              <View className="bg-indigo-100 px-3 py-1 rounded-full">
+                <Text className="text-indigo-600">{auction.category}</Text>
               </View>
+              <Text className="text-gray-500 ml-4">
+                Orçamento: {auction.budget}
+              </Text>
+            </View>
 
-              <View className="flex-row items-center mb-4">
-                <Icon name="location-on" size={16} color="#6b7280" />
-                <Text className="text-gray-600 ml-1">{auction.location}</Text>
-                <View className="flex-row items-center ml-4">
-                  <Icon name="star" size={16} color="#fbbf24" />
-                  <Text className="text-gray-600 ml-1">{auction.clientRating}</Text>
-                </View>
+            <View className="flex-row items-center mb-4">
+              <Icon name="location-on" size={16} color="#6b7280" />
+              <Text className="text-gray-600 ml-1">{auction.location}</Text>
+              <View className="flex-row items-center ml-4">
+                <Icon name="star" size={16} color="#fbbf24" />
+                <Text className="text-gray-600 ml-1">{auction.clientRating}</Text>
               </View>
+            </View>
 
-              <View className="bg-blue-50 rounded-lg p-4 mb-4">
-                <Text className="font-semibold mb-2 text-blue-800">
-                  {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
-                </Text>
-                <Text className="text-blue-600 text-sm">
-                  Clique para ver detalhes e enviar sua proposta
-                </Text>
-              </View>
-
-              <View className="flex-row justify-between items-center">
-                <Text className="text-gray-600">
-                  Prazo: {auction.deadline}
-                </Text>
-                <View className="flex-row items-center">
-                  <Icon name="visibility" size={20} color="#4f46e5" />
-                  <Text className="text-indigo-600 ml-1 font-semibold">
-                    Ver Detalhes
+            {/* Status das propostas */}
+            <View className="bg-blue-50 rounded-lg p-4 mb-4">
+              {auction.proposals.length > 0 ? (
+                <>
+                  <Text className="font-semibold mb-2 text-blue-800">
+                    {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
                   </Text>
-                </View>
+                  <Text className="text-blue-600 text-sm">
+                    Clique para ver detalhes e enviar sua proposta
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text className="font-semibold mb-2 text-green-800">
+                    🎯 Seja o primeiro a enviar uma proposta!
+                  </Text>
+                  <Text className="text-green-600 text-sm">
+                    Nenhuma proposta ainda. Aproveite esta oportunidade!
+                  </Text>
+                </>
+              )}
+            </View>
+
+            <View className="flex-row justify-between items-center">
+              <Text className="text-gray-600">
+                Prazo: {auction.deadline}
+              </Text>
+              <View className="flex-row items-center">
+                <Icon name="visibility" size={20} color="#4f46e5" />
+                <Text className="text-indigo-600 ml-1 font-semibold">
+                  Ver Detalhes
+                </Text>
               </View>
-            </TouchableOpacity>
-          ))}
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        {filteredAuctions.length === 0 && (
+          <View className="bg-white rounded-xl p-8 items-center">
+            <Icon name="search-off" size={64} color="#9ca3af" />
+            <Text className="text-xl font-semibold text-gray-600 mt-4 mb-2">
+              Nenhuma demanda encontrada
+            </Text>
+            <Text className="text-gray-500 text-center">
+              {selectedCategory 
+                ? `Não há demandas disponíveis na categoria "${selectedCategory}" no momento.`
+                : 'Não há demandas disponíveis no momento.'
+              }
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
           className="bg-indigo-600 rounded-lg p-4 mt-6"
-          onPress={() => navigation.navigate('ProviderHome' as never)}
+          onPress={() => navigation.goBack()}
         >
           <Text className="text-center text-white font-bold text-lg">
-            Voltar para Home
+            Voltar
           </Text>
         </TouchableOpacity>
       </View>
@@ -349,7 +468,21 @@ export default function AuctionScreen() {
             <ScrollView className="flex-1 p-6">
               {/* Informações da Demanda */}
               <View className="bg-gray-50 rounded-xl p-6 mb-6">
-                <Text className="text-xl font-bold mb-4">{selectedAuction.title}</Text>
+                <View className="flex-row items-center mb-4">
+                  <Text className="text-xl font-bold flex-1">{selectedAuction.title}</Text>
+                  <View className="flex-row items-center">
+                    {selectedAuction.hasActiveAuction && (
+                      <View className="bg-orange-100 p-2 rounded-full mr-2">
+                        <Icon name="gavel" size={20} color="#f97316" />
+                      </View>
+                    )}
+                    {selectedAuction.isNewDemand && (
+                      <View className="bg-green-100 p-2 rounded-full mr-2">
+                        <Icon name="new-releases" size={20} color="#22c55e" />
+                      </View>
+                    )}
+                  </View>
+                </View>
                 <View className="flex-row items-center mb-3">
                   <View className="bg-indigo-100 px-3 py-1 rounded-full">
                     <Text className="text-indigo-600">{selectedAuction.category}</Text>
@@ -370,67 +503,80 @@ export default function AuctionScreen() {
               </View>
 
               {/* Ranking das Propostas */}
-              <Text className="text-lg font-bold mb-4">Ranking das Propostas</Text>
-              {selectedAuction.proposals
-                .filter((proposal) => !(refusedProposals[selectedAuction.id]?.includes(proposal.id)))
-                .map((proposal) => (
-                  <View
-                    key={proposal.id}
-                    className="bg-white border border-gray-200 rounded-xl p-4 mb-3"
-                  >
-                    <View className="flex-row justify-between items-start mb-3">
-                      <View className="flex-row items-center">
-                        <Text className="text-2xl mr-2">{getRankingIcon(proposal.ranking)}</Text>
-                        <View>
-                          <Text className="font-semibold">{proposal.providerName}</Text>
+              {selectedAuction.proposals.length > 0 ? (
+                <>
+                  <Text className="text-lg font-bold mb-4">Ranking das Propostas</Text>
+                  {selectedAuction.proposals
+                    .filter((proposal) => !(refusedProposals[selectedAuction.id]?.includes(proposal.id)))
+                    .map((proposal) => (
+                      <View
+                        key={proposal.id}
+                        className="bg-white border border-gray-200 rounded-xl p-4 mb-3"
+                      >
+                        <View className="flex-row justify-between items-start mb-3">
                           <View className="flex-row items-center">
-                            <Icon name="star" size={14} color="#fbbf24" />
-                            <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
+                            <Text className="text-2xl mr-2">{getRankingIcon(proposal.ranking)}</Text>
+                            <View>
+                              <Text className="font-semibold">{proposal.providerName}</Text>
+                              <View className="flex-row items-center">
+                                <Icon name="star" size={14} color="#fbbf24" />
+                                <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
+                              </View>
+                            </View>
+                          </View>
+                          <View className={`px-3 py-1 rounded-full ${getRankingColor(proposal.ranking)}`}>
+                            <Text className="font-semibold">{proposal.ranking}º lugar</Text>
                           </View>
                         </View>
-                      </View>
-                      <View className={`px-3 py-1 rounded-full ${getRankingColor(proposal.ranking)}`}>
-                        <Text className="font-semibold">{proposal.ranking}º lugar</Text>
-                      </View>
-                    </View>
-                    
-                    <View className="flex-row justify-between mb-3">
-                      <View>
-                        <Text className="text-gray-500 text-sm">Valor</Text>
-                        <Text className="font-bold text-lg">{proposal.price}</Text>
-                      </View>
-                      <View>
-                        <Text className="text-gray-500 text-sm">Prazo</Text>
-                        <Text className="font-bold text-lg">{proposal.deadline}</Text>
-                      </View>
-                    </View>
-                    
-                    <Text className="text-gray-600 text-sm">{proposal.description}</Text>
-                    {profileType === 'client' && (
-                      <View className="flex-row items-center space-x-4 self-end mt-2">
-                        <TouchableOpacity
-                          accessibilityLabel="Aceitar proposta"
-                          onPress={() => {
-                            setShowDetails(false);
-                            (navigation as any).navigate('Checkout', { proposal });
-                          }}
-                        >
-                          <View className="bg-green-100 p-2 rounded-full">
-                            <Icon name="check-circle" size={28} color="#22c55e" />
+                        
+                        <View className="flex-row justify-between mb-3">
+                          <View>
+                            <Text className="text-gray-500 text-sm">Valor</Text>
+                            <Text className="font-bold text-lg">{proposal.price}</Text>
                           </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          accessibilityLabel="Recusar proposta"
-                          onPress={() => handleRefuseProposal(selectedAuction.id, proposal.id)}
-                        >
-                          <View className="bg-red-100 p-2 rounded-full">
-                            <Icon name="cancel" size={28} color="#ef4444" />
+                          <View>
+                            <Text className="text-gray-500 text-sm">Prazo</Text>
+                            <Text className="font-bold text-lg">{proposal.deadline}</Text>
                           </View>
-                        </TouchableOpacity>
+                        </View>
+                        
+                        <Text className="text-gray-600 text-sm">{proposal.description}</Text>
+                        {profileType === 'client' && (
+                          <View className="flex-row items-center space-x-4 self-end mt-2">
+                            <TouchableOpacity
+                              accessibilityLabel="Aceitar proposta"
+                              onPress={() => {
+                                setShowDetails(false);
+                                (navigation as any).navigate('Checkout', { proposal });
+                              }}
+                            >
+                              <View className="bg-green-100 p-2 rounded-full">
+                                <Icon name="check-circle" size={28} color="#22c55e" />
+                              </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              accessibilityLabel="Recusar proposta"
+                              onPress={() => handleRefuseProposal(selectedAuction.id, proposal.id)}
+                            >
+                              <View className="bg-red-100 p-2 rounded-full">
+                                <Icon name="cancel" size={28} color="#ef4444" />
+                              </View>
+                            </TouchableOpacity>
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                ))}
+                    ))}
+                </>
+              ) : (
+                <View className="bg-green-50 rounded-xl p-6 mb-6">
+                  <Text className="text-lg font-bold mb-2 text-green-800">
+                    🎯 Seja o primeiro a enviar uma proposta!
+                  </Text>
+                  <Text className="text-green-700">
+                    Esta demanda ainda não recebeu nenhuma proposta. Aproveite esta oportunidade única para se destacar!
+                  </Text>
+                </View>
+              )}
 
               {/* Insights e botão de enviar proposta só para prestador */}
               {profileType === 'provider' && (

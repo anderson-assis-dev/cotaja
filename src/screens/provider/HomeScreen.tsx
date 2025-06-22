@@ -6,31 +6,31 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 const services = [
   {
     id: '1',
-    title: 'Demandas Disponíveis',
-    description: 'Veja pedidos de serviços',
-    iconName: 'assignment',
-    screen: 'AvailableDemandsTab',
+    title: 'Buscar Demandas',
+    description: 'Encontre oportunidades',
+    iconName: 'search',
+    screen: 'SearchTab',
   },
   {
     id: '2',
-    title: 'Enviar Proposta',
-    description: 'Proponha seus serviços',
-    iconName: 'send',
-    screen: 'SendProposal',
-  },
-  {
-    id: '3',
-    title: 'Leilão em Andamento',
+    title: 'Leilões Ativos',
     description: 'Acompanhe seus leilões',
     iconName: 'gavel',
     screen: 'AuctionsTab',
   },
   {
-    id: '4',
+    id: '3',
     title: 'Meus Serviços',
     description: 'Gerencie seus serviços',
     iconName: 'build',
     screen: 'MyServicesTab',
+  },
+  {
+    id: '4',
+    title: 'Enviar Proposta',
+    description: 'Proponha seus serviços',
+    iconName: 'send',
+    screen: 'SendProposal',
   },
 ];
 
@@ -112,10 +112,10 @@ export default function ProviderHomeScreen() {
 
         <TouchableOpacity
           className="bg-indigo-600 rounded-lg p-4 mt-6"
-          onPress={() => navigation.navigate('AvailableDemands' as never)}
+          onPress={() => (navigation as any).navigate('SearchTab')}
         >
           <Text className="text-center text-white font-bold text-lg">
-            Ver Demandas Disponíveis
+            Buscar Novas Oportunidades
           </Text>
         </TouchableOpacity>
       </View>

@@ -28,6 +28,7 @@ import SendProposalScreen from '../screens/provider/SendProposalScreen';
 import AuctionScreen from '../screens/provider/ProviderAuctionScreen';
 import RateClientScreen from '../screens/provider/RateClientScreen';
 import MyServicesScreen from '../screens/provider/MyServicesScreen';
+import ProviderSearchScreen from '../screens/provider/SearchScreen';
 
 // Telas de Gerenciamento
 import ProfileScreen from '../screens/management/ProfileScreen';
@@ -96,6 +97,17 @@ function AuctionsStackNavigator() {
     );
 }
 
+const SearchStack = createNativeStackNavigator();
+function SearchStackNavigator() {
+    return (
+        <SearchStack.Navigator screenOptions={{ headerShown: false }}>
+            <SearchStack.Screen name="ProviderSearch" component={ProviderSearchScreen} />
+            <SearchStack.Screen name="ProviderAuction" component={AuctionScreen} />
+            <SearchStack.Screen name="SendProposal" component={SendProposalScreen} />
+        </SearchStack.Navigator>
+    );
+}
+
 // --- Navegador de Abas do Cliente ---
 function ClientTabNavigator() {
   return (
@@ -141,8 +153,8 @@ function ProviderTabNavigator() {
               iconName = 'home';
             } else if (route.name === 'MyServicesTab') {
               iconName = 'build';
-            } else if (route.name === 'AvailableDemandsTab') {
-              iconName = 'assignment';
+            } else if (route.name === 'SearchTab') {
+              iconName = 'search';
             } else if (route.name === 'AuctionsTab') {
               iconName = 'gavel';
             } else if (route.name === 'ProfileTab') {
@@ -163,7 +175,7 @@ function ProviderTabNavigator() {
             options={{ title: 'Meus Serviços' }}
             initialParams={{ initialScreen: 'MyServices' }}
         />
-        <Tab.Screen name="AvailableDemandsTab" component={AvailableDemandsStackNavigator} options={{ title: 'Demandas' }}/>
+        <Tab.Screen name="SearchTab" component={SearchStackNavigator} options={{ title: 'Buscar' }}/>
         <Tab.Screen name="AuctionsTab" component={AuctionsStackNavigator} options={{ title: 'Leilões' }}/>
         <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }}/>
     </Tab.Navigator>
