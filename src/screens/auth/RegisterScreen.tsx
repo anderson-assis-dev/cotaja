@@ -1,18 +1,22 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../contexts/AuthContext';
+import { TextInputMask } from 'react-native-masked-text';
+import { CommonActions } from '@react-navigation/native';
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
+  const { register, isLoading, logout } = useAuth();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
-  const [telefone, setTelefone] = useState('');
+  const [phone, setPhone] = useState('');
 
-  const handleRegister = () => {
-    if (!nome || !email || !senha || !confirmarSenha || !telefone) {
+  const handleRegister = async () => {
+    if (!nome || !email || !senha || !confirmarSenha || !phone) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
@@ -22,15 +26,21 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Simulação de cadastro bem-sucedido
-    Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
-      {
-        text: 'OK',
-        onPress: () => navigation.navigate('ProfileSelection' as never)
-      }
-    ]);
+    if (senha.length < 6) {
+      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    try {
+      await register(nome, email, phone, senha, confirmarSenha);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Erro ao realizar cadastro');
+    }
   };
+
+
   const insets = useSafeAreaInsets();
+  
   return (
     <ScrollView className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600" style={{ paddingTop: insets.top }}>
       <View className="p-6">
@@ -47,6 +57,7 @@ export default function RegisterScreen() {
             placeholder="Digite seu nome completo"
             value={nome}
             onChangeText={setNome}
+            editable={!isLoading}
           />
 
           <Text className="text-lg font-semibold mb-2">Email</Text>
@@ -57,15 +68,23 @@ export default function RegisterScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isLoading}
           />
 
           <Text className="text-lg font-semibold mb-2">Telefone</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-4"
-            placeholder="Digite seu telefone"
-            value={telefone}
-            onChangeText={setTelefone}
+          <TextInputMask
+            type={'cel-phone'}
+            options={{
+              maskType: 'BRL',
+              withDDD: true,
+              dddMask: '(99) '
+            }}
+            value={phone}
+            onChangeText={setPhone}
+            placeholder="(99) 99999-9999"
+            className="border border-gray-300 rounded-lg p-3 mb-4" // MESMA CLASSE DOS OUTROS INPUTS
             keyboardType="phone-pad"
+            editable={!isLoading}
           />
 
           <Text className="text-lg font-semibold mb-2">Senha</Text>
@@ -75,6 +94,7 @@ export default function RegisterScreen() {
             value={senha}
             onChangeText={setSenha}
             secureTextEntry
+            editable={!isLoading}
           />
 
           <Text className="text-lg font-semibold mb-2">Confirmar Senha</Text>
@@ -84,18 +104,27 @@ export default function RegisterScreen() {
             value={confirmarSenha}
             onChangeText={setConfirmarSenha}
             secureTextEntry
+            editable={!isLoading}
           />
 
           <TouchableOpacity
-            className="bg-indigo-600 rounded-lg p-4 mb-4"
+            className={`rounded-lg p-4 mb-4 ${isLoading ? 'bg-gray-400' : 'bg-indigo-600'}`}
             onPress={handleRegister}
+            disabled={isLoading}
           >
-            <Text className="text-center text-white font-bold text-lg">Cadastrar</Text>
+            {isLoading ? (
+              <View className="flex-row items-center justify-center">
+                <ActivityIndicator color="white" size="small" />
+                <Text className="text-center text-white font-bold text-lg ml-2">Cadastrando...</Text>
+              </View>
+            ) : (
+              <Text className="text-center text-white font-bold text-lg">Cadastrar</Text>
+            )}
           </TouchableOpacity>
 
           <View className="flex-row justify-center">
             <Text className="text-gray-600">Já tem uma conta? </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.goBack()} disabled={isLoading}>
               <Text className="text-indigo-600 font-semibold">Faça login</Text>
             </TouchableOpacity>
           </View>

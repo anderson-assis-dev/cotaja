@@ -2,6 +2,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../contexts/AuthContext';
+import { ActivityIndicator, View } from 'react-native';
 
 import InitialScreen from '../screens/InitialScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -293,29 +295,49 @@ function ProviderTabNavigator() {
 
 // --- Navegador Principal (Stack) ---
 export default function AppNavigator() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 items-center justify-center">
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Splash"
+        initialRouteName={
+          !user ? 'Splash'
+          : !user.profile_type ? 'ProfileSelection'
+          : user.profile_type === 'client' ? 'Client'
+          : 'Provider'
+        }
         screenOptions={{
           headerShown: false,
         }}
       >
-        {/* Telas de Autenticação e Onboarding */}
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Initial" component={InitialScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="ProfileSelection" component={ProfileSelectionScreen} />
-
-        {/* Navegadores de Abas (Perfis) */}
-        <Stack.Screen name="Client" component={ClientTabNavigator} />
-        <Stack.Screen name="Provider" component={ProviderTabNavigator} />
-
-        {/* As telas foram movidas para dentro das suas respectivas pilhas de abas */}
-
+        {!user && (
+          <>
+            {/* Telas de Autenticação e Onboarding */}
+            <Stack.Screen name="Splash" component={SplashScreen} />
+            <Stack.Screen name="Initial" component={InitialScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          </>
+        )}
+        {user && !user.profile_type && (
+          <Stack.Screen name="ProfileSelection" component={ProfileSelectionScreen} />
+        )}
+        {user && user.profile_type === 'client' && (
+          <Stack.Screen name="Client" component={ClientTabNavigator} />
+        )}
+        {user && user.profile_type === 'provider' && (
+          <Stack.Screen name="Provider" component={ProviderTabNavigator} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

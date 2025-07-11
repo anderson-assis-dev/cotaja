@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../contexts/AuthContext';
 
 const services = [
   {
@@ -45,10 +46,11 @@ const mockStats = {
 export default function ProviderHomeScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6">
-        <Text className="text-2xl font-bold text-black mb-2">Olá, João!</Text>
+        <Text className="text-2xl font-bold text-black mb-2">Olá, {user?.name || 'Usuário'}!</Text>
         <Text className="text-black opacity-80">
           Como vai seu trabalho hoje?
         </Text>

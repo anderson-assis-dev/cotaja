@@ -1,19 +1,26 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Image, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen() {
   const navigation = useNavigation();
+  const { login, isLoading } = useAuth();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  const handleLogin = () => {
-    if (email === 'admin@admin.com' && senha === '123456') {
-      navigation.navigate('ProfileSelection' as never);
-    } else {
-      Alert.alert('Erro', 'Email ou senha inválidos');
+  const handleLogin = async () => {
+    if (!email || !senha) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      return;
+    }
+
+    try {
+      await login(email, senha);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message || 'Email ou senha inválidos');
     }
   };
 
@@ -44,6 +51,7 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
         />
 
         <Text className="text-lg font-semibold mb-2">Senha</Text>
@@ -53,25 +61,35 @@ export default function LoginScreen() {
           value={senha}
           onChangeText={setSenha}
           secureTextEntry
+          editable={!isLoading}
         />
 
         <TouchableOpacity
           onPress={handleForgotPassword}
           className="mb-6"
+          disabled={isLoading}
         >
           <Text className="text-indigo-600 text-right">Esqueceu sua senha?</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="bg-indigo-600 rounded-lg p-4 mb-4"
+          className={`rounded-lg p-4 mb-4 ${isLoading ? 'bg-gray-400' : 'bg-indigo-600'}`}
           onPress={handleLogin}
+          disabled={isLoading}
         >
-          <Text className="text-center text-white font-bold text-lg">Entrar</Text>
+          {isLoading ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator color="white" size="small" />
+              <Text className="text-center text-white font-bold text-lg ml-2">Entrando...</Text>
+            </View>
+          ) : (
+            <Text className="text-center text-white font-bold text-lg">Entrar</Text>
+          )}
         </TouchableOpacity>
 
         <View className="flex-row justify-center">
           <Text className="text-gray-600">Não tem uma conta? </Text>
-          <TouchableOpacity onPress={handleRegister}>
+          <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
             <Text className="text-indigo-600 font-semibold">Cadastre-se</Text>
           </TouchableOpacity>
         </View>
