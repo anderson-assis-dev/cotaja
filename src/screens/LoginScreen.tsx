@@ -18,9 +18,19 @@ export default function LoginScreen() {
     }
 
     try {
+      console.log('🔄 Iniciando login...', { email });
       await login(email, senha);
+      console.log('✅ Login concluído com sucesso');
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Email ou senha inválidos');
+      console.error('❌ Erro no login:', error);
+      
+      let errorMessage = 'Email ou senha inválidos';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Erro de Login', errorMessage);
     }
   };
 
@@ -52,6 +62,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           editable={!isLoading}
+          autoComplete="email"
         />
 
         <Text className="text-lg font-semibold mb-2">Senha</Text>
@@ -62,6 +73,7 @@ export default function LoginScreen() {
           onChangeText={setSenha}
           secureTextEntry
           editable={!isLoading}
+          autoComplete="password"
         />
 
         <TouchableOpacity
