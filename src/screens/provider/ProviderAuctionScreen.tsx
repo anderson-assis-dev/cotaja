@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useAuth } from '../../contexts/AuthContext';
+import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 
 // Tipos TypeScript
 interface Proposal {
@@ -32,190 +34,92 @@ interface Auction {
   isNewDemand: boolean;
 }
 
-// Dados mockados para exemplo - demandas com propostas recebidas
-const mockAuctions: Auction[] = [
-  {
-    id: '1',
-    title: 'Pintura de apartamento',
-    category: 'Pintura',
-    budget: 'R$ 3.000,00',
-    deadline: '15 dias',
-    status: 'Em andamento',
-    description: 'Preciso pintar um apartamento de 80m², 2 quartos, sala, cozinha e banheiro. Cores neutras.',
-    location: 'São Paulo, SP',
-    clientRating: 4.8,
-    hasActiveAuction: true,
-    isNewDemand: false,
-    proposals: [
-      {
-        id: 'p1',
-        providerName: 'João Silva',
-        providerRating: 4.9,
-        price: 'R$ 2.800,00',
-        deadline: '12 dias',
-        description: 'Trabalho com tinta premium, proteção de móveis incluída',
-        ranking: 1,
-      },
-      {
-        id: 'p2',
-        providerName: 'Maria Santos',
-        providerRating: 4.7,
-        price: 'R$ 2.900,00',
-        deadline: '10 dias',
-        description: 'Especialista em pintura residencial, acabamento perfeito',
-        ranking: 2,
-      },
-      {
-        id: 'p3',
-        providerName: 'Carlos Oliveira',
-        providerRating: 4.5,
-        price: 'R$ 3.100,00',
-        deadline: '14 dias',
-        description: 'Pintura profissional com garantia de 1 ano',
-        ranking: 3,
-      },
-    ],
-    insights: [
-      'O orçamento médio da categoria é R$ 2.750,00',
-      'Prazo médio de execução: 11 dias',
-      'Você tem avaliação superior à média (4.9 vs 4.6)',
-      'Sugestão: Ofereça R$ 2.750,00 em 10 dias para ficar em 1º lugar'
-    ],
-    clientId: '1',
-  },
-  {
-    id: '2',
-    title: 'Instalação de ar condicionado',
-    category: 'Elétrica',
-    budget: 'R$ 1.500,00',
-    deadline: '7 dias',
-    status: 'Em andamento',
-    description: 'Instalar ar condicionado split 12.000 BTUs na sala. Já tenho o aparelho.',
-    location: 'Rio de Janeiro, RJ',
-    clientRating: 4.6,
-    hasActiveAuction: true,
-    isNewDemand: false,
-    proposals: [
-      {
-        id: 'p4',
-        providerName: 'Pedro Costa',
-        providerRating: 4.8,
-        price: 'R$ 1.400,00',
-        deadline: '5 dias',
-        description: 'Instalação profissional com garantia de 2 anos',
-        ranking: 1,
-      },
-      {
-        id: 'p5',
-        providerName: 'Ana Ferreira',
-        providerRating: 4.6,
-        price: 'R$ 1.450,00',
-        deadline: '4 dias',
-        description: 'Técnica certificada, instalação rápida e segura',
-        ranking: 2,
-      },
-    ],
-    insights: [
-      'O orçamento médio da categoria é R$ 1.350,00',
-      'Prazo médio de execução: 5 dias',
-      'Você tem avaliação superior à média (4.8 vs 4.5)',
-      'Sugestão: Ofereça R$ 1.350,00 em 4 dias para superar a concorrência'
-    ],
-    clientId: '2',
-  },
-  {
-    id: '3',
-    title: 'Limpeza pós-obra',
-    category: 'Limpeza',
-    budget: 'R$ 800,00',
-    deadline: '3 dias',
-    status: 'Em andamento',
-    description: 'Limpeza completa de casa após reforma. 120m², 3 quartos, 2 banheiros.',
-    location: 'Belo Horizonte, MG',
-    clientRating: 4.9,
-    hasActiveAuction: true,
-    isNewDemand: false,
-    proposals: [
-      {
-        id: 'p6',
-        providerName: 'Lucia Mendes',
-        providerRating: 4.9,
-        price: 'R$ 750,00',
-        deadline: '2 dias',
-        description: 'Limpeza profissional com produtos eco-friendly',
-        ranking: 1,
-      },
-      {
-        id: 'p7',
-        providerName: 'Roberto Lima',
-        providerRating: 4.7,
-        price: 'R$ 780,00',
-        deadline: '3 dias',
-        description: 'Limpeza completa incluindo vidros e azulejos',
-        ranking: 2,
-      },
-    ],
-    insights: [
-      'O orçamento médio da categoria é R$ 720,00',
-      'Prazo médio de execução: 2.5 dias',
-      'Você tem avaliação superior à média (4.9 vs 4.6)',
-      'Sugestão: Ofereça R$ 720,00 em 2 dias para garantir o primeiro lugar'
-    ],
-    clientId: '1',
-  },
-  {
-    id: '4',
-    title: 'Manutenção de computador',
-    category: 'Tecnologia',
-    budget: 'R$ 200,00',
-    deadline: '2 dias',
-    status: 'Aguardando propostas',
-    description: 'Meu computador está lento e com problemas. Preciso de manutenção e limpeza.',
-    location: 'São Paulo, SP',
-    clientRating: 4.5,
-    hasActiveAuction: false,
-    isNewDemand: true,
-    proposals: [],
-    insights: [
-      'O orçamento médio da categoria é R$ 180,00',
-      'Prazo médio de execução: 1.5 dias',
-      'Você tem avaliação superior à média (4.9 vs 4.4)',
-      'Sugestão: Ofereça R$ 180,00 em 1 dia para ser competitivo'
-    ],
-    clientId: '3',
-  },
-  {
-    id: '5',
-    title: 'Aula de inglês online',
-    category: 'Aulas',
-    budget: 'R$ 50,00',
-    deadline: 'Flexível',
-    status: 'Aguardando propostas',
-    description: 'Preciso de aulas de inglês para conversação. 2x por semana, 1 hora cada.',
-    location: 'Online',
-    clientRating: 4.7,
-    hasActiveAuction: false,
-    isNewDemand: true,
-    proposals: [],
-    insights: [
-      'O orçamento médio da categoria é R$ 45,00',
-      'Prazo médio de execução: Flexível',
-      'Você tem avaliação superior à média (4.9 vs 4.5)',
-      'Sugestão: Ofereça R$ 45,00 por aula para ser competitivo'
-    ],
-    clientId: '4',
-  },
-];
+// Função para converter dados da API para o formato da interface
+const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
+  // Converter propostas da API para o formato da interface
+  const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => ({
+    id: proposal.id.toString(),
+    providerName: proposal.provider?.name || 'Prestador',
+    providerRating: 4.5, // Valor padrão, ajustar conforme necessário
+    price: `R$ ${(proposal.price || 0).toFixed(2).replace('.', ',')}`,
+    deadline: `${proposal.deadline || 0} dias`,
+    description: proposal.description || 'Sem descrição',
+    ranking: index + 1,
+  })) || [];
+
+  // Determinar se tem leilão ativo
+  const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at && 
+    new Date() >= new Date(apiOrder.auction_started_at) && 
+    new Date() <= new Date(apiOrder.auction_ends_at));
+
+  // Determinar se é nova demanda (pedido recente sem propostas)
+  const isNewDemand = apiOrder.status === 'open' && proposals.length === 0;
+
+  // Converter status da API para português
+  const getStatusInPortuguese = (status: string): string => {
+    switch (status) {
+      case 'open': return 'Aguardando propostas';
+      case 'in_progress': return 'Em andamento';
+      case 'completed': return 'Concluído';
+      case 'cancelled': return 'Cancelado';
+      default: return 'Aguardando propostas';
+    }
+  };
+
+  // Gerar insights baseados nos dados
+  const generateInsights = (apiOrder: ApiOrder, proposals: Proposal[]): string[] => {
+    const insights: string[] = [];
+    
+    if (proposals.length > 0) {
+      const avgPrice = proposals.reduce((sum, p) => sum + parseFloat(p.price.replace('R$ ', '').replace(',', '.')), 0) / proposals.length;
+      insights.push(`O orçamento médio da categoria é R$ ${avgPrice.toFixed(2).replace('.', ',')}`);
+      
+      const avgDeadline = proposals.reduce((sum, p) => sum + parseInt(p.deadline), 0) / proposals.length;
+      insights.push(`Prazo médio de execução: ${avgDeadline} dias`);
+    } else {
+      insights.push('Nenhuma proposta recebida ainda');
+      insights.push('Esta demanda está sendo divulgada para prestadores');
+    }
+
+    return insights;
+  };
+
+  // Tratar budget - pode vir como string ou number
+  const budgetValue = typeof apiOrder.budget === 'string' 
+    ? parseFloat(apiOrder.budget) 
+    : (apiOrder.budget || 0);
+
+  // Tratar deadline - pode vir como string ou number
+  const deadlineValue = typeof apiOrder.deadline === 'string' 
+    ? parseInt(apiOrder.deadline) 
+    : (apiOrder.deadline || 0);
+
+  return {
+    id: apiOrder.id.toString(),
+    title: apiOrder.title || 'Demanda sem título',
+    category: apiOrder.category || 'Sem categoria',
+    budget: `R$ ${budgetValue.toFixed(2).replace('.', ',')}`,
+    deadline: `${deadlineValue} dias`,
+    status: getStatusInPortuguese(apiOrder.status || 'open'),
+    description: apiOrder.description || 'Sem descrição',
+    location: apiOrder.address || 'Local não informado',
+    clientRating: 4.8, // Valor padrão, ajustar conforme necessário
+    proposals,
+    insights: generateInsights(apiOrder, proposals),
+    clientId: apiOrder.client_id?.toString() || '0',
+    hasActiveAuction,
+    isNewDemand,
+  };
+};
 
 export default function AuctionScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
-  const [refusedProposals, setRefusedProposals] = useState<{ [auctionId: string]: string[] }>({});
-  const [closedAuctions, setClosedAuctions] = useState<string[]>([]);
-  const [cancelledProposals, setCancelledProposals] = useState<{ [auctionId: string]: boolean }>({});
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'provider';
@@ -223,10 +127,96 @@ export default function AuctionScreen() {
   const selectedCategory = (route.params as any)?.selectedCategory;
   const fromSearch = (route.params as any)?.fromSearch || false;
 
+  useEffect(() => {
+    const fetchAuctions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        let params: any = {};
+        
+        // Aplicar filtro por categoria se selecionada
+        if (selectedCategory) {
+          params.category = selectedCategory;
+        }
+
+        console.log('🔍 Buscando demandas disponíveis com parâmetros:', params);
+        
+        const response = await orderService.getAvailableOrders(params);
+        
+        if (response.success) {
+          console.log('📦 Dados recebidos da API:', JSON.stringify(response.data, null, 2));
+          
+          // Verificar se a estrutura está correta
+          if (!response.data.data || !Array.isArray(response.data.data)) {
+            console.warn('⚠️ Estrutura de dados inesperada:', response.data);
+            setAuctions([]);
+            return;
+          }
+          
+          const convertedAuctions = response.data.data.map((apiOrder: any, index: number) => {
+            console.log(`🔄 Convertendo demanda ${index + 1}:`, {
+              id: apiOrder.id,
+              title: apiOrder.title,
+              budget: apiOrder.budget,
+              budgetType: typeof apiOrder.budget,
+              deadline: apiOrder.deadline,
+              deadlineType: typeof apiOrder.deadline,
+              status: apiOrder.status,
+              category: apiOrder.category,
+              address: apiOrder.address
+            });
+            
+            try {
+              return convertApiOrderToAuction(apiOrder);
+            } catch (error) {
+              console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
+              // Retornar uma demanda padrão em caso de erro
+              return {
+                id: apiOrder.id?.toString() || '0',
+                title: apiOrder.title || 'Demanda sem título',
+                category: apiOrder.category || 'Sem categoria',
+                budget: 'R$ 0,00',
+                deadline: '0 dias',
+                status: 'Aguardando propostas',
+                description: apiOrder.description || 'Sem descrição',
+                location: apiOrder.address || 'Local não informado',
+                clientRating: 4.8,
+                proposals: [],
+                insights: ['Dados incompletos'],
+                clientId: apiOrder.client_id?.toString() || '0',
+                hasActiveAuction: false,
+                isNewDemand: false,
+              };
+            }
+          });
+          
+          console.log('✅ Demandas carregadas:', convertedAuctions.length);
+          setAuctions(convertedAuctions);
+        } else {
+          throw new Error('Erro ao carregar demandas');
+        }
+      } catch (error: any) {
+        console.error('❌ Erro ao buscar demandas:', error);
+        setError(error.message || 'Erro ao carregar demandas');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      console.log('👤 Usuário autenticado:', { id: user.id, name: user.name });
+      fetchAuctions();
+    } else {
+      console.log('⚠️ Usuário não autenticado, aguardando...');
+      setLoading(false);
+    }
+  }, [selectedCategory, user?.id]);
+
   // Filtra as demandas conforme o tipo de usuário e categoria
   let filteredAuctions = profileType === 'client'
-    ? mockAuctions.filter(a => a.clientId === clientId)
-    : mockAuctions;
+    ? auctions.filter(a => a.clientId === clientId)
+    : auctions;
 
   // Aplica filtro por categoria se selecionada
   if (selectedCategory) {
@@ -235,16 +225,18 @@ export default function AuctionScreen() {
 
   // Remove demandas encerradas e propostas canceladas
   filteredAuctions = filteredAuctions.filter(
-    (auction) => !closedAuctions.includes(auction.id) && !cancelledProposals[auction.id]
+    (auction) => !auction.hasActiveAuction // Assuming hasActiveAuction indicates if it's an active auction
   );
 
   const handleAuctionPress = (auction: Auction) => {
-    setSelectedAuction(auction);
-    setShowDetails(true);
+    // setSelectedAuction(auction); // This state is no longer needed
+    // setShowDetails(true); // This state is no longer needed
+    // Navegar para a tela de envio de proposta com os dados da demanda
+    (navigation as any).navigate('SendProposal', { demand: auction });
   };
 
   const handleSendProposal = (auction: Auction) => {
-    setShowDetails(false);
+    // setShowDetails(false); // This state is no longer needed
     // Navegar para a tela de envio de proposta com os dados da demanda
     (navigation as any).navigate('SendProposal', { demand: auction });
   };
@@ -259,10 +251,8 @@ export default function AuctionScreen() {
         {
           text: 'Recusar', style: 'destructive',
           onPress: () => {
-            setRefusedProposals((prev) => ({
-              ...prev,
-              [auctionId]: [...(prev[auctionId] || []), proposalId],
-            }));
+            // TODO: Implementar lógica de recusa de proposta na API
+            Alert.alert('Recusar Proposta', 'Funcionalidade de recusa de proposta ainda não implementada.');
           }
         }
       ]
@@ -278,7 +268,10 @@ export default function AuctionScreen() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Encerrar', style: 'destructive',
-          onPress: () => setClosedAuctions((prev) => [...prev, auctionId])
+          onPress: () => {
+            // TODO: Implementar lógica de encerramento de demanda na API
+            Alert.alert('Encerrar Demanda', 'Funcionalidade de encerramento de demanda ainda não implementada.');
+          }
         }
       ]
     );
@@ -293,7 +286,10 @@ export default function AuctionScreen() {
         { text: 'Não', style: 'cancel' },
         {
           text: 'Sim', style: 'destructive',
-          onPress: () => setCancelledProposals((prev) => ({ ...prev, [auctionId]: true }))
+          onPress: () => {
+            // TODO: Implementar lógica de cancelamento de proposta na API
+            Alert.alert('Cancelar Proposta', 'Funcionalidade de cancelamento de proposta ainda não implementada.');
+          }
         }
       ]
     );
@@ -332,6 +328,31 @@ export default function AuctionScreen() {
     }
     return 'Demandas da sua região e categoria com propostas recebidas';
   };
+
+  if (loading && auctions.length === 0) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-100">
+        <ActivityIndicator size="large" color="#4f46e5" />
+        <Text className="text-lg text-gray-600 mt-4">Carregando demandas...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-100">
+        <Text className="text-lg text-red-600">{error}</Text>
+        <TouchableOpacity
+          className="bg-indigo-600 rounded-lg p-4 mt-6"
+          onPress={() => navigation.goBack()}
+        >
+          <Text className="text-center text-white font-bold text-lg">
+            Voltar
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
@@ -449,190 +470,6 @@ export default function AuctionScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Modal de Detalhes */}
-      <Modal
-        visible={showDetails}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-          <View className="flex-row justify-between items-center p-6 border-b border-gray-200">
-            <Text className="text-xl font-bold">Detalhes da Demanda</Text>
-            <TouchableOpacity onPress={() => setShowDetails(false)}>
-              <Icon name="close" size={24} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-
-          {selectedAuction && (
-            <ScrollView className="flex-1 p-6">
-              {/* Informações da Demanda */}
-              <View className="bg-gray-50 rounded-xl p-6 mb-6">
-                <View className="flex-row items-center mb-4">
-                  <Text className="text-xl font-bold flex-1">{selectedAuction.title}</Text>
-                  <View className="flex-row items-center">
-                    {selectedAuction.hasActiveAuction && (
-                      <View className="bg-orange-100 p-2 rounded-full mr-2">
-                        <Icon name="gavel" size={20} color="#f97316" />
-                      </View>
-                    )}
-                    {selectedAuction.isNewDemand && (
-                      <View className="bg-green-100 p-2 rounded-full mr-2">
-                        <Icon name="new-releases" size={20} color="#22c55e" />
-                      </View>
-                    )}
-                  </View>
-                </View>
-                <View className="flex-row items-center mb-3">
-                  <View className="bg-indigo-100 px-3 py-1 rounded-full">
-                    <Text className="text-indigo-600">{selectedAuction.category}</Text>
-                  </View>
-                  <Text className="text-gray-500 ml-4">
-                    Orçamento: {selectedAuction.budget}
-                  </Text>
-                </View>
-                <Text className="text-gray-600 mb-3">{selectedAuction.description}</Text>
-                <View className="flex-row items-center">
-                  <Icon name="location-on" size={16} color="#6b7280" />
-                  <Text className="text-gray-600 ml-1">{selectedAuction.location}</Text>
-                  <View className="flex-row items-center ml-4">
-                    <Icon name="star" size={16} color="#fbbf24" />
-                    <Text className="text-gray-600 ml-1">{selectedAuction.clientRating}</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Ranking das Propostas */}
-              {selectedAuction.proposals.length > 0 ? (
-                <>
-                  <Text className="text-lg font-bold mb-4">Ranking das Propostas</Text>
-                  {selectedAuction.proposals
-                    .filter((proposal) => !(refusedProposals[selectedAuction.id]?.includes(proposal.id)))
-                    .map((proposal) => (
-                      <View
-                        key={proposal.id}
-                        className="bg-white border border-gray-200 rounded-xl p-4 mb-3"
-                      >
-                        <View className="flex-row justify-between items-start mb-3">
-                          <View className="flex-row items-center">
-                            <Text className="text-2xl mr-2">{getRankingIcon(proposal.ranking)}</Text>
-                            <View>
-                              <Text className="font-semibold">{proposal.providerName}</Text>
-                              <View className="flex-row items-center">
-                                <Icon name="star" size={14} color="#fbbf24" />
-                                <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
-                              </View>
-                            </View>
-                          </View>
-                          <View className={`px-3 py-1 rounded-full ${getRankingColor(proposal.ranking)}`}>
-                            <Text className="font-semibold">{proposal.ranking}º lugar</Text>
-                          </View>
-                        </View>
-                        
-                        <View className="flex-row justify-between mb-3">
-                          <View>
-                            <Text className="text-gray-500 text-sm">Valor</Text>
-                            <Text className="font-bold text-lg">{proposal.price}</Text>
-                          </View>
-                          <View>
-                            <Text className="text-gray-500 text-sm">Prazo</Text>
-                            <Text className="font-bold text-lg">{proposal.deadline}</Text>
-                          </View>
-                        </View>
-                        
-                        <Text className="text-gray-600 text-sm">{proposal.description}</Text>
-                        {profileType === 'client' && (
-                          <View className="flex-row items-center space-x-4 self-end mt-2">
-                            <TouchableOpacity
-                              accessibilityLabel="Aceitar proposta"
-                              onPress={() => {
-                                setShowDetails(false);
-                                (navigation as any).navigate('Checkout', { proposal });
-                              }}
-                            >
-                              <View className="bg-green-100 p-2 rounded-full">
-                                <Icon name="check-circle" size={28} color="#22c55e" />
-                              </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                              accessibilityLabel="Recusar proposta"
-                              onPress={() => handleRefuseProposal(selectedAuction.id, proposal.id)}
-                            >
-                              <View className="bg-red-100 p-2 rounded-full">
-                                <Icon name="cancel" size={28} color="#ef4444" />
-                              </View>
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                      </View>
-                    ))}
-                </>
-              ) : (
-                <View className="bg-green-50 rounded-xl p-6 mb-6">
-                  <Text className="text-lg font-bold mb-2 text-green-800">
-                    🎯 Seja o primeiro a enviar uma proposta!
-                  </Text>
-                  <Text className="text-green-700">
-                    Esta demanda ainda não recebeu nenhuma proposta. Aproveite esta oportunidade única para se destacar!
-                  </Text>
-                </View>
-              )}
-
-              {/* Insights e botão de enviar proposta só para prestador */}
-              {profileType === 'provider' && (
-                <>
-                  <View className="bg-yellow-50 rounded-xl p-6 mb-6">
-                    <Text className="text-lg font-bold mb-4 text-yellow-800">
-                      💡 Insights para sua Proposta
-                    </Text>
-                    {selectedAuction.insights.map((insight, index) => (
-                      <View key={index} className="flex-row items-start mb-2">
-                        <Text className="text-yellow-600 mr-2">•</Text>
-                        <Text className="text-yellow-800 flex-1">{insight}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  <View className="flex-row justify-end mb-6">
-                    <TouchableOpacity
-                      className="bg-indigo-100 p-2 rounded-full"
-                      onPress={() => handleSendProposal(selectedAuction)}
-                      accessibilityLabel="Enviar proposta"
-                    >
-                      <Icon name="send" size={28} color="#4f46e5" />
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-
-              {/* Ícone para cliente encerrar/cancelar demanda */}
-              {profileType === 'client' && (
-                <TouchableOpacity
-                  className="absolute right-6 top-6 z-10"
-                  onPress={() => handleCloseAuction(selectedAuction.id)}
-                  accessibilityLabel="Encerrar demanda"
-                >
-                  <View className="bg-red-100 p-2 rounded-full">
-                    <Icon name="stop-circle" size={28} color="#ef4444" />
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {/* Ícone para prestador cancelar proposta */}
-              {profileType === 'provider' && (
-                <TouchableOpacity
-                  className="absolute right-6 top-6 z-10"
-                  onPress={() => handleCancelProposal(selectedAuction.id)}
-                  accessibilityLabel="Cancelar minha proposta"
-                >
-                  <View className="bg-yellow-100 p-2 rounded-full">
-                    <Icon name="logout" size={28} color="#f59e42" />
-                  </View>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          )}
-        </View>
-      </Modal>
     </ScrollView>
   );
 } 
