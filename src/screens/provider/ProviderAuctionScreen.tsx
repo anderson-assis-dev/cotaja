@@ -600,9 +600,12 @@ export default function AuctionScreen() {
             onPress={() => handleAuctionPress(auction)}
           >
             <View className="flex-row justify-between items-start mb-4">
-              <Text className="text-base font-bold flex-1 mr-4">
+            <Text className="text-base font-bold flex-1 mr-4">
                 {auction.title}
               </Text>
+            </View>
+            <View className="flex-row justify-between items-start mb-4">
+           
               <View className="flex-row items-center">
                 {/* Status da minha proposta */}
                 {auction.hasMyProposal && (
