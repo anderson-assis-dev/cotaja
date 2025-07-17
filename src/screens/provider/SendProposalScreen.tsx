@@ -68,6 +68,14 @@ export default function SendProposalScreen() {
     (proposal: any) => proposal.provider_id === user?.id
   );
 
+  console.log('🔍 Debug proposta:', {
+    userId: user?.id,
+    demandId: demand.id,
+    proposals: demand.proposals,
+    alreadyProposed,
+    myProposal: myProposal ? { id: myProposal.id, price: myProposal.price } : null
+  });
+
   const handleSubmit = async () => {
     if (!price || !deadline || !description) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
@@ -82,11 +90,17 @@ export default function SendProposalScreen() {
         description: description,
       };
       
+      console.log('🚀 Iniciando envio de proposta:', {
+        alreadyProposed,
+        myProposalId: myProposal?.id,
+        payload
+      });
+      
       let response;
       
       if (alreadyProposed && myProposal) {
         // Atualizar proposta existente
-        console.log('Atualizando proposta existente:', myProposal.id);
+        console.log('🔄 Atualizando proposta existente:', myProposal.id);
         response = await proposalService.updateProposal(Number(myProposal.id), {
           price: Number(price),
           deadline: deadline,
@@ -94,9 +108,11 @@ export default function SendProposalScreen() {
         });
       } else {
         // Criar nova proposta
-        console.log('Criando nova proposta:', payload);
+        console.log('➕ Criando nova proposta:', payload);
         response = await proposalService.createProposal(payload);
       }
+      
+      console.log('✅ Resposta da API:', response);
       
       if (response.success) {
         Alert.alert(
@@ -113,7 +129,7 @@ export default function SendProposalScreen() {
         Alert.alert('Erro', response.message || 'Erro ao enviar proposta');
       }
     } catch (error: any) {
-      console.error('Erro ao enviar proposta:', error);
+      console.error('❌ Erro ao enviar proposta:', error);
       Alert.alert('Erro', error.message || 'Erro ao enviar proposta');
     } finally {
       setLoading(false);

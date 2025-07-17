@@ -48,6 +48,7 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,
+    provider_id: proposal.provider_id, // Adicionar provider_id
   })) || [];
 
   // Determinar se tem leilão ativo
