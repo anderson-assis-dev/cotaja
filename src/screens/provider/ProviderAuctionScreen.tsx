@@ -44,7 +44,7 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     id: proposal.id.toString(),
     providerName: proposal.provider?.name || 'Prestador',
     providerRating: 4.5, // Valor padrão, ajustar conforme necessário
-    price: `R$ ${(proposal.price || 0).toFixed(2).replace('.', ',')}`,
+    price: `R$ ${Number(proposal.price || 0).toFixed(2).replace('.', ',')}`,
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,

@@ -15,6 +15,7 @@ interface Proposal {
   deadline: string;
   description: string;
   ranking: number;
+  provider_id?: number;
 }
 
 interface Demand {
@@ -63,6 +64,10 @@ export default function SendProposalScreen() {
     (proposal: any) => proposal.provider_id === user?.id
   );
 
+  const myProposal = demand.proposals?.find(
+    (proposal: any) => proposal.provider_id === user?.id
+  );
+
   const handleSubmit = async () => {
     if (!price || !deadline || !description) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
@@ -98,6 +103,34 @@ export default function SendProposalScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Função para obter ícone de ranking
+  const getRankingIcon = (index: number) => {
+    switch (index) {
+      case 0: return '🥇';
+      case 1: return '🥈';
+      case 2: return '🥉';
+      default: return '🏅';
+    }
+  };
+
+  // Função para obter cor de ranking
+  const getRankingColor = (index: number) => {
+    switch (index) {
+      case 0: return 'bg-yellow-100 border-yellow-300';
+      case 1: return 'bg-gray-100 border-gray-300';
+      case 2: return 'bg-orange-100 border-orange-300';
+      default: return 'bg-blue-100 border-blue-300';
+    }
+  };
+
+  // Função para verificar se está ganhando
+  const isWinning = (proposal: any, index: number) => {
+    if (index === 0) return true;
+    const budget = parseFloat(demand.budget.replace('R$ ', '').replace(',', '.'));
+    const proposalPrice = parseFloat(proposal.price.replace('R$ ', '').replace(',', '.'));
+    return proposalPrice <= budget;
   };
 
   const insets = useSafeAreaInsets();
@@ -151,78 +184,123 @@ export default function SendProposalScreen() {
         {/* Ranking das Propostas Existentes */}
         {demand.proposals && demand.proposals.length > 0 && (
           <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <Text className="text-lg font-semibold mb-4">Propostas Existentes</Text>
-            {demand.proposals.slice(0, 3).map((proposal: Proposal, index: number) => (
-              <View key={proposal.id} className="border-b border-gray-200 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0">
-                <View className="flex-row justify-between items-start mb-2">
-                  <Text className="font-semibold">{proposal.providerName}</Text>
-                  <View className="flex-row items-center">
-                    <Icon name="star" size={14} color="#fbbf24" />
-                    <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
+            <Text className="text-lg font-semibold mb-4">🏆 Ranking das Propostas</Text>
+            {demand.proposals.map((proposal: Proposal, index: number) => {
+              const isMyProposal = proposal.provider_id === user?.id;
+              const isWinningProposal = isWinning(proposal, index);
+              
+              return (
+                <View 
+                  key={proposal.id} 
+                  className={`border rounded-lg p-4 mb-3 ${getRankingColor(index)} ${isMyProposal ? 'border-2 border-blue-500' : ''}`}
+                >
+                  <View className="flex-row justify-between items-start mb-3">
+                    <View className="flex-row items-center">
+                      <Text className="text-2xl mr-3">{getRankingIcon(index)}</Text>
+                      <View>
+                        <View className="flex-row items-center">
+                          <Text className="font-semibold text-lg">{proposal.providerName}</Text>
+                          {isMyProposal && (
+                            <View className="bg-blue-500 px-2 py-1 rounded-full ml-2">
+                              <Text className="text-white text-xs font-bold">VOCÊ</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View className="flex-row items-center mt-1">
+                          <Icon name="star" size={14} color="#fbbf24" />
+                          <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-2xl font-bold text-green-600">{proposal.price}</Text>
+                      <Text className="text-gray-600">{proposal.deadline}</Text>
+                      {isWinningProposal && (
+                        <View className="bg-green-100 px-2 py-1 rounded-full mt-1">
+                          <Text className="text-green-700 text-xs font-bold">🎯 NO ORÇAMENTO</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
+                  
+                  <Text className="text-gray-600 text-sm">{proposal.description}</Text>
+                  
+                  {isMyProposal && (
+                    <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                      <Text className="text-blue-800 font-semibold text-center">
+                        {index === 0 ? '🥇 Você está em 1º lugar!' : `Você está em ${index + 1}º lugar`}
+                      </Text>
+                      <Text className="text-blue-600 text-center text-sm mt-1">
+                        {index === 0 ? 'Continue assim para ganhar!' : 'Melhore sua proposta para subir no ranking!'}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <View className="flex-row justify-between">
-                  <Text className="text-gray-600">{proposal.price}</Text>
-                  <Text className="text-gray-600">{proposal.deadline}</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
-        {/* Formulário da Proposta */}
-        <View className="bg-white rounded-xl p-6 shadow-sm">
-          {alreadyProposed ? (
-            <View className="items-center mb-4">
+        {/* Formulário da Proposta - Só mostrar se não enviou ainda */}
+        {!alreadyProposed && (
+          <View className="bg-white rounded-xl p-6 shadow-sm">
+            <Text className="text-lg font-semibold mb-2">Valor da Proposta (R$)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Ex: 2800"
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+            />
+
+            <Text className="text-lg font-semibold mb-2">Prazo de Execução</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Ex: 12 dias"
+              value={deadline}
+              onChangeText={setDeadline}
+            />
+
+            <Text className="text-lg font-semibold mb-2">Descrição da Proposta</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-6 h-32"
+              placeholder="Descreva como você pretende executar o serviço"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              className="bg-indigo-600 rounded-lg p-4"
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-center text-white font-bold text-lg">
+                  🚀 Enviar Proposta
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Mensagem se já enviou proposta */}
+        {alreadyProposed && (
+          <View className="bg-blue-50 rounded-xl p-6 shadow-sm">
+            <View className="items-center">
               <Icon name="check-circle" size={48} color="#22c55e" />
-              <Text className="text-lg font-bold text-green-700 mt-2 mb-1">Você já enviou uma proposta para este pedido.</Text>
-              <Text className="text-gray-600 text-center">Aguarde a resposta do cliente antes de enviar outra proposta.</Text>
-            </View>
-          ) : (
-            <>
-              <Text className="text-lg font-semibold mb-2">Valor da Proposta (R$)</Text>
-              <TextInput
-                className="border border-gray-300 rounded-lg p-3 mb-4"
-                placeholder="Ex: 2800"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="numeric"
-              />
-
-              <Text className="text-lg font-semibold mb-2">Prazo de Execução</Text>
-              <TextInput
-                className="border border-gray-300 rounded-lg p-3 mb-4"
-                placeholder="Ex: 12 dias"
-                value={deadline}
-                onChangeText={setDeadline}
-              />
-
-              <Text className="text-lg font-semibold mb-2">Descrição da Proposta</Text>
-              <TextInput
-                className="border border-gray-300 rounded-lg p-3 mb-6 h-32"
-                placeholder="Descreva como você pretende executar o serviço"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                textAlignVertical="top"
-              />
-            </>
-          )}
-
-          <TouchableOpacity
-            className={`bg-indigo-600 rounded-lg p-4 ${alreadyProposed ? 'opacity-50' : ''}`}
-            onPress={handleSubmit}
-            disabled={loading || alreadyProposed}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-center text-white font-bold text-lg">
-                Enviar Proposta
+              <Text className="text-lg font-bold text-green-700 mt-2 mb-1">
+                Você já enviou uma proposta!
               </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+              <Text className="text-gray-600 text-center">
+                Acompanhe o ranking acima para ver sua posição. O cliente será notificado quando escolher um vencedor.
+              </Text>
+            </View>
+          </View>
+        )}
 
         <TouchableOpacity
           className="mt-6"
