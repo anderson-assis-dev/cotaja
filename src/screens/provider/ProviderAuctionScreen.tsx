@@ -223,10 +223,18 @@ export default function AuctionScreen() {
     filteredAuctions = filteredAuctions.filter(a => a.category === selectedCategory);
   }
 
-  // Remove demandas encerradas e propostas canceladas
+  // Filtra apenas demandas abertas ou em andamento
   filteredAuctions = filteredAuctions.filter(
-    (auction) => !auction.hasActiveAuction // Assuming hasActiveAuction indicates if it's an active auction
+    (auction) => auction.status === 'Aguardando propostas' || auction.status === 'Em andamento'
   );
+
+  console.log('🔍 Filtros aplicados:', {
+    totalAuctions: auctions.length,
+    filteredAuctions: filteredAuctions.length,
+    selectedCategory,
+    profileType,
+    clientId
+  });
 
   const handleAuctionPress = (auction: Auction) => {
     // setSelectedAuction(auction); // This state is no longer needed
