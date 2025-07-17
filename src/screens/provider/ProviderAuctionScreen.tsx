@@ -600,14 +600,14 @@ export default function AuctionScreen() {
             onPress={() => handleAuctionPress(auction)}
           >
             <View className="flex-row justify-between items-start mb-4">
-              <Text className="text-lg font-bold flex-1 mr-4">
+              <Text className="text-base font-bold flex-1 mr-4">
                 {auction.title}
               </Text>
               <View className="flex-row items-center">
                 {/* Status da minha proposta */}
                 {auction.hasMyProposal && (
-                  <View className="bg-blue-100 px-3 py-1 rounded-full mr-2">
-                    <Text className="text-blue-600 font-semibold">
+                  <View className="bg-blue-100 px-2 py-1 rounded-full mr-2">
+                    <Text className="text-blue-600 font-semibold text-xs">
                       {auction.myProposalRanking}º lugar
                     </Text>
                   </View>
@@ -615,62 +615,62 @@ export default function AuctionScreen() {
                 {/* Ícone de leilão ativo */}
                 {auction.hasActiveAuction && (
                   <View className="bg-orange-100 p-1 rounded-full mr-2">
-                    <Icon name="gavel" size={16} color="#f97316" />
+                    <Icon name="gavel" size={14} color="#f97316" />
                   </View>
                 )}
                 {/* Ícone de nova demanda */}
                 {auction.isNewDemand && (
                   <View className="bg-green-100 p-1 rounded-full mr-2">
-                    <Icon name="new-releases" size={16} color="#22c55e" />
+                    <Icon name="new-releases" size={14} color="#22c55e" />
                   </View>
                 )}
-                <View className="bg-green-100 px-3 py-1 rounded-full">
-                  <Text className="text-green-600">{auction.status}</Text>
+                <View className="bg-green-100 px-2 py-1 rounded-full">
+                  <Text className="text-green-600 text-xs">{auction.status}</Text>
                 </View>
               </View>
             </View>
 
             <View className="flex-row items-center mb-4">
-              <View className="bg-indigo-100 px-3 py-1 rounded-full">
-                <Text className="text-indigo-600">{auction.category}</Text>
+              <View className="bg-indigo-100 px-2 py-1 rounded-full">
+                <Text className="text-indigo-600 text-xs">{auction.category}</Text>
               </View>
-              <Text className="text-gray-500 ml-4">
+              <Text className="text-gray-500 ml-3 text-sm">
                 Orçamento: {auction.budget}
               </Text>
             </View>
 
             <View className="flex-row items-center mb-4">
-              <Icon name="location-on" size={16} color="#6b7280" />
-              <Text className="text-gray-600 ml-1">{auction.location}</Text>
-              <View className="flex-row items-center ml-4">
-                <Icon name="star" size={16} color="#fbbf24" />
-                <Text className="text-gray-600 ml-1">{auction.clientRating}</Text>
+              <Icon name="location-on" size={14} color="#6b7280" />
+              <Text className="text-gray-600 ml-1 text-sm">{auction.location}</Text>
+              <View className="flex-row items-center ml-3">
+                <Icon name="star" size={14} color="#fbbf24" />
+                <Text className="text-gray-600 ml-1 text-sm">{auction.clientRating}</Text>
               </View>
             </View>
 
             {/* Status das propostas */}
-            <View className="bg-blue-50 rounded-lg p-4 mb-4">
+            <View className="bg-blue-50 rounded-lg p-3 mb-4">
               {auction.proposals.length > 0 ? (
                 <>
-                  <Text className="font-semibold mb-2 text-blue-800">
+                  <Text className="font-semibold mb-2 text-blue-800 text-sm">
                     {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
                   </Text>
                   {auction.hasMyProposal ? (
-                    <Text className="text-blue-600 text-sm">
+                    <Text className="text-blue-600 text-xs">
                       Sua proposta está em {auction.myProposalRanking}º lugar. Clique para ver detalhes.
                     </Text>
                   ) : (
-                    <Text className="text-blue-600 text-sm">
+                    <Text className="text-blue-600 text-xs">
                       Clique para ver detalhes e enviar sua proposta
                     </Text>
                   )}
                 </>
               ) : (
                 <>
-                  <Text className="font-semibold mb-2 text-green-800">
+                  <Text className="font-semibold mb-2 text-green-800 text-sm">
                     🎯 Seja o primeiro a enviar uma proposta!
                   </Text>
-                  <Text className="text-green-600 text-sm">
+                  <Text className="text-green-600 text-xs">
                     Nenhuma proposta ainda. Aproveite esta oportunidade!
                   </Text>
                 </>
@@ -678,12 +678,12 @@ export default function AuctionScreen() {
             </View>
 
             <View className="flex-row justify-between items-center">
-              <Text className="text-gray-600">
+              <Text className="text-gray-600 text-sm">
                 Prazo: {auction.deadline}
               </Text>
               <View className="flex-row items-center">
-                <Icon name="visibility" size={20} color="#4f46e5" />
-                <Text className="text-indigo-600 ml-1 font-semibold">
+                <Icon name="visibility" size={18} color="#4f46e5" />
+                <Text className="text-indigo-600 ml-1 font-semibold text-sm">
                   {auction.hasMyProposal ? 'Ver Ranking' : 'Ver Detalhes'}
                 </Text>
               </View>

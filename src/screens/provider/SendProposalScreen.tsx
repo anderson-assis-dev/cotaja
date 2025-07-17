@@ -215,7 +215,7 @@ export default function SendProposalScreen() {
         {/* Ranking das Propostas Existentes */}
         {demand.proposals && demand.proposals.length > 0 && (
           <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <Text className="text-xl font-bold mb-6 text-center">🏆 Ranking das Propostas</Text>
+            <Text className="text-lg font-bold mb-4 text-center">🏆 Ranking das Propostas</Text>
             {demand.proposals.map((proposal: Proposal, index: number) => {
               const isMyProposal = proposal.provider_id === user?.id;
               const isWinningProposal = isWinning(proposal, index);
@@ -226,43 +226,43 @@ export default function SendProposalScreen() {
                   className={`rounded-xl p-4 mb-4 ${getRankingColor(index)} ${isMyProposal ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                 >
                   {/* Header com ranking e nome */}
-                  <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center justify-between mb-3">
                     <View className="flex-row items-center flex-1">
-                      <View className="mr-4">
-                        <Text className="text-3xl">{getRankingIcon(index)}</Text>
+                      <View className="mr-3">
+                        <Text className="text-2xl">{getRankingIcon(index)}</Text>
                         <Text className="text-xs text-gray-500 text-center mt-1">
                           {index === 0 ? '1º LUGAR' : `${index + 1}º LUGAR`}
                         </Text>
                       </View>
                       <View className="flex-1">
                         <View className="flex-row items-center mb-1">
-                          <Text className="font-bold text-lg text-gray-800">{proposal.providerName}</Text>
+                          <Text className="font-bold text-base text-gray-800">{proposal.providerName}</Text>
                           {isMyProposal && (
-                            <View className="bg-blue-500 px-3 py-1 rounded-full ml-3">
+                            <View className="bg-blue-500 px-2 py-1 rounded-full ml-2">
                               <Text className="text-white text-xs font-bold">VOCÊ</Text>
                             </View>
                           )}
                         </View>
                         <View className="flex-row items-center">
-                          <Icon name="star" size={16} color="#fbbf24" />
-                          <Text className="text-gray-600 ml-1 font-medium">{proposal.providerRating}</Text>
+                          <Icon name="star" size={14} color="#fbbf24" />
+                          <Text className="text-gray-600 ml-1 font-medium text-sm">{proposal.providerRating}</Text>
                         </View>
                       </View>
                     </View>
                     
                     {/* Preço e prazo */}
                     <View className="items-end">
-                      <Text className="text-2xl font-bold text-green-600 mb-1">{proposal.price}</Text>
-                      <Text className="text-gray-600 font-medium">{proposal.deadline}</Text>
+                      <Text className="text-lg font-bold text-green-600 mb-1">{proposal.price}</Text>
+                      <Text className="text-gray-600 font-medium text-sm">{proposal.deadline}</Text>
                     </View>
                   </View>
                   
                   {/* Indicador de orçamento */}
                   {isWinningProposal && (
-                    <View className="bg-green-100 border border-green-200 rounded-lg p-3 mb-3">
+                    <View className="bg-green-100 border border-green-200 rounded-lg p-2 mb-3">
                       <View className="flex-row items-center justify-center">
-                        <Icon name="check-circle" size={16} color="#22c55e" />
-                        <Text className="text-green-700 font-bold ml-2">🎯 DENTRO DO ORÇAMENTO</Text>
+                        <Icon name="check-circle" size={14} color="#22c55e" />
+                        <Text className="text-green-700 font-bold ml-2 text-sm">🎯 DENTRO DO ORÇAMENTO</Text>
                       </View>
                     </View>
                   )}
@@ -272,11 +272,11 @@ export default function SendProposalScreen() {
                   
                   {/* Mensagem personalizada para minha proposta */}
                   {isMyProposal && (
-                    <View className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                      <Text className="text-blue-800 font-bold text-center text-lg mb-1">
+                    <View className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-3">
+                      <Text className="text-blue-800 font-bold text-center text-base mb-1">
                         {index === 0 ? '🥇 Você está em 1º lugar!' : `Você está em ${index + 1}º lugar`}
                       </Text>
-                      <Text className="text-blue-600 text-center text-sm">
+                      <Text className="text-blue-600 text-center text-xs">
                         {index === 0 
                           ? 'Continue assim para ganhar o leilão!' 
                           : 'Melhore sua proposta para subir no ranking!'
