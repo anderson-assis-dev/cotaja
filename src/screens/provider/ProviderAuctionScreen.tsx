@@ -339,10 +339,8 @@ export default function AuctionScreen() {
     }
   }, [categoryFilter, cepFilter, user?.id]);
 
-  // Filtra as demandas conforme o tipo de usuário e categoria
-  let filteredAuctions = profileType === 'client'
-    ? auctions.filter(a => a.clientId === clientId)
-    : auctions;
+  // Filtra as demandas conforme o tipo de usuário
+  let filteredAuctions = auctions; // Para providers, não filtrar por clientId
 
   // Aplica filtro por categoria se selecionada
   if (selectedCategory) {
@@ -358,8 +356,7 @@ export default function AuctionScreen() {
     totalAuctions: auctions.length,
     filteredAuctions: filteredAuctions.length,
     selectedCategory,
-    profileType,
-    clientId
+    profileType
   });
 
   const handleAuctionPress = (auction: Auction) => {

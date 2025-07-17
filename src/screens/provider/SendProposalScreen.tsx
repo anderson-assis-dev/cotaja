@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { proposalService } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Tipos TypeScript
 interface Proposal {
@@ -28,52 +30,74 @@ interface Demand {
   insights: string[];
 }
 
-// Dados mockados para exemplo (fallback)
-const mockDemand: Demand = {
-  id: '1',
-  title: 'Pintura de apartamento',
-  category: 'Pintura',
-  budget: 'R$ 3.000,00',
-  deadline: '15 dias',
-  description: 'Preciso pintar um apartamento de 80m², 2 quartos, sala, cozinha e banheiro.',
-  location: 'São Paulo, SP',
-  clientRating: 4.8,
-  proposals: [],
-  insights: [
-    'O orçamento médio da categoria é R$ 2.750,00',
-    'Prazo médio de execução: 11 dias',
-    'Você tem avaliação superior à média (4.9 vs 4.6)',
-    'Sugestão: Ofereça R$ 2.750,00 em 10 dias para ficar em 1º lugar'
-  ]
-};
-
 export default function SendProposalScreen() {
   const navigation = useNavigation();
   const route = useRoute();
+  const { user } = useAuth();
   const [price, setPrice] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Pegar dados da demanda via route params ou usar mock
-  const demand = (route.params as any)?.demand || mockDemand;
+  // Exigir demanda via params
+  const demand = (route.params as any)?.demand;
 
-  const handleSubmit = () => {
+  if (!demand) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-100">
+        <Text className="text-lg text-red-600 mb-4">Erro: Nenhuma demanda selecionada.</Text>
+        <TouchableOpacity
+          className="bg-indigo-600 rounded-lg p-4"
+          onPress={() => navigation.goBack()}
+        >
+          <Text className="text-center text-white font-bold text-lg">
+            Voltar
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Verificar se já existe proposta do provider logado
+  const alreadyProposed = demand.proposals?.some(
+    (proposal: any) => proposal.provider_id === user?.id
+  );
+
+  const handleSubmit = async () => {
     if (!price || !deadline || !description) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos');
       return;
     }
-
-    // Simulação de envio de proposta
-    Alert.alert(
-      'Sucesso',
-      'Proposta enviada com sucesso! O cliente será notificado.',
-      [
-        {
-          text: 'OK',
-          onPress: () => (navigation as any).navigate('ProviderHome'),
-        },
-      ]
-    );
+    setLoading(true);
+    try {
+      const payload = {
+        order_id: Number(demand.id),
+        price: Number(price),
+        deadline: deadline,
+        description: description,
+      };
+      console.log('Enviando proposta:', payload);
+      const response = await proposalService.createProposal(payload);
+      if (response.success) {
+        Alert.alert(
+          'Sucesso',
+          'Proposta enviada com sucesso! O cliente será notificado.',
+          [
+            {
+              text: 'OK',
+              onPress: () => (navigation as any).navigate('ProviderHome'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Erro', response.message || 'Erro ao enviar proposta');
+      }
+    } catch (error: any) {
+      console.error('Erro ao enviar proposta:', error);
+      Alert.alert('Erro', error.message || 'Erro ao enviar proposta');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const insets = useSafeAreaInsets();
@@ -148,40 +172,55 @@ export default function SendProposalScreen() {
 
         {/* Formulário da Proposta */}
         <View className="bg-white rounded-xl p-6 shadow-sm">
-          <Text className="text-lg font-semibold mb-2">Valor da Proposta (R$)</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-4"
-            placeholder="Ex: 2800"
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="numeric"
-          />
+          {alreadyProposed ? (
+            <View className="items-center mb-4">
+              <Icon name="check-circle" size={48} color="#22c55e" />
+              <Text className="text-lg font-bold text-green-700 mt-2 mb-1">Você já enviou uma proposta para este pedido.</Text>
+              <Text className="text-gray-600 text-center">Aguarde a resposta do cliente antes de enviar outra proposta.</Text>
+            </View>
+          ) : (
+            <>
+              <Text className="text-lg font-semibold mb-2">Valor da Proposta (R$)</Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-3 mb-4"
+                placeholder="Ex: 2800"
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="numeric"
+              />
 
-          <Text className="text-lg font-semibold mb-2">Prazo de Execução</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-4"
-            placeholder="Ex: 12 dias"
-            value={deadline}
-            onChangeText={setDeadline}
-          />
+              <Text className="text-lg font-semibold mb-2">Prazo de Execução</Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-3 mb-4"
+                placeholder="Ex: 12 dias"
+                value={deadline}
+                onChangeText={setDeadline}
+              />
 
-          <Text className="text-lg font-semibold mb-2">Descrição da Proposta</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 mb-6 h-32"
-            placeholder="Descreva como você pretende executar o serviço"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            textAlignVertical="top"
-          />
+              <Text className="text-lg font-semibold mb-2">Descrição da Proposta</Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-3 mb-6 h-32"
+                placeholder="Descreva como você pretende executar o serviço"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                textAlignVertical="top"
+              />
+            </>
+          )}
 
           <TouchableOpacity
-            className="bg-indigo-600 rounded-lg p-4"
+            className={`bg-indigo-600 rounded-lg p-4 ${alreadyProposed ? 'opacity-50' : ''}`}
             onPress={handleSubmit}
+            disabled={loading || alreadyProposed}
           >
-            <Text className="text-center text-white font-bold text-lg">
-              Enviar Proposta
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-center text-white font-bold text-lg">
+                Enviar Proposta
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
