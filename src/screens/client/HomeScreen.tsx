@@ -17,14 +17,14 @@ const services = [
     title: 'Meus Pedidos',
     description: 'Acompanhe seus pedidos',
     iconName: 'list-alt',
-    screen: 'MyOrdersTab',
+    screen: 'OrderDetails', // Ajuste: navega para OrderDetailsScreen
   },
   {
     id: '3',
     title: 'Leilão em Andamento',
     description: 'Veja propostas recebidas',
     iconName: 'gavel',
-    screen: 'ActiveAuction',
+    screen: 'OrderDetails', // Ajuste: navega para OrderDetailsScreen
   },
   {
     id: '4',
@@ -71,13 +71,23 @@ export default function HomeScreen() {
               key={service.id}
               className="bg-white rounded-xl p-4 mb-4 w-[48%] shadow-sm"
               onPress={() => {
-                if (service.screen === 'ActiveAuction') {
+                if (service.title === 'Leilão em Andamento') {
                   (navigation as any).navigate('MyOrdersTab', {
-                    screen: 'ActiveAuction',
-                    params: { 
-                      userType: userType, 
+                    screen: 'OrderDetails',
+                    params: {
+                      userType: userType,
                       clientId: clientId,
-                      clientInfo: clientInfo
+                      clientInfo: clientInfo,
+                      fromLeiloes: true,
+                    }
+                  });
+                } else if (service.title === 'Meus Pedidos') {
+                  (navigation as any).navigate('MyOrdersTab', {
+                    screen: 'OrderDetails',
+                    params: {
+                      userType: userType,
+                      clientId: clientId,
+                      clientInfo: clientInfo,
                     }
                   });
                 } else if (service.screen === 'RateProvider') {
