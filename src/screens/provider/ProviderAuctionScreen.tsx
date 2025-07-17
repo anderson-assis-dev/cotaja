@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator, TextInput, FlatList } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -121,6 +121,13 @@ export default function AuctionScreen() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  // Estados para filtros
+  const [cepFilter, setCepFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [showCategoryAutocomplete, setShowCategoryAutocomplete] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<string[]>([]);
+
   // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'provider';
   const clientId = (route.params as any)?.clientId || '1';
@@ -212,6 +219,125 @@ export default function AuctionScreen() {
       setLoading(false);
     }
   }, [selectedCategory, user?.id]);
+
+  // Função para buscar categorias disponíveis
+  const fetchAvailableCategories = async () => {
+    try {
+      const response = await orderService.getAvailableOrders();
+      if (response.success && response.data.data) {
+        const categories = [...new Set(response.data.data.map((order: any) => order.category))];
+        setAvailableCategories(categories);
+        console.log('📋 Categorias disponíveis:', categories);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar categorias:', error);
+    }
+  };
+
+  // Função para filtrar categorias baseado no input
+  const filterCategories = (input: string) => {
+    if (!input.trim()) {
+      setFilteredCategories([]);
+      setShowCategoryAutocomplete(false);
+      return;
+    }
+
+    const filtered = availableCategories.filter(category =>
+      category.toLowerCase().includes(input.toLowerCase())
+    );
+    setFilteredCategories(filtered);
+    setShowCategoryAutocomplete(true);
+  };
+
+  // Função para selecionar categoria
+  const selectCategory = (category: string) => {
+    setCategoryFilter(category);
+    setShowCategoryAutocomplete(false);
+  };
+
+  // Função para limpar filtros
+  const clearFilters = () => {
+    setCepFilter('');
+    setCategoryFilter('');
+    setShowCategoryAutocomplete(false);
+  };
+
+  // Carregar categorias disponíveis
+  useEffect(() => {
+    fetchAvailableCategories();
+  }, []);
+
+  // Aplicar filtros quando mudar
+  useEffect(() => {
+    const applyFilters = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        let params: any = {};
+        
+        // Aplicar filtro por categoria
+        if (categoryFilter) {
+          params.category = categoryFilter;
+        }
+
+        // Aplicar filtro por CEP
+        if (cepFilter && cepFilter.length >= 5) {
+          params.cep = cepFilter;
+        }
+
+        console.log('🔍 Aplicando filtros:', params);
+        
+        const response = await orderService.getAvailableOrders(params);
+        
+        if (response.success) {
+          console.log('📦 Dados filtrados recebidos:', response.data.data?.length || 0);
+          
+          if (!response.data.data || !Array.isArray(response.data.data)) {
+            setAuctions([]);
+            return;
+          }
+          
+          const convertedAuctions = response.data.data.map((apiOrder: any) => {
+            try {
+              return convertApiOrderToAuction(apiOrder);
+            } catch (error) {
+              console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
+              return {
+                id: apiOrder.id?.toString() || '0',
+                title: apiOrder.title || 'Demanda sem título',
+                category: apiOrder.category || 'Sem categoria',
+                budget: 'R$ 0,00',
+                deadline: '0 dias',
+                status: 'Aguardando propostas',
+                description: apiOrder.description || 'Sem descrição',
+                location: apiOrder.address || 'Local não informado',
+                clientRating: 4.8,
+                proposals: [],
+                insights: ['Dados incompletos'],
+                clientId: apiOrder.client_id?.toString() || '0',
+                hasActiveAuction: false,
+                isNewDemand: false,
+              };
+            }
+          });
+          
+          setAuctions(convertedAuctions);
+        } else {
+          throw new Error('Erro ao carregar demandas');
+        }
+      } catch (error: any) {
+        console.error('❌ Erro ao aplicar filtros:', error);
+        setError(error.message || 'Erro ao aplicar filtros');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      applyFilters();
+    }
+  }, [categoryFilter, cepFilter, user?.id]);
 
   // Filtra as demandas conforme o tipo de usuário e categoria
   let filteredAuctions = profileType === 'client'
@@ -369,6 +495,91 @@ export default function AuctionScreen() {
         <Text className="text-gray-600 mb-6">
           {getPageSubtitle()}
         </Text>
+
+        {/* Filtros */}
+        <View className="bg-white rounded-xl p-4 mb-6 shadow-sm">
+          <Text className="text-lg font-semibold mb-4 text-gray-800">Filtros</Text>
+          
+          {/* Filtro por CEP */}
+          <View className="mb-4">
+            <Text className="text-sm font-medium text-gray-700 mb-2">CEP</Text>
+            <View className="flex-row items-center">
+              <Icon name="location-on" size={20} color="#6b7280" style={{ marginRight: 8 }} />
+              <TextInput
+                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
+                placeholder="Digite o CEP (ex: 40275190)"
+                value={cepFilter}
+                onChangeText={setCepFilter}
+                keyboardType="numeric"
+                maxLength={8}
+              />
+            </View>
+            <Text className="text-xs text-gray-500 mt-1">
+              Busca demandas em um raio próximo ao CEP informado
+            </Text>
+          </View>
+
+          {/* Filtro por Categoria */}
+          <View className="mb-4">
+            <Text className="text-sm font-medium text-gray-700 mb-2">Categoria</Text>
+            <View className="relative">
+              <View className="flex-row items-center">
+                <Icon name="category" size={20} color="#6b7280" style={{ marginRight: 8 }} />
+                <TextInput
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
+                  placeholder="Digite para buscar categoria..."
+                  value={categoryFilter}
+                  onChangeText={(text) => {
+                    setCategoryFilter(text);
+                    filterCategories(text);
+                  }}
+                  onFocus={() => {
+                    if (categoryFilter) {
+                      filterCategories(categoryFilter);
+                    }
+                  }}
+                />
+                {categoryFilter && (
+                  <TouchableOpacity
+                    onPress={() => setCategoryFilter('')}
+                    className="ml-2 p-2"
+                  >
+                    <Icon name="clear" size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Autocomplete de categorias */}
+              {showCategoryAutocomplete && filteredCategories.length > 0 && (
+                <View className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 z-10 max-h-40">
+                  <FlatList
+                    data={filteredCategories}
+                    keyExtractor={(item) => item}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        className="px-4 py-3 border-b border-gray-100"
+                        onPress={() => selectCategory(item)}
+                      >
+                        <Text className="text-gray-800">{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Botão Limpar Filtros */}
+          {(cepFilter || categoryFilter) && (
+            <TouchableOpacity
+              onPress={clearFilters}
+              className="bg-gray-200 rounded-lg px-4 py-2 self-start"
+            >
+              <Text className="text-gray-700 font-medium">Limpar Filtros</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {filteredAuctions.map((auction) => (
           <TouchableOpacity
