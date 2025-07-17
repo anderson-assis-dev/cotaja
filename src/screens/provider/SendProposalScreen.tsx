@@ -81,12 +81,27 @@ export default function SendProposalScreen() {
         deadline: deadline,
         description: description,
       };
-      console.log('Enviando proposta:', payload);
-      const response = await proposalService.createProposal(payload);
+      
+      let response;
+      
+      if (alreadyProposed && myProposal) {
+        // Atualizar proposta existente
+        console.log('Atualizando proposta existente:', myProposal.id);
+        response = await proposalService.updateProposal(Number(myProposal.id), {
+          price: Number(price),
+          deadline: deadline,
+          description: description,
+        });
+      } else {
+        // Criar nova proposta
+        console.log('Criando nova proposta:', payload);
+        response = await proposalService.createProposal(payload);
+      }
+      
       if (response.success) {
         Alert.alert(
           'Sucesso',
-          'Proposta enviada com sucesso! O cliente será notificado.',
+          alreadyProposed ? 'Proposta atualizada com sucesso!' : 'Proposta enviada com sucesso! O cliente será notificado.',
           [
             {
               text: 'OK',
@@ -184,7 +199,7 @@ export default function SendProposalScreen() {
         {/* Ranking das Propostas Existentes */}
         {demand.proposals && demand.proposals.length > 0 && (
           <View className="bg-white rounded-xl p-6 shadow-sm mb-6">
-            <Text className="text-lg font-semibold mb-4">🏆 Ranking das Propostas</Text>
+            <Text className="text-xl font-bold mb-6 text-center">🏆 Ranking das Propostas</Text>
             {demand.proposals.map((proposal: Proposal, index: number) => {
               const isMyProposal = proposal.provider_id === user?.id;
               const isWinningProposal = isWinning(proposal, index);
@@ -192,46 +207,64 @@ export default function SendProposalScreen() {
               return (
                 <View 
                   key={proposal.id} 
-                  className={`border rounded-lg p-4 mb-3 ${getRankingColor(index)} ${isMyProposal ? 'border-2 border-blue-500' : ''}`}
+                  className={`rounded-xl p-4 mb-4 ${getRankingColor(index)} ${isMyProposal ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                 >
-                  <View className="flex-row justify-between items-start mb-3">
-                    <View className="flex-row items-center">
-                      <Text className="text-2xl mr-3">{getRankingIcon(index)}</Text>
-                      <View>
-                        <View className="flex-row items-center">
-                          <Text className="font-semibold text-lg">{proposal.providerName}</Text>
+                  {/* Header com ranking e nome */}
+                  <View className="flex-row items-center justify-between mb-4">
+                    <View className="flex-row items-center flex-1">
+                      <View className="mr-4">
+                        <Text className="text-3xl">{getRankingIcon(index)}</Text>
+                        <Text className="text-xs text-gray-500 text-center mt-1">
+                          {index === 0 ? '1º LUGAR' : `${index + 1}º LUGAR`}
+                        </Text>
+                      </View>
+                      <View className="flex-1">
+                        <View className="flex-row items-center mb-1">
+                          <Text className="font-bold text-lg text-gray-800">{proposal.providerName}</Text>
                           {isMyProposal && (
-                            <View className="bg-blue-500 px-2 py-1 rounded-full ml-2">
+                            <View className="bg-blue-500 px-3 py-1 rounded-full ml-3">
                               <Text className="text-white text-xs font-bold">VOCÊ</Text>
                             </View>
                           )}
                         </View>
-                        <View className="flex-row items-center mt-1">
-                          <Icon name="star" size={14} color="#fbbf24" />
-                          <Text className="text-gray-600 ml-1">{proposal.providerRating}</Text>
+                        <View className="flex-row items-center">
+                          <Icon name="star" size={16} color="#fbbf24" />
+                          <Text className="text-gray-600 ml-1 font-medium">{proposal.providerRating}</Text>
                         </View>
                       </View>
                     </View>
+                    
+                    {/* Preço e prazo */}
                     <View className="items-end">
-                      <Text className="text-2xl font-bold text-green-600">{proposal.price}</Text>
-                      <Text className="text-gray-600">{proposal.deadline}</Text>
-                      {isWinningProposal && (
-                        <View className="bg-green-100 px-2 py-1 rounded-full mt-1">
-                          <Text className="text-green-700 text-xs font-bold">🎯 NO ORÇAMENTO</Text>
-                        </View>
-                      )}
+                      <Text className="text-2xl font-bold text-green-600 mb-1">{proposal.price}</Text>
+                      <Text className="text-gray-600 font-medium">{proposal.deadline}</Text>
                     </View>
                   </View>
                   
-                  <Text className="text-gray-600 text-sm">{proposal.description}</Text>
+                  {/* Indicador de orçamento */}
+                  {isWinningProposal && (
+                    <View className="bg-green-100 border border-green-200 rounded-lg p-3 mb-3">
+                      <View className="flex-row items-center justify-center">
+                        <Icon name="check-circle" size={16} color="#22c55e" />
+                        <Text className="text-green-700 font-bold ml-2">🎯 DENTRO DO ORÇAMENTO</Text>
+                      </View>
+                    </View>
+                  )}
                   
+                  {/* Descrição */}
+                  <Text className="text-gray-700 text-sm leading-5 mb-3">{proposal.description}</Text>
+                  
+                  {/* Mensagem personalizada para minha proposta */}
                   {isMyProposal && (
-                    <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
-                      <Text className="text-blue-800 font-semibold text-center">
+                    <View className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                      <Text className="text-blue-800 font-bold text-center text-lg mb-1">
                         {index === 0 ? '🥇 Você está em 1º lugar!' : `Você está em ${index + 1}º lugar`}
                       </Text>
-                      <Text className="text-blue-600 text-center text-sm mt-1">
-                        {index === 0 ? 'Continue assim para ganhar!' : 'Melhore sua proposta para subir no ranking!'}
+                      <Text className="text-blue-600 text-center text-sm">
+                        {index === 0 
+                          ? 'Continue assim para ganhar o leilão!' 
+                          : 'Melhore sua proposta para subir no ranking!'
+                        }
                       </Text>
                     </View>
                   )}
@@ -281,6 +314,61 @@ export default function SendProposalScreen() {
               ) : (
                 <Text className="text-center text-white font-bold text-lg">
                   🚀 Enviar Proposta
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Formulário para atualizar proposta existente */}
+        {alreadyProposed && myProposal && (
+          <View className="bg-white rounded-xl p-6 shadow-sm">
+            <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <Text className="text-blue-800 font-bold text-center mb-2">
+                ✏️ Atualizar Sua Proposta
+              </Text>
+              <Text className="text-blue-600 text-center text-sm">
+                Você já enviou uma proposta. Pode atualizar os valores para melhorar sua posição no ranking.
+              </Text>
+            </View>
+
+            <Text className="text-lg font-semibold mb-2">Novo Valor da Proposta (R$)</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Ex: 2800"
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+            />
+
+            <Text className="text-lg font-semibold mb-2">Novo Prazo de Execução</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-4"
+              placeholder="Ex: 12 dias"
+              value={deadline}
+              onChangeText={setDeadline}
+            />
+
+            <Text className="text-lg font-semibold mb-2">Nova Descrição da Proposta</Text>
+            <TextInput
+              className="border border-gray-300 rounded-lg p-3 mb-6 h-32"
+              placeholder="Descreva como você pretende executar o serviço"
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              className="bg-blue-600 rounded-lg p-4"
+              onPress={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text className="text-center text-white font-bold text-lg">
+                  🔄 Atualizar Proposta
                 </Text>
               )}
             </TouchableOpacity>
