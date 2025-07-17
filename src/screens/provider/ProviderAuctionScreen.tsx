@@ -32,6 +32,9 @@ interface Auction {
   clientId: string;
   hasActiveAuction: boolean;
   isNewDemand: boolean;
+  hasMyProposal?: boolean;
+  myProposalRanking?: number | null;
+  myProposal?: any;
 }
 
 // Função para converter dados da API para o formato da interface
@@ -352,6 +355,17 @@ export default function AuctionScreen() {
     (auction) => auction.status === 'Aguardando propostas' || auction.status === 'Em andamento'
   );
 
+  // Adicionar informações sobre a proposta do provider logado
+  filteredAuctions = filteredAuctions.map(auction => {
+    const myProposal = auction.proposals?.find((proposal: any) => proposal.provider_id === user?.id);
+    return {
+      ...auction,
+      myProposal,
+      hasMyProposal: !!myProposal,
+      myProposalRanking: myProposal ? auction.proposals?.indexOf(myProposal) + 1 : null
+    };
+  });
+
   console.log('🔍 Filtros aplicados:', {
     totalAuctions: auctions.length,
     filteredAuctions: filteredAuctions.length,
@@ -589,6 +603,14 @@ export default function AuctionScreen() {
                 {auction.title}
               </Text>
               <View className="flex-row items-center">
+                {/* Status da minha proposta */}
+                {auction.hasMyProposal && (
+                  <View className="bg-blue-100 px-3 py-1 rounded-full mr-2">
+                    <Text className="text-blue-600 font-semibold">
+                      {auction.myProposalRanking}º lugar
+                    </Text>
+                  </View>
+                )}
                 {/* Ícone de leilão ativo */}
                 {auction.hasActiveAuction && (
                   <View className="bg-orange-100 p-1 rounded-full mr-2">
@@ -632,9 +654,15 @@ export default function AuctionScreen() {
                   <Text className="font-semibold mb-2 text-blue-800">
                     {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
                   </Text>
-                  <Text className="text-blue-600 text-sm">
-                    Clique para ver detalhes e enviar sua proposta
-                  </Text>
+                  {auction.hasMyProposal ? (
+                    <Text className="text-blue-600 text-sm">
+                      Sua proposta está em {auction.myProposalRanking}º lugar. Clique para ver detalhes.
+                    </Text>
+                  ) : (
+                    <Text className="text-blue-600 text-sm">
+                      Clique para ver detalhes e enviar sua proposta
+                    </Text>
+                  )}
                 </>
               ) : (
                 <>
@@ -655,7 +683,7 @@ export default function AuctionScreen() {
               <View className="flex-row items-center">
                 <Icon name="visibility" size={20} color="#4f46e5" />
                 <Text className="text-indigo-600 ml-1 font-semibold">
-                  Ver Detalhes
+                  {auction.hasMyProposal ? 'Ver Ranking' : 'Ver Detalhes'}
                 </Text>
               </View>
             </View>
