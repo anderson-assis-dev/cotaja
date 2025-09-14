@@ -92,6 +92,7 @@ export interface User {
   phone?: string;
   address?: string;
   profile_type: 'client' | 'provider';
+  service_categories?: string[];
   email_verified_at?: string;
   created_at: string;
   updated_at: string;
@@ -225,8 +226,18 @@ export const authService = {
   },
 
   // Atualizar tipo de perfil
-  async updateProfileType(profileType: 'client' | 'provider'): Promise<{ success: boolean; message: string; data: { user: User } }> {
-    const response = await api.put('/profile-type', { profile_type: profileType });
+  async updateProfileType(profileType: 'client' | 'provider', serviceCategories?: string[]): Promise<{ success: boolean; message: string; data: { user: User } }> {
+    const data: any = { profile_type: profileType };
+    if (serviceCategories) {
+      data.service_categories = serviceCategories;
+    }
+    const response = await api.put('/profile-type', data);
+    return response.data;
+  },
+
+  // Salvar token FCM
+  async saveFcmToken(fcmToken: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/fcm-token', { fcm_token: fcmToken });
     return response.data;
   },
 };
@@ -433,5 +444,7 @@ export const serviceService = {
     return response.data;
   },
 };
+
+
 
 export default api;

@@ -33,7 +33,7 @@ export default function InitialScreen() {
 
         <TouchableOpacity
           className="bg-white rounded-xl p-6 w-full"
-          onPress={() => navigation.navigate('ProviderHome' as never)}
+          onPress={() => navigation.navigate('Provider' as never)}
         >
           <Text className="text-xl font-bold text-center text-gray-800">
             Sou Prestador

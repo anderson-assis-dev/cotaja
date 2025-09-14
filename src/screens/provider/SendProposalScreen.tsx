@@ -104,7 +104,7 @@ export default function SendProposalScreen() {
           [
             {
               text: 'OK',
-              onPress: () => (navigation as any).navigate('ProviderHome'),
+              onPress: () => (navigation as any).navigate('Home'),
             },
           ]
         );

@@ -83,7 +83,7 @@ export default function AvailableDemandsScreen() {
 
         <TouchableOpacity
           className="bg-indigo-600 rounded-lg p-4 mt-6"
-          onPress={() => navigation.navigate('ProviderHome' as never)}
+          onPress={() => navigation.navigate('Home')}
         >
           <Text className="text-center text-white font-bold text-lg">
             Voltar para Home

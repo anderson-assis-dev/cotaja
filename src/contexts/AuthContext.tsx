@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService, User } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import PushNotificationService from '../services/pushNotifications';
 
 interface AuthContextType {
   user: User | null;
@@ -9,7 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string) => Promise<boolean>;
   logout: () => void;
-  updateProfileType: (profileType: 'client' | 'provider') => Promise<boolean>;
+  updateProfileType: (profileType: 'client' | 'provider', serviceCategories?: string[]) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,6 +54,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.log('✅ Token válido, usuário:', response.data.user.name);
             setUser(response.data.user);
             await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+            
+            // Inicializar notificações push para usuário autenticado
+            await PushNotificationService.initialize();
           } catch (error: any) {
             console.log('❌ Token inválido, limpando dados...');
             // Token inválido, limpar dados
@@ -88,6 +92,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       await AsyncStorage.setItem('auth_token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Inicializar notificações push após login
+      await PushNotificationService.initialize();
       
       return true;
     } catch (error: any) {
@@ -134,6 +141,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('auth_token', response.data.token);
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
       
+      // Inicializar notificações push após registro
+      await PushNotificationService.initialize();
+      
       return true;
     } catch (error: any) {
       console.error('❌ Erro no registro:', error);
@@ -172,15 +182,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(null);
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('user');
+      
+      // Limpar token de notificações push
+      await PushNotificationService.clearToken();
     }
   };
 
-  const updateProfileType = async (profileType: 'client' | 'provider'): Promise<boolean> => {
+  const updateProfileType = async (profileType: 'client' | 'provider', serviceCategories?: string[]): Promise<boolean> => {
     try {
-      console.log('🔄 Atualizando tipo de perfil...', { profileType });
+      console.log('🔄 Atualizando tipo de perfil...', { profileType, serviceCategories });
       setIsLoading(true);
       
-      const response = await authService.updateProfileType(profileType);
+      const response = await authService.updateProfileType(profileType, serviceCategories);
       console.log('✅ Tipo de perfil atualizado:', response.data.user.profile_type);
       
       setUser(response.data.user);
