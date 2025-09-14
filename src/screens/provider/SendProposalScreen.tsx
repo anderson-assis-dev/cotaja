@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { proposalService } from '../../services/api';
+import { proposalService, orderService } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCallback } from 'react';
 
 // Tipos TypeScript
 interface Proposal {
@@ -39,9 +40,44 @@ export default function SendProposalScreen() {
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demand, setDemand] = useState((route.params as any)?.demand);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Exigir demanda via params
-  const demand = (route.params as any)?.demand;
+  // Função para atualizar os dados da demanda
+  const refreshDemandData = useCallback(async () => {
+    if (!demand?.id) return;
+    
+    setRefreshing(true);
+    try {
+      // Buscar propostas atualizadas para verificar se já existe uma proposta do usuário
+      const response = await proposalService.getProposals({ order_id: parseInt(demand.id) });
+      if (response.success) {
+        // Atualizar apenas as propostas na demanda atual
+        const updatedDemand = {
+          ...demand,
+          proposals: response.data.data
+        };
+        setDemand(updatedDemand);
+      }
+    } catch (error) {
+      console.log('Erro ao atualizar dados da demanda:', error);
+      // Se houver erro, apenas recarregar os dados originais dos parâmetros
+      const originalDemand = (route.params as any)?.demand;
+      if (originalDemand) {
+        setDemand(originalDemand);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [demand?.id, route.params]);
+
+  // Atualizar dados quando a tela ganha foco (apenas uma vez)
+  useFocusEffect(
+    useCallback(() => {
+      // Não fazer refresh automático para evitar múltiplas chamadas
+      // O refresh será feito apenas quando necessário (após erros)
+    }, [])
+  );
 
   if (!demand) {
     return (
@@ -112,7 +148,31 @@ export default function SendProposalScreen() {
         Alert.alert('Erro', response.message || 'Erro ao enviar proposta');
       }
     } catch (error: any) {
-      Alert.alert('Erro', error.message || 'Erro ao enviar proposta');
+      console.log('Erro completo:', error);
+      
+      // Tratar erro específico da API
+      let errorMessage = 'Erro ao enviar proposta';
+      
+      if (error.response?.data?.data?.message) {
+        // Mensagem específica da API (ex: "Você já enviou uma proposta para este pedido")
+        errorMessage = error.response.data.data.message;
+      } else if (error.response?.data?.message) {
+        // Mensagem geral da API
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        // Mensagem do erro
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Atenção', errorMessage, [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Atualizar os dados da tela após mostrar a mensagem
+            refreshDemandData();
+          }
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -150,7 +210,12 @@ export default function SendProposalScreen() {
   return (
     <ScrollView className="flex-1 bg-gray-100" style={{ paddingTop: insets.top }}>
       <View className="p-6">
-        <Text className="text-2xl font-bold mb-6">Enviar Proposta</Text>
+        <View className="flex-row items-center justify-between mb-6">
+          <Text className="text-2xl font-bold">Enviar Proposta</Text>
+          {refreshing && (
+            <ActivityIndicator size="small" color="#4f46e5" />
+          )}
+        </View>
 
         {/* Informações da Demanda */}
         <View className="bg-white rounded-xl p-6 shadow-sm mb-6">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator, TextInput, FlatList } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -564,19 +564,20 @@ export default function AuctionScreen() {
               {/* Autocomplete de categorias */}
               {showCategoryAutocomplete && filteredCategories.length > 0 && (
                 <View className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 z-10 max-h-40">
-                  <FlatList
-                    data={filteredCategories}
-                    keyExtractor={(item) => item}
-                    renderItem={({ item }) => (
+                  <ScrollView 
+                    showsVerticalScrollIndicator={false}
+                    nestedScrollEnabled={true}
+                  >
+                    {filteredCategories.map((item) => (
                       <TouchableOpacity
+                        key={item}
                         className="px-4 py-3 border-b border-gray-100"
                         onPress={() => selectCategory(item)}
                       >
                         <Text className="text-gray-800">{item}</Text>
                       </TouchableOpacity>
-                    )}
-                    showsVerticalScrollIndicator={false}
-                  />
+                    ))}
+                  </ScrollView>
                 </View>
               )}
             </View>
