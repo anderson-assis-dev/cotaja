@@ -259,6 +259,18 @@ export default function AuctionScreen() {
     setShowCategoryAutocomplete(false);
   };
 
+  // Função para formatar CEP
+  const formatCep = (value: string) => {
+    // Remove caracteres não numéricos
+    const numbers = value.replace(/[^0-9]/g, '');
+    // Aplica máscara de CEP (00000-000)
+    if (numbers.length <= 5) {
+      return numbers;
+    } else {
+      return numbers.substring(0, 5) + '-' + numbers.substring(5, 8);
+    }
+  };
+
   // Função para limpar filtros
   const clearFilters = () => {
     setCepFilter('');
@@ -287,7 +299,11 @@ export default function AuctionScreen() {
 
         // Aplicar filtro por CEP
         if (cepFilter && cepFilter.length >= 5) {
-          params.cep = cepFilter;
+          // Limpar CEP (remover caracteres não numéricos)
+          const cleanCep = cepFilter.replace(/[^0-9]/g, '');
+          if (cleanCep.length >= 5) {
+            params.cep = cleanCep;
+          }
         }
 
         console.log('🔍 Aplicando filtros:', params);
@@ -345,11 +361,6 @@ export default function AuctionScreen() {
 
   // Filtra as demandas conforme o tipo de usuário
   let filteredAuctions = auctions; // Para providers, não filtrar por clientId
-
-  // Aplica filtro por categoria se selecionada
-  if (selectedCategory) {
-    filteredAuctions = filteredAuctions.filter(a => a.category === selectedCategory);
-  }
 
   // Filtra apenas demandas abertas ou em andamento
   filteredAuctions = filteredAuctions.filter(
@@ -517,14 +528,14 @@ export default function AuctionScreen() {
             <Text className="text-sm font-medium text-gray-700 mb-2">CEP</Text>
             <View className="flex-row items-center">
               <Icon name="location-on" size={20} color="#6b7280" style={{ marginRight: 8 }} />
-              <TextInput
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
-                placeholder="Digite o CEP (ex: 40275190)"
-                value={cepFilter}
-                onChangeText={setCepFilter}
-                keyboardType="numeric"
-                maxLength={8}
-              />
+                <TextInput
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-800"
+                  placeholder="Digite o CEP (ex: 40275-190)"
+                  value={cepFilter}
+                  onChangeText={(text) => setCepFilter(formatCep(text))}
+                  keyboardType="numeric"
+                  maxLength={9}
+                />
             </View>
             <Text className="text-xs text-gray-500 mt-1">
               Busca demandas em um raio próximo ao CEP informado
