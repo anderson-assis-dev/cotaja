@@ -4,11 +4,8 @@ import { Platform } from 'react-native';
 
 // Configurar URL base conforme a plataforma
 const getApiBaseUrl = () => {
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8000/api'; // Android Emulator
-  } else {
-    return 'http://localhost:8000/api'; // iOS Simulator
-  }
+  // URL do servidor na nuvem
+  return 'https://srv1009490.hstgr.cloud/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
