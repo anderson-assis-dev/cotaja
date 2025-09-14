@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, A
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker, { DocumentPickerResponse } from 'react-native-document-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { orderService } from '../../services/api';
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
@@ -26,7 +26,7 @@ export default function CreateOrderScreen() {
   const [budget, setBudget] = useState('');
   const [deadline, setDeadline] = useState('');
   const [address, setAddress] = useState('');
-  const [attachments, setAttachments] = useState<(DocumentPickerResponse | { uri: string; name: string; type: string })[]>([]);
+  const [attachments, setAttachments] = useState<{ uri: string; name: string; type: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Handler para orçamento com formatação
@@ -59,17 +59,21 @@ export default function CreateOrderScreen() {
 
   const handleDocumentPick = async () => {
     try {
-      const results = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf],
-        allowMultiSelection: true,
+      const results = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        multiple: true,
       });
-      setAttachments([...attachments, ...results]);
-    } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        // User cancelled the picker
-      } else {
-        throw err;
+      
+      if (!results.canceled && results.assets) {
+        const newAttachments = results.assets.map(asset => ({
+          uri: asset.uri,
+          name: asset.name || 'document.pdf',
+          type: asset.mimeType || 'application/pdf',
+        }));
+        setAttachments([...attachments, ...newAttachments]);
       }
+    } catch (err) {
+      console.error('Erro ao selecionar documento:', err);
     }
   };
 
