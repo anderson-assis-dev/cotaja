@@ -96,9 +96,10 @@ class PushNotificationService {
       console.warn('❌ Erro ao solicitar permissão Android:', err);
     }
 
-    // Configure Android push notifications
+    // Configure Firebase Cloud Messaging para Android
+    console.log('🔥 [Android] Configurando Firebase Cloud Messaging...');
+
     PushNotification.configure({
-      // Called when token is generated
       onRegister: (token: any) => {
         console.log('✅ [Android] Token FCM obtido:', token.token);
         console.log('📝 [Android] Salvando token no deviceToken interno e AsyncStorage...');
@@ -106,45 +107,27 @@ class PushNotificationService {
         AsyncStorage.setItem('device_token', token.token).then(() => {
           console.log('💾 [Android] Token salvo no AsyncStorage com sucesso!');
           console.log('ℹ️ [Android] Token será enviado ao backend via payload de login/registro/abertura do app');
-          // NÃO enviar automaticamente aqui - confiar no payload
         }).catch((error) => {
           console.error('❌ [Android] Erro ao salvar token no AsyncStorage:', error);
         });
       },
-
-      // Called when a remote or local notification is opened or received
       onNotification: (notification: any) => {
         console.log('📱 Notificação Android recebida:', notification);
         this.handleNotification(notification);
-
-        // Required callback
         notification.finish(PushNotificationIOS.FetchResult.NoData);
       },
-
-      // Called when Registered Action is pressed and invokeApp is false
       onAction: (notification: any) => {
         console.log('🎯 Ação Android:', notification.action);
-        console.log('📱 Notificação:', notification);
       },
-
-      // Called when the user fails to register for remote notifications
       onRegistrationError: (err: any) => {
         console.error('❌ Erro registro Android:', err.message, err);
       },
-
-      // iOS ONLY: Permissions to register
-      permissions: {
-        alert: true,
-        badge: true,
-        sound: true,
-      },
-
-      // Should the initial notification be popped automatically
+      permissions: { alert: true, badge: true, sound: true },
       popInitialNotification: true,
-
-      // Request permissions on app start
       requestPermissions: true,
     });
+
+    console.log('✅ [Android] Firebase Cloud Messaging configurado');
   }
 
   private handleNotification(notification: any) {
@@ -265,11 +248,15 @@ class PushNotificationService {
         userInfo: data || {}
       });
     } else {
-      PushNotification.localNotification({
-        title: title,
-        message: body,
-        userInfo: data || {}
-      });
+      try {
+        PushNotification.localNotification({
+          title: title,
+          message: body,
+          userInfo: data || {}
+        });
+      } catch (error) {
+        console.warn('⚠️ [Android] Push notification não disponível (Firebase não configurado):', error);
+      }
     }
   }
 
@@ -383,12 +370,16 @@ class PushNotificationService {
         userInfo: data || {}
       });
     } else {
-      PushNotification.localNotificationSchedule({
-        title: title,
-        message: message,
-        date: date,
-        userInfo: data || {}
-      });
+      try {
+        PushNotification.localNotificationSchedule({
+          title: title,
+          message: message,
+          date: date,
+          userInfo: data || {}
+        });
+      } catch (error) {
+        console.warn('⚠️ [Android] Scheduled notification não disponível (Firebase não configurado):', error);
+      }
     }
   }
 
@@ -396,7 +387,11 @@ class PushNotificationService {
     if (Platform.OS === 'ios') {
       PushNotificationIOS.removeAllPendingNotificationRequests();
     } else {
-      PushNotification.cancelAllLocalNotifications();
+      try {
+        PushNotification.cancelAllLocalNotifications();
+      } catch (error) {
+        console.warn('⚠️ [Android] Cancel notifications não disponível (Firebase não configurado):', error);
+      }
     }
   }
 }

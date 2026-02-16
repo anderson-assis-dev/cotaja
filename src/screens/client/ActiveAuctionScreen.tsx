@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Alert, Modal, StyleShe
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Star } from 'lucide-react-native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
@@ -109,7 +110,7 @@ export default function ActiveAuctionScreen() {
 
   const myAuctions = mockAuctions.filter(a => a.clientId === clientId && !closedAuctions.includes(a.id));
 
-  const visibleProposals = selectedAuction 
+  const visibleProposals = selectedAuction
     ? selectedAuction.proposals.filter(p => !(refusedProposals[selectedAuction.id] || []).includes(p.id))
     : [];
 
@@ -187,7 +188,7 @@ export default function ActiveAuctionScreen() {
                     <View>
                       <Text style={styles.providerName}>{proposal.provider.name}</Text>
                       <View style={styles.ratingContainer}>
-                        <Text style={styles.starIcon}>★</Text>
+                        <Star size={14} color="#eab308" fill="#eab308" />
                         <Text style={styles.ratingText}>{proposal.provider.rating}</Text>
                       </View>
                     </View>
@@ -407,4 +408,4 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 24,
   },
-}); 
+});

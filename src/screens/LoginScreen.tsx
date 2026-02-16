@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Alert, View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import biometricService from '../services/biometricService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScanFace, Fingerprint } from 'lucide-react-native'
@@ -10,6 +11,7 @@ import { ScanFace, Fingerprint } from 'lucide-react-native'
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const { login, isLoading, loginWithBiometric, hasBiometricCredentials } = useAuth();
+  const { showError } = useToast();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -55,13 +57,13 @@ export default function LoginScreen() {
     try {
       await loginWithBiometric();
     } catch (error: any) {
-      Alert.alert('Erro', 'Falha na autenticação biométrica. Tente usar email e senha.');
+      showError('Falha na autenticação biométrica. Tente usar email e senha.');
     }
   };
 
   const handleLogin = async () => {
     if (!email || !senha) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      showError('Por favor, preencha todos os campos');
       return;
     }
 
@@ -74,7 +76,7 @@ export default function LoginScreen() {
         errorMessage = error.message;
       }
 
-      Alert.alert('Erro de Login', errorMessage);
+      showError(errorMessage);
     }
   };
 
@@ -89,16 +91,22 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.content}>
-          <Image
-            source={require('../../assets/logo.png')}
-            style={[styles.logo, { tintColor: 'white' }]}
-            resizeMode="contain"
-          />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+        showsVerticalScrollIndicator={false}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.content}>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={[styles.logo, { tintColor: 'white' }]}
+              resizeMode="contain"
+            />
 
           <View style={styles.formContainer}>
             <Text style={styles.title}>Bem-vindo de volta!</Text>
@@ -183,8 +191,9 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -193,6 +202,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#6366f1', // indigo-500
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
@@ -273,6 +285,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   registerContainer: {
     flexDirection: 'row',

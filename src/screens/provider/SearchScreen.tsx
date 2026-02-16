@@ -3,6 +3,7 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Status
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Lightbulb } from 'lucide-react-native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
@@ -208,6 +209,7 @@ export default function ProviderSearchScreen() {
         style={[styles.scrollView, { paddingTop: insets.top }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
       >
       <View style={styles.content}>
         <Text style={styles.title}>Buscar Demandas</Text>
@@ -311,7 +313,7 @@ export default function ProviderSearchScreen() {
         {/* Information - only shows when there's no active search */}
         {!showSearchResults && (
           <View style={styles.infoContainer}>
-            <Text style={styles.infoTitle}>💡 Como funciona?</Text>
+            <Text style={styles.infoTitle}><Lightbulb size={16} color="#f59e0b" /> Como funciona?</Text>
             <Text style={styles.infoText}>
               • Digite palavras-chave para buscar demandas específicas{'\n'}
               • Selecione uma categoria para ver todas as demandas{'\n'}

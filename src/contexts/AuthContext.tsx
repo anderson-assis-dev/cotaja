@@ -311,29 +311,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authService.register(registerData);
       console.log('✅ [REGISTER] Cadastro bem-sucedido!');
 
-      setUser(response.data.user);
-      setToken(response.data.token);
-
-      console.log('💾 [REGISTER] Salvando auth_token e user no AsyncStorage...');
-      await AsyncStorage.setItem('auth_token', response.data.token);
-      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
-      console.log('✅ [REGISTER] Dados salvos no AsyncStorage');
-
-      // Inicializar notificações push após registro (sem enviar token - já foi enviado no payload)
-      // Só inicializar se ainda não estiver inicializado
-      if (!pushNotificationService.isServiceInitialized()) {
-        console.log('🔔 [REGISTER] Inicializando notificações push...');
-        await pushNotificationService.initialize();
-        console.log('✅ [REGISTER] Notificações push inicializadas');
-      } else {
-        console.log('ℹ️ [REGISTER] Notificações push já inicializadas, pulando...');
-      }
-
-      if (!fcm_token) {
-        console.log('⚠️ [REGISTER] Token não foi enviado no payload de registro, será enviado quando disponível');
-      } else {
-        console.log('✅ [REGISTER] Token FCM foi enviado no payload de registro');
-      }
+      // Account needs activation via email - don't auto-login
+      console.log('📧 [REGISTER] Conta criada. Ativação via email necessária.');
 
       return true;
     } catch (error: any) {

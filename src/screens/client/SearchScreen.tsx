@@ -3,6 +3,8 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, Styl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
+import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
 // --- Dados Mockados Enriquecidos ---
 const mockCompanies = [
@@ -54,9 +56,10 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const isRatingMode = (route.params as any)?.isRatingMode || false;
-  
+
   const filteredCompanies = useMemo(() => {
     let companies = mockCompanies;
 
@@ -69,14 +72,14 @@ export default function SearchScreen() {
     if (searchQuery.length > 1) {
       const lowercasedQuery = searchQuery.toLowerCase();
       companies = companies.filter(
-        c => c.name.toLowerCase().includes(lowercasedQuery) || 
+        c => c.name.toLowerCase().includes(lowercasedQuery) ||
              c.category.toLowerCase().includes(lowercasedQuery)
       );
     }
 
     return companies;
   }, [searchQuery, selectedCategory]);
-  
+
   const handleCategoryPress = (categoryName: string) => {
     setSearchQuery(''); // Limpa a busca por texto ao clicar na categoria
     setSelectedCategory(prev => (prev === categoryName ? null : categoryName));
@@ -99,10 +102,16 @@ export default function SearchScreen() {
   };
 
   return (
-    <>
-      <ScrollView style={[styles.container, { paddingTop: insets.top }]} keyboardShouldPersistTaps="handled">
-        <View style={styles.content}>
-          <Text style={styles.title}>Encontrar Empresas</Text>
+    <View style={styles.outerContainer}>
+      <ScrollView
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        <View style={[styles.content, { paddingTop: insets.top + 60, marginTop: -60 }]}>
+          <Text style={styles.pageTitle}>Encontrar Empresas</Text>
+          <Text style={styles.pageSubtitle}>Busque prestadores e serviços</Text>
 
           {/* Search Bar */}
           <View style={styles.searchContainer}>
@@ -210,11 +219,18 @@ export default function SearchScreen() {
           </View>
         </View>
       </Modal>
-    </>
+
+      {/* Status Bar Overlay */}
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f3f4f6',
@@ -222,10 +238,15 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
-  title: {
+  pageTitle: {
     fontSize: 30,
     fontWeight: 'bold',
     color: '#374151',
+    marginBottom: 4,
+  },
+  pageSubtitle: {
+    color: '#6b7280',
+    fontSize: 14,
     marginBottom: 16,
   },
   searchContainer: {
@@ -443,4 +464,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
-}); 
+});

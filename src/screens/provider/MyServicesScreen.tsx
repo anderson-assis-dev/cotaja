@@ -6,7 +6,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { serviceService, Service } from '../../services/api';
-import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType, PhotoQuality } from 'react-native-image-picker';
+import { formatPrice } from '../../utils/formatters';
 
 // Categorias disponíveis
 const categories = [
@@ -111,7 +112,7 @@ export default function MyServicesScreen() {
       includeBase64: true,
       maxWidth: 1024,
       maxHeight: 1024,
-      quality: 0.8,
+      quality: 0.8 as PhotoQuality,
     };
 
     launchImageLibrary(options, (response: ImagePickerResponse) => {
@@ -140,7 +141,7 @@ export default function MyServicesScreen() {
       includeBase64: true,
       maxWidth: 1024,
       maxHeight: 1024,
-      quality: 0.8,
+      quality: 0.8 as PhotoQuality,
     };
 
     launchCamera(options, (response: ImagePickerResponse) => {
@@ -425,7 +426,7 @@ export default function MyServicesScreen() {
               <Text style={styles.serviceDescription}>{service.description}</Text>
 
               <View style={styles.serviceMeta}>
-                <Text style={styles.servicePrice}>R$ {parseFloat(service.price.toString().replace(",", ".")).toFixed(2)}</Text>
+                <Text style={styles.servicePrice}>R$ {formatPrice(parseFloat(service.price.toString().replace(",", ".")))}</Text>
                 <Text style={styles.serviceDate}>
                   Criado em {new Date(service.created_at).toLocaleDateString('pt-BR')}
                 </Text>
@@ -734,7 +735,7 @@ export default function MyServicesScreen() {
     </Modal>
 
     {/* Status Bar Overlay */}
-    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

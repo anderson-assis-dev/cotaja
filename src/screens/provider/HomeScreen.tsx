@@ -3,10 +3,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Star } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { authService } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { formatPrice } from '../../utils/formatters';
 
 const services = [
   {
@@ -51,13 +53,6 @@ export default function ProviderHomeScreen() {
     setTop40(40);
   }, [insets.top]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -99,7 +94,7 @@ export default function ProviderHomeScreen() {
               <Text style={styles.statLabel}>Avaliação</Text>
               <View style={styles.ratingContainer}>
                 <Text style={styles.statValue}>{user?.rate || 0}</Text>
-                <Text style={styles.starIcon}>★</Text>
+                <Star size={18} color="#f59e0b" fill="#f59e0b" style={{ marginLeft: 4 }} />
               </View>
             </View>
             <View style={styles.statItem}>
@@ -115,7 +110,7 @@ export default function ProviderHomeScreen() {
           <View style={styles.earningsCard}>
             <Text style={styles.earningsLabel}>Saldo Atual</Text>
             <Text style={styles.earningsValue}>
-              {user?.balance ? formatCurrency(user.balance) : 'R$ 0,00'}
+              R$ {user?.balance ? formatPrice(user.balance) : '0,00'}
             </Text>
           </View>
         </View>
@@ -166,6 +161,7 @@ export default function ProviderHomeScreen() {
             Buscar Novas Oportunidades
           </Text>
         </TouchableOpacity>
+        <View style={{ height: insets.bottom + 16 }} />
       </View>
     </ScrollView>
 

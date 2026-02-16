@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, Image, StyleSheet } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Star } from 'lucide-react-native';
 
 // Navigation types
 type RootStackParamList = {
@@ -89,7 +90,7 @@ export default function RateClientScreen() {
                 style={styles.starButton}
               >
                 <Text style={styles.starText}>
-                  {star <= rating ? '★' : '☆'}
+                  <Star size={32} color="#fbbf24" fill={star <= rating ? '#fbbf24' : 'none'} />
                 </Text>
               </TouchableOpacity>
             ))}

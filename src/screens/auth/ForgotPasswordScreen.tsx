@@ -1,31 +1,26 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
+  const { showError, showSuccess } = useToast();
   const [email, setEmail] = useState('');
   const insets = useSafeAreaInsets();
 
   const handleResetPassword = () => {
     if (!email) {
-      console.log('Erro: Por favor, digite seu email');
+      showError('Por favor, digite seu email');
       return;
     }
 
     // Simulação de envio de email de recuperação
-    Alert.alert(
-      'Email Enviado',
-      'Se este email estiver cadastrado em nossa base, você receberá as instruções para redefinir sua senha.',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack()
-        }
-      ]
-    );
-    navigation.goBack();
+    showSuccess('Se este email estiver cadastrado, você receberá as instruções para redefinir sua senha', 5000);
+    setTimeout(() => {
+      navigation.goBack();
+    }, 1500);
   };
 
   return (

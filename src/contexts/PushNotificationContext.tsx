@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { Platform, AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../services/pushNotificationService';
+import { authService } from '../services/api';
 
 interface DeviceInfo {
   token: string;
@@ -36,6 +39,35 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
   // Initialize service on mount
   useEffect(() => {
     initializeService();
+  }, []);
+
+  // Update token on app foreground (when user returns to app)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        console.log('📱 [AppState] App voltou para foreground, verificando token...');
+
+        // Check if user is logged in
+        const authToken = await AsyncStorage.getItem('auth_token');
+        if (authToken) {
+          // Get current token
+          const storedToken = await AsyncStorage.getItem('device_token');
+          if (storedToken) {
+            console.log('🔄 [AppState] Atualizando token no backend...');
+            try {
+              await authService.saveFcmToken(storedToken, Platform.OS);
+              console.log('✅ [AppState] Token atualizado com sucesso');
+            } catch (error) {
+              console.error('❌ [AppState] Erro ao atualizar token:', error);
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   /**

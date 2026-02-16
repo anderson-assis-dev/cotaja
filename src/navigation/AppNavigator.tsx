@@ -24,6 +24,7 @@ import RateProviderScreen from '../screens/client/RateProviderScreen';
 import CheckoutScreen from '../screens/client/CheckoutScreen';
 import PaymentScreen from '../screens/client/PaymentScreen';
 import SearchScreen from '../screens/client/SearchScreen';
+import MyOrdersHomeScreen from '../screens/client/MyOrdersHomeScreen';
 
 // Telas do Prestador
 import ProviderHomeScreen from '../screens/provider/HomeScreen';
@@ -66,6 +67,42 @@ function ClientHomeStackNavigator({ route }: any) {
           clientInfo: clientInfo
         }}
       />
+      <ClientHomeStack.Screen
+        name="HomeMyOrders"
+        component={MyOrdersHomeScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <ClientHomeStack.Screen
+        name="HomeActiveAuction"
+        component={ActiveAuctionScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <ClientHomeStack.Screen
+        name="HomeCheckout"
+        component={CheckoutScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
+      <ClientHomeStack.Screen
+        name="HomePayment"
+        component={PaymentScreen}
+        initialParams={{
+          userType: 'client',
+          clientId: clientId,
+          clientInfo: clientInfo
+        }}
+      />
     </ClientHomeStack.Navigator>
   );
 }
@@ -79,7 +116,7 @@ function MyOrdersStackNavigator({ route }: any) {
     <MyOrdersStack.Navigator screenOptions={{ headerShown: false }}>
       <MyOrdersStack.Screen
         name="MyOrders"
-        component={ActiveAuctionScreen}
+        component={OrderDetailsScreen}
         initialParams={{
           userType: 'client',
           clientId: clientId,
@@ -366,7 +403,8 @@ export default function AppNavigator() {
     <>
       <StatusBar
         barStyle={isDarkStatus ? "dark-content" : "light-content"}
-        backgroundColor={isDarkStatus ? "transparent" : "#4f46e5"}
+        backgroundColor={isDarkStatus ? "#f3f4f6" : "#4f46e5"}
+        translucent={false}
       />
       <NavigationContainer onStateChange={onNavigationStateChange}>
         <Stack.Navigator

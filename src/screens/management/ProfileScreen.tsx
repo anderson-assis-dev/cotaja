@@ -1,9 +1,12 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, NavigationProp, CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { authService } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
@@ -30,8 +33,10 @@ interface User {
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { logout, user } = useAuth();
+  const { logout, user, refreshUser } = useAuth();
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
+  const { showSuccess, showError } = useToast();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const handleLogout = async (): Promise<void> => {
     await logout();
@@ -48,6 +53,42 @@ export default function ProfileScreen() {
       case 'provider': return 'Prestador';
       case 'client': return 'Cliente';
       default: return 'Usuário';
+    }
+  };
+
+  const handleChangeAvatar = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.7,
+        maxWidth: 500,
+        maxHeight: 500,
+        includeBase64: true,
+      });
+
+      if (result.didCancel || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.base64) {
+        showError('Não foi possível processar a imagem.');
+        return;
+      }
+
+      const base64String = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
+
+      setUploadingAvatar(true);
+
+      await authService.updateAvatar(base64String);
+      await refreshUser();
+
+      showSuccess('Foto de perfil atualizada com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao atualizar avatar:', error);
+      showError(error.response?.data?.message || 'Não foi possível atualizar a foto de perfil.');
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -68,12 +109,21 @@ export default function ProfileScreen() {
       >
       <View style={[styles.header, { paddingTop: insets.top + 60, marginTop: -60 }]}>
         <View style={styles.headerContent}>
-          <View style={styles.avatarContainer}>
-            <Image
-              source={require('../../../assets/cotaja_icon.png')}
-              style={styles.avatar}
-            />
-          </View>
+          <TouchableOpacity style={styles.avatarContainer} onPress={handleChangeAvatar} disabled={uploadingAvatar}>
+            {uploadingAvatar ? (
+              <ActivityIndicator size="large" color="#ffffff" />
+            ) : user.avatar_base64 ? (
+              <Image
+                source={{ uri: user.avatar_base64 }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Icon name="person" size={48} color="#ffffff" />
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Icon name="camera-alt" size={16} color="#ffffff" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.userName}>
             {user.name}
           </Text>
@@ -209,16 +259,30 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 100,
-    overflow: 'hidden',
-    backgroundColor: '#000',
+    overflow: 'visible',
+    backgroundColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  avatar: {
-    width: 200,
-    height: 200,
-    resizeMode: 'contain',
-    paddingTop: '17%'
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    resizeMode: 'cover',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#2563eb',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   userName: {
     fontSize: 24,

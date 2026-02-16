@@ -85,7 +85,7 @@ api.interceptors.response.use(
 
 // Tipos para as respostas da API
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
   phone?: string;
@@ -100,6 +100,8 @@ export interface User {
   balance?: number;
   active_services?: number;
   completed_services?: number;
+  avatar_base64?: string;
+  activate?: number;
 }
 
 export interface AuthResponse {
@@ -170,6 +172,9 @@ export interface Proposal {
   provider_id: number;
   order?: Order;
   provider?: User;
+  provider_name?: string;
+  provider_email?: string;
+  provider_avatar_base64?: string;
   created_at: string;
   updated_at: string;
 }
@@ -191,16 +196,21 @@ export interface Service {
 
 // Tipos para Anexos
 export interface Attachment {
-  id: number;
+  id?: number;
   filename: string;
   original_name: string;
-  file_path: string;
-  file_size: number;
+  file_path?: string;
+  path?: string;
+  data?: string;
+  file_size?: number;
+  size?: number;
   mime_type: string;
-  attachable_type: string;
-  attachable_id: number;
-  created_at: string;
-  updated_at: string;
+  type?: string;
+  attachable_type?: string;
+  attachable_id?: number;
+  uploaded_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Serviços de autenticação
@@ -252,6 +262,12 @@ export const authService = {
       fcm_token: fcmToken,
       device_platform: devicePlatform || Platform.OS
     });
+    return response.data;
+  },
+
+  // Atualizar foto de perfil
+  async updateAvatar(avatar_base64: string): Promise<{ success: boolean; message: string; data: { avatar_base64: string } }> {
+    const response = await api.put('/auth/avatar', { avatar_base64 });
     return response.data;
   },
 
@@ -410,6 +426,7 @@ export const orderService = {
     deadline?: number;
     address?: string;
     attachments?: any[];
+    removedAttachments?: string[];
   }): Promise<{ success: boolean; message: string; data: Order }> {
     const formData = new FormData();
 
@@ -420,6 +437,11 @@ export const orderService = {
     if (data.budget) formData.append('budget', data.budget.toString());
     if (data.deadline) formData.append('deadline', data.deadline.toString());
     if (data.address) formData.append('address', data.address);
+
+    // Enviar lista de anexos removidos
+    if (data.removedAttachments && data.removedAttachments.length > 0) {
+      formData.append('removedAttachments', JSON.stringify(data.removedAttachments));
+    }
 
     // Adicionar novos anexos se houver
     if (data.attachments && data.attachments.length > 0) {

@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, A
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
-import DocumentPicker from 'react-native-document-picker';
+import { pick, types } from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Config from 'react-native-config';
 import { orderService } from '../../services/api';
@@ -25,7 +25,8 @@ interface Attachment {
 }
 
 interface ExistingAttachment {
-  path: string;
+  path?: string;
+  data?: string;
   size: number;
   type: string;
   filename: string;
@@ -60,6 +61,7 @@ export default function CreateOrderScreen() {
   const editMode = params?.editMode || false;
   const orderId = params?.orderId;
   const orderData = params?.orderData;
+  const hasProposals = orderData?.proposals && orderData.proposals.length > 0;
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -98,9 +100,17 @@ export default function CreateOrderScreen() {
       // Carregar anexos existentes
       if (orderData.attachments && Array.isArray(orderData.attachments)) {
         const existingAttachments: Attachment[] = orderData.attachments.map((att: ExistingAttachment) => {
-          // Construir URL da imagem
-          const imagePath = att.path.replace('/home/ubuntu/cotaja-nodejs/', '');
-          const imageUrl = `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
+          // Support base64 data URIs (new format) and legacy file paths
+          let imageUrl: string;
+          if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
+            imageUrl = att.data;
+          } else if (att.path) {
+            const uploadsIndex = att.path.indexOf('uploads/');
+            const imagePath = uploadsIndex !== -1 ? att.path.substring(uploadsIndex) : att.path;
+            imageUrl = `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
+          } else {
+            imageUrl = '';
+          }
 
           // Determinar tipo de arquivo
           let fileType: AttachmentType = 'document';
@@ -116,7 +126,7 @@ export default function CreateOrderScreen() {
             type: att.mime_type,
             fileType,
             isExisting: true,
-            serverPath: att.path,
+            serverPath: att.filename || att.path || att.original_name,
           };
         });
 
@@ -265,8 +275,8 @@ export default function CreateOrderScreen() {
     }
 
     try {
-      const results = await DocumentPicker.pick({
-        type: [DocumentPicker.types.pdf, DocumentPicker.types.doc, DocumentPicker.types.docx],
+      const results = await pick({
+        type: [types.pdf, types.doc, types.docx],
         allowMultiSelection: true,
       });
 
@@ -287,11 +297,7 @@ export default function CreateOrderScreen() {
         }
       }
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
-        console.log('Usuário cancelou a seleção de documento');
-      } else {
-        console.error('Erro ao selecionar documento:', err);
-      }
+      console.log('Usuário cancelou a seleção de documento ou erro:', err);
     }
   };
 
@@ -319,6 +325,16 @@ export default function CreateOrderScreen() {
   const handleSubmit = async () => {
     console.log('🔵 handleSubmit chamado');
     console.log('Valores:', { title, category, description, budget, deadline, address });
+
+    // Verificar se há propostas e está em modo de edição
+    if (editMode && hasProposals) {
+      Alert.alert(
+        'Não é possível editar',
+        'Este pedido já recebeu propostas e não pode mais ser editado. Você pode apenas excluir o pedido.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
 
     if (!title || !category || !description || !budget || !deadline || !address) {
       console.log('❌ Erro: Por favor, preencha todos os campos obrigatórios');
@@ -386,6 +402,7 @@ export default function CreateOrderScreen() {
                 deadline: deadlineDays, // Envia o número de dias
                 address,
                 attachments: newAttachments,
+                removedAttachments: editMode ? removedAttachments : undefined,
               };
 
               console.log(editMode ? '📝 Atualizando pedido:' : '📦 Criando pedido:', orderData);

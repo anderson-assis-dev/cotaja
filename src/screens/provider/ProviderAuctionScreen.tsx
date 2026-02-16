@@ -3,10 +3,12 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Tex
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Trophy, Target, Hourglass } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { formatPrice } from '../../utils/formatters';
 
 // Navigation types
 type RootStackParamList = {
@@ -27,6 +29,8 @@ interface Proposal {
   description: string;
   ranking: number;
   provider_id?: string | number; // Added provider_id
+  created_at?: string;
+  status?: string;
 }
 
 interface Auction {
@@ -47,6 +51,7 @@ interface Auction {
   hasMyProposal?: boolean;
   myProposalRanking?: number | null;
   myProposal?: Proposal;
+  attachments?: any[];
 }
 
 interface RouteParams {
@@ -63,11 +68,13 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     id: proposal.id.toString(),
     providerName: proposal.provider?.name || 'Prestador',
     providerRating: 4.5, // Default value, adjust as needed
-    price: `R$ ${Number(proposal.price || 0).toFixed(2).replace('.', ',')}`,
+    price: `R$ ${formatPrice(Number(proposal.price || 0))}`,
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,
     provider_id: proposal.provider_id, // Add provider_id
+    created_at: proposal.created_at || undefined,
+    status: proposal.status || 'pending',
   })) || [];
 
   // Determine if has active auction
@@ -94,8 +101,11 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     const insights: string[] = [];
 
     if (proposals.length > 0) {
-      const avgPrice = proposals.reduce((sum, p) => sum + parseFloat(p.price.replace('R$ ', '').replace(',', '.')), 0) / proposals.length;
-      insights.push(`O orçamento médio da categoria é R$ ${avgPrice.toFixed(2).replace('.', ',')}`);
+      const avgPrice = proposals.reduce((sum, p) => {
+        const cleaned = p.price.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        return sum + (parseFloat(cleaned) || 0);
+      }, 0) / proposals.length;
+      insights.push(`O orçamento médio da categoria é R$ ${formatPrice(avgPrice)}`);
 
       const avgDeadline = proposals.reduce((sum, p) => sum + parseInt(p.deadline), 0) / proposals.length;
       insights.push(`Prazo médio de execução: ${avgDeadline} dias`);
@@ -121,7 +131,7 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     id: apiOrder.id.toString(),
     title: apiOrder.title || 'Demanda sem título',
     category: apiOrder.category || 'Sem categoria',
-    budget: `R$ ${budgetValue.toFixed(2).replace('.', ',')}`,
+    budget: `R$ ${formatPrice(budgetValue)}`,
     deadline: `${deadlineValue} dias`,
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
@@ -132,6 +142,13 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     clientId: apiOrder.client_id?.toString() || '0',
     hasActiveAuction,
     isNewDemand,
+    attachments: (() => {
+      let atts = apiOrder.attachments;
+      if (typeof atts === 'string') {
+        try { atts = JSON.parse(atts); } catch (e) { atts = []; }
+      }
+      return Array.isArray(atts) ? atts : [];
+    })(),
   };
 };
 
@@ -196,7 +213,11 @@ export default function AuctionScreen() {
               deadlineType: typeof apiOrder.deadline,
               status: apiOrder.status,
               category: apiOrder.category,
-              address: apiOrder.address
+              address: apiOrder.address,
+              attachments: apiOrder.attachments,
+              attachmentsType: typeof apiOrder.attachments,
+              attachmentsIsArray: Array.isArray(apiOrder.attachments),
+              attachmentsLength: Array.isArray(apiOrder.attachments) ? apiOrder.attachments.length : 'N/A'
             });
 
             try {
@@ -481,14 +502,7 @@ export default function AuctionScreen() {
     }
   };
 
-  const getRankingIcon = (ranking: number): string => {
-    switch (ranking) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      default: return '🏅';
-    }
-  };
+  // getRankingIcon replaced by Lucide Trophy icons in JSX
 
   const getPageTitle = () => {
     if (fromSearch) {
@@ -537,6 +551,7 @@ export default function AuctionScreen() {
         style={[styles.scrollView, { paddingTop: insets.top }]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        contentContainerStyle={{ paddingBottom: insets.bottom}}
       >
       <View style={styles.content}>
         <Text style={styles.title}>{getPageTitle()}</Text>
@@ -682,10 +697,6 @@ export default function AuctionScreen() {
             <View style={styles.locationRatingRow}>
               <Icon name="location-on" size={14} color="#6b7280" />
               <Text style={styles.locationText}>{auction.location}</Text>
-              <View style={styles.ratingContainer}>
-                <Icon name="star" size={14} color="#fbbf24" />
-                <Text style={styles.ratingText}>{auction.clientRating}</Text>
-              </View>
             </View>
 
             {/* Status das propostas */}
@@ -707,9 +718,12 @@ export default function AuctionScreen() {
                 </>
               ) : (
                 <>
-                  <Text style={styles.statusProposalsTitleNew}>
-                    🎯 Seja o primeiro a enviar uma proposta!
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Target size={18} color="#059669" />
+                    <Text style={styles.statusProposalsTitleNew}>
+                      Seja o primeiro a enviar uma proposta!
+                    </Text>
+                  </View>
                   <Text style={styles.statusProposalsTextNew}>
                     Nenhuma proposta ainda. Aproveite esta oportunidade!
                   </Text>

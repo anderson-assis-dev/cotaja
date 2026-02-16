@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "490417996633",
+    "project_id": "cotaja-pushnotification",
+    "storage_bucket": "cotaja-pushnotification.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:490417996633:android:d66bfc8527747c09330248",
+        "android_client_info": {
+          "package_name": "com.cotaja_rn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDXOjt3Xbr_M0yFDPlua6h7llLz5QAMKk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

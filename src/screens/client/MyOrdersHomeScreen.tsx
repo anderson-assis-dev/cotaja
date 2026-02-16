@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, Activity
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Trophy, Hourglass } from 'lucide-react-native';
+import { Hourglass } from 'lucide-react-native';
 import Config from 'react-native-config';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
@@ -11,9 +11,8 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
-import { ImageViewer } from '../../components/ImageViewer';
 
-// Tipos TypeScript
+// Tipos TypeScript (compartilhados com OrderDetailsScreen)
 interface Proposal {
   id: string;
   provider: {
@@ -58,12 +57,11 @@ interface Order {
 
 // Função para converter dados da API para o formato da interface
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
-  // Converter propostas da API para o formato da interface
   const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => ({
     id: proposal.id.toString(),
     provider: {
       name: proposal.provider?.name || proposal.provider_name || 'Prestador',
-      rating: 4.5, // Valor padrão, ajustar conforme necessário
+      rating: 4.5,
       avatar: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64
         ? { uri: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64 }
         : require('../../../assets/splash-icon.png'),
@@ -74,15 +72,12 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     ranking: index + 1,
   })) || [];
 
-  // Determinar se tem leilão ativo
   const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at &&
     new Date() >= new Date(apiOrder.auction_started_at) &&
     new Date() <= new Date(apiOrder.auction_ends_at));
 
-  // Determinar se é nova demanda (pedido recente sem propostas)
   const isNewDemand = apiOrder.status === 'open' && proposals.length === 0;
 
-  // Converter status da API para português
   const getStatusInPortuguese = (status: string): string => {
     switch (status) {
       case 'open': return 'Aguardando propostas';
@@ -93,62 +88,43 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     }
   };
 
-  // Gerar insights baseados nos dados
   const generateInsights = (apiOrder: ApiOrder, proposals: Proposal[]): string[] => {
     const insights: string[] = [];
-
     if (proposals.length > 0) {
       const avgPrice = proposals.reduce((sum, p) => sum + parseFloat(p.price.replace('R$ ', '').replace(',', '.')), 0) / proposals.length;
       insights.push(`O orçamento médio da categoria é R$ ${formatPrice(avgPrice)}`);
-
       const avgDeadline = proposals.reduce((sum, p) => sum + parseInt(p.deadline), 0) / proposals.length;
       insights.push(`Prazo médio de execução: ${avgDeadline} dias`);
     } else {
       insights.push('Nenhuma proposta recebida ainda');
       insights.push('Seu pedido está sendo divulgado para prestadores');
     }
-
     return insights;
   };
 
-  // Tratar budget - pode vir como string ou number
   const budgetValue = typeof apiOrder.budget === 'string'
     ? parseFloat(apiOrder.budget)
     : (apiOrder.budget || 0);
 
-  // Tratar deadline - pode vir como string ou number
   const deadlineValue = typeof apiOrder.deadline === 'string'
     ? parseInt(apiOrder.deadline)
     : (apiOrder.deadline || 0);
 
-  // Processar anexos
   let attachments: Attachment[] = [];
   if (apiOrder.attachments) {
     try {
-      console.log('📎 Processando anexos para pedido:', apiOrder.id);
-      console.log('📎 Tipo de attachments:', typeof apiOrder.attachments);
-      console.log('📎 Valor de attachments:', apiOrder.attachments);
-
-      // Se attachments for string JSON, parsear
       const attachmentsData = typeof apiOrder.attachments === 'string'
         ? JSON.parse(apiOrder.attachments)
         : apiOrder.attachments;
-
-      console.log('📎 Dados parseados:', attachmentsData);
-      console.log('📎 É array?', Array.isArray(attachmentsData));
-
       if (Array.isArray(attachmentsData)) {
         attachments = attachmentsData;
-        console.log('✅ Anexos processados:', attachments.length);
       }
     } catch (error) {
       console.error('❌ Erro ao parsear anexos:', error);
     }
-  } else {
-    console.log('⚠️ apiOrder.attachments é null/undefined para pedido:', apiOrder.id);
   }
 
-  const convertedOrder = {
+  return {
     id: apiOrder.id.toString(),
     title: apiOrder.title || 'Pedido sem título',
     category: apiOrder.category || 'Sem categoria',
@@ -157,7 +133,7 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
     location: apiOrder.address || 'Local não informado',
-    clientRating: 4.8, // Valor padrão, ajustar conforme necessário
+    clientRating: 4.8,
     proposals,
     insights: generateInsights(apiOrder, proposals),
     clientId: apiOrder.client_id?.toString() || '0',
@@ -165,12 +141,9 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     isNewDemand,
     attachments,
   };
-
-
-  return convertedOrder;
 };
 
-export default function OrderDetailsScreen() {
+export default function MyOrdersHomeScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const insets = useSafeAreaInsets();
@@ -186,16 +159,11 @@ export default function OrderDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [imageViewerVisible, setImageViewerVisible] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-  // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'client';
   const clientId = user?.id?.toString() || (route.params as any)?.clientId || '1';
   const selectedCategory = (route.params as any)?.selectedCategory;
   const fromLeiloes = (route.params as any)?.fromLeiloes || false;
 
-  // Buscar pedidos da API
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -203,34 +171,26 @@ export default function OrderDetailsScreen() {
 
       let params: any = {};
 
-      // Se veio da tela de leilões, filtrar apenas pedidos em andamento
       if (fromLeiloes) {
         params.status = 'in_progress';
       }
 
-      // Aplicar filtro por categoria se selecionada
       if (selectedCategory) {
         params.category = selectedCategory;
       }
 
-
       const response = await orderService.getOrders(params);
 
       if (response.success) {
-
-        // Verificar se a estrutura está correta
         if (!response.data.data || !Array.isArray(response.data.data)) {
           setOrders([]);
           return;
         }
 
-        const convertedOrders = response.data.data.map((apiOrder: any, index: number) => {
-
-
+        const convertedOrders = response.data.data.map((apiOrder: any) => {
           try {
             return convertApiOrderToOrder(apiOrder);
           } catch (error) {
-            // Retornar um pedido padrão em caso de erro
             return {
               id: apiOrder.id?.toString() || '0',
               title: apiOrder.title || 'Pedido sem título',
@@ -261,7 +221,6 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  // Carregar pedidos quando o componente montar
   useEffect(() => {
     if (user?.id) {
       fetchOrders();
@@ -270,23 +229,19 @@ export default function OrderDetailsScreen() {
     }
   }, [fromLeiloes, selectedCategory, user?.id]);
 
-  // Filtra os pedidos conforme o tipo de usuário e categoria
   let filteredOrders = profileType === 'client'
     ? orders.filter(o => o.clientId === clientId)
     : orders;
 
-  // Remove pedidos encerrados
   filteredOrders = filteredOrders.filter(
     (order) => !closedOrders.includes(order.id)
   );
-
 
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
     setShowDetails(true);
   };
 
-  // Função para recusar proposta
   const handleRefuseProposal = (orderId: string, proposalId: string) => {
     Alert.alert(
       'Recusar Proposta',
@@ -297,9 +252,6 @@ export default function OrderDetailsScreen() {
           text: 'Recusar', style: 'destructive',
           onPress: async () => {
             try {
-              // Aqui você pode implementar a chamada da API para recusar proposta
-              // await proposalService.rejectProposal(parseInt(proposalId));
-
               setRefusedProposals((prev) => ({
                 ...prev,
                 [orderId]: [...(prev[orderId] || []), proposalId],
@@ -313,7 +265,6 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  // Função para cliente encerrar/cancelar pedido
   const handleCloseOrder = (orderId: string) => {
     Alert.alert(
       'Excluir Pedido',
@@ -352,14 +303,7 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const getRankingIconColor = (ranking: number): string => {
-    switch (ranking) {
-      case 1: return '#d97706';
-      case 2: return '#6b7280';
-      case 3: return '#ea580c';
-      default: return '#9ca3af';
-    }
-  };
+  // getRankingIcon replaced by Lucide Trophy icons
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -399,12 +343,8 @@ export default function OrderDetailsScreen() {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
         <Icon name="person-off" size={64} color="#9ca3af" />
-        <Text style={styles.errorTitle}>
-          Usuário não autenticado
-        </Text>
-        <Text style={styles.errorMessage}>
-          Faça login para ver seus pedidos
-        </Text>
+        <Text style={styles.errorTitle}>Usuário não autenticado</Text>
+        <Text style={styles.errorMessage}>Faça login para ver seus pedidos</Text>
       </View>
     );
   }
@@ -414,19 +354,10 @@ export default function OrderDetailsScreen() {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
         <Icon name="error" size={64} color="#ef4444" />
-        <Text style={styles.errorTitle}>
-          Erro ao carregar pedidos
-        </Text>
-        <Text style={styles.errorMessage}>
-          {error}
-        </Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={fetchOrders}
-        >
-          <Text style={styles.retryButtonText}>
-            Tentar Novamente
-          </Text>
+        <Text style={styles.errorTitle}>Erro ao carregar pedidos</Text>
+        <Text style={styles.errorMessage}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchOrders}>
+          <Text style={styles.retryButtonText}>Tentar Novamente</Text>
         </TouchableOpacity>
       </View>
     );
@@ -439,100 +370,86 @@ export default function OrderDetailsScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <View style={[styles.content, { paddingTop: insets.top + 60, marginTop: -60 }]}>
-          <Text style={styles.pageTitle}>{getPageTitle()}</Text>
-          <Text style={styles.pageSubtitle}>
-            {getPageSubtitle()}
-          </Text>
+        <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity style={styles.backArrow} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{getPageTitle()}</Text>
+          <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
+        </View>
 
-          {filteredOrders.map((order) => {
-            return (
-              <TouchableOpacity
-                key={order.id}
-                style={styles.orderCard}
-                onPress={() => handleOrderPress(order)}
-              >
-                <View style={styles.orderHeader}>
-                  <Text style={styles.orderTitle}>
-                    {order.title}
-                  </Text>
-                  <View style={styles.statusContainer}>
-                    {/* Ícone de leilão ativo */}
-                    {order.hasActiveAuction && (
-                      <View style={styles.auctionIcon}>
-                        <Icon name="gavel" size={16} color="#f97316" />
-                      </View>
-                    )}
-                    {/* Ícone de nova demanda */}
-                    {order.isNewDemand && (
-                      <View style={styles.newDemandIcon}>
-                        <Icon name="new-releases" size={16} color="#22c55e" />
-                      </View>
-                    )}
-                    <View style={getStatusStyle(order.status)}>
-                      <Text style={styles.statusText}>{order.status}</Text>
+        <View style={styles.content}>
+          {filteredOrders.map((order) => (
+            <TouchableOpacity
+              key={order.id}
+              style={styles.orderCard}
+              onPress={() => handleOrderPress(order)}
+            >
+              <View style={styles.orderHeader}>
+                <Text style={styles.orderTitle}>{order.title}</Text>
+                <View style={styles.statusContainer}>
+                  {order.hasActiveAuction && (
+                    <View style={styles.auctionIcon}>
+                      <Icon name="gavel" size={16} color="#f97316" />
                     </View>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryText}>{order.category}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.categoryRow}>
-                  <Text style={styles.budgetText}>
-                    Orçamento: {order.budget || 'Não informado'}
-                  </Text>
-                </View>
-
-                <View style={styles.locationRow}>
-                  <Icon name="location-on" size={16} color="#6b7280" />
-                  <Text style={styles.locationText}>{order.location}</Text>
-                </View>
-
-                {/* Status das propostas */}
-                <View style={styles.proposalStatusContainer}>
-                  {order.proposals.length > 0 ? (
-                    <>
-                      <Text style={styles.proposalStatusTitle}>
-                        {order.proposals.length} {order.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
-                      </Text>
-                      <Text style={styles.proposalStatusDescription}>
-                        Clique para ver detalhes e gerenciar propostas
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={styles.waitingTitle}>
-                        <Hourglass size={16} color="#92400e" /> Aguardando propostas...
-                      </Text>
-                      <Text style={styles.waitingDescription}>
-                        Nenhuma proposta ainda. Seu pedido está sendo divulgado.
-                      </Text>
-                    </>
                   )}
-                </View>
-
-                <View style={styles.orderFooter}>
-                  <Text style={styles.deadlineText}>
-                    Prazo: {order.deadline || 'Não informado'}
-                  </Text>
-                  <View style={styles.viewDetailsContainer}>
-                    <Icon name="visibility" size={20} color="#4f46e5" />
-                    <Text style={styles.viewDetailsText}>
-                      Ver Detalhes
-                    </Text>
+                  {order.isNewDemand && (
+                    <View style={styles.newDemandIcon}>
+                      <Icon name="new-releases" size={16} color="#22c55e" />
+                    </View>
+                  )}
+                  <View style={getStatusStyle(order.status)}>
+                    <Text style={styles.statusText}>{order.status}</Text>
+                  </View>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{order.category}</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
+              </View>
+
+              <View style={styles.categoryRow}>
+                <Text style={styles.budgetText}>Orçamento: {order.budget || 'Não informado'}</Text>
+              </View>
+
+              <View style={styles.locationRow}>
+                <Icon name="location-on" size={16} color="#6b7280" />
+                <Text style={styles.locationText}>{order.location}</Text>
+              </View>
+
+              <View style={styles.proposalStatusContainer}>
+                {order.proposals.length > 0 ? (
+                  <>
+                    <Text style={styles.proposalStatusTitle}>
+                      {order.proposals.length} {order.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
+                    </Text>
+                    <Text style={styles.proposalStatusDescription}>
+                      Clique para ver detalhes e gerenciar propostas
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.waitingTitle}><Hourglass size={14} color="#92400e" /> Aguardando propostas...</Text>
+                    <Text style={styles.waitingDescription}>
+                      Nenhuma proposta ainda. Seu pedido está sendo divulgado.
+                    </Text>
+                  </>
+                )}
+              </View>
+
+              <View style={styles.orderFooter}>
+                <Text style={styles.deadlineText}>Prazo: {order.deadline || 'Não informado'}</Text>
+                <View style={styles.viewDetailsContainer}>
+                  <Icon name="visibility" size={20} color="#4f46e5" />
+                  <Text style={styles.viewDetailsText}>Ver Detalhes</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
 
           {filteredOrders.length === 0 && (
             <View style={styles.emptyState}>
               <Icon name="assignment" size={64} color="#9ca3af" />
-              <Text style={styles.emptyStateTitle}>
-                Nenhum pedido encontrado
-              </Text>
+              <Text style={styles.emptyStateTitle}>Nenhum pedido encontrado</Text>
               <Text style={styles.emptyStateMessage}>
                 {selectedCategory
                   ? `Não há pedidos na categoria "${selectedCategory}" no momento.`
@@ -544,14 +461,7 @@ export default function OrderDetailsScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>
-              Voltar
-            </Text>
-          </TouchableOpacity>
+          <View style={{ height: insets.bottom + 16 }} />
         </View>
       </ScrollView>
 
@@ -576,10 +486,7 @@ export default function OrderDetailsScreen() {
           </View>
 
           {selectedOrder && (
-            <ScrollView
-              style={styles.modalContent}
-              contentContainerStyle={styles.scrollContent}
-            >
+            <ScrollView style={styles.modalContent}>
               {/* Informações do Pedido */}
               <View style={styles.orderInfoCard}>
                 <View style={styles.orderInfoHeader}>
@@ -601,9 +508,7 @@ export default function OrderDetailsScreen() {
                   <View style={styles.modalCategoryBadge}>
                     <Text style={styles.modalCategoryText}>{selectedOrder.category}</Text>
                   </View>
-                  <Text style={styles.modalBudgetText}>
-                    Orçamento: {selectedOrder.budget}
-                  </Text>
+                  <Text style={styles.modalBudgetText}>Orçamento: {selectedOrder.budget}</Text>
                 </View>
                 <Text style={styles.orderDescription}>{selectedOrder.description}</Text>
 
@@ -666,7 +571,6 @@ export default function OrderDetailsScreen() {
 
                 {selectedOrder.attachments && selectedOrder.attachments.length > 0 ? (
                   <View style={styles.attachmentsContainer}>
-                    {/* Imagens */}
                     {selectedOrder.attachments
                       .filter(att => att.mime_type.startsWith('image/'))
                       .length > 0 && (
@@ -689,24 +593,13 @@ export default function OrderDetailsScreen() {
                                 } else {
                                   imageUrl = '';
                                 }
-
                                 return (
-                                  <TouchableOpacity
-                                    key={index}
-                                    style={styles.imageAttachment}
-                                    onPress={() => {
-                                      setSelectedImageIndex(index);
-                                      setImageViewerVisible(true);
-                                    }}
-                                  >
+                                  <TouchableOpacity key={index} style={styles.imageAttachment}>
                                     <Image
                                       source={{ uri: imageUrl }}
                                       style={styles.attachmentImage}
                                       resizeMode="cover"
                                     />
-                                    <View style={styles.zoomOverlay}>
-                                      <Icon name="zoom-in" size={20} color="#ffffff" />
-                                    </View>
                                     <Text style={styles.attachmentName} numberOfLines={1}>
                                       {att.original_name || att.filename}
                                     </Text>
@@ -720,7 +613,6 @@ export default function OrderDetailsScreen() {
                         </>
                       )}
 
-                    {/* Vídeos */}
                     {selectedOrder.attachments
                       .filter(att => att.mime_type.startsWith('video/') || att.type === 'video')
                       .length > 0 && (
@@ -748,7 +640,6 @@ export default function OrderDetailsScreen() {
                         </>
                       )}
 
-                    {/* Documentos */}
                     {selectedOrder.attachments
                       .filter(att => att.type === 'document' || (!att.mime_type.startsWith('image/') && !att.mime_type.startsWith('video/')))
                       .length > 0 && (
@@ -786,18 +677,15 @@ export default function OrderDetailsScreen() {
 
               {/* Ranking das Propostas */}
               {selectedOrder.proposals.length > 0 ? (
-                <>
+                <View style={styles.proposalsBox}>
                   <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
                   {selectedOrder.proposals
                     .filter((proposal) => !(refusedProposals[selectedOrder.id]?.includes(proposal.id)))
                     .map((proposal) => (
-                      <View
-                        key={proposal.id}
-                        style={styles.proposalCard}
-                      >
+                      <View key={proposal.id} style={styles.proposalCard}>
                         <View style={styles.proposalCardHeader}>
                           <View style={styles.proposalProvider}>
-                            <View style={styles.rankingEmoji}><Trophy size={22} color={getRankingIconColor(proposal.ranking)} /></View>
+
                             <View style={styles.proposalProviderInfo}>
                               <Image
                                 source={proposal.provider.avatar}
@@ -805,10 +693,6 @@ export default function OrderDetailsScreen() {
                               />
                               <View>
                                 <Text style={styles.providerName}>{proposal.provider.name}</Text>
-                                <View style={styles.providerRating}>
-                                  <Icon name="star" size={14} color="#fbbf24" />
-                                  <Text style={styles.providerRatingText}>{proposal.provider.rating}</Text>
-                                </View>
                               </View>
                             </View>
                           </View>
@@ -828,14 +712,15 @@ export default function OrderDetailsScreen() {
                           </View>
                         </View>
 
-                        <Text style={styles.proposalDescription}>{proposal.description}</Text>
+                        <Text style={styles.proposalDescription}>Descrição da Proposta:</Text>
+                        <Text style={styles.proposalDescriptionText}>{proposal.description}</Text>
 
                         <View style={styles.proposalActions}>
                           <TouchableOpacity
                             accessibilityLabel="Aceitar proposta"
                             onPress={() => {
                               setShowDetails(false);
-                              navigation.navigate('Checkout', { proposal });
+                              navigation.navigate('HomeCheckout', { proposal });
                             }}
                           >
                             <View style={styles.acceptButton}>
@@ -853,12 +738,10 @@ export default function OrderDetailsScreen() {
                         </View>
                       </View>
                     ))}
-                </>
+                </View>
               ) : (
                 <View style={styles.noProposalsContainer}>
-                  <Text style={styles.noProposalsTitle}>
-                    <Hourglass size={16} color="#92400e" /> Aguardando propostas...
-                  </Text>
+                  <Text style={styles.noProposalsTitle}><Hourglass size={14} color="#92400e" /> Aguardando propostas...</Text>
                   <Text style={styles.noProposalsMessage}>
                     Seu pedido ainda não recebeu propostas. Continue aguardando ou considere ajustar os detalhes do pedido.
                   </Text>
@@ -879,32 +762,6 @@ export default function OrderDetailsScreen() {
           )}
         </View>
       </Modal>
-
-      {/* Image Viewer with zoom */}
-      {selectedOrder && (() => {
-        const imageAttachments = (selectedOrder.attachments || [])
-          .filter(att => att.mime_type.startsWith('image/') || att.type === 'image')
-          .map(att => {
-            if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-              return att.data;
-            } else if (att.path) {
-              const uploadsIndex = att.path.indexOf('uploads/');
-              const imagePath = uploadsIndex !== -1 ? att.path.substring(uploadsIndex) : att.path;
-              return `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
-            }
-            return '';
-          })
-          .filter(url => url !== '');
-
-        return (
-          <ImageViewer
-            visible={imageViewerVisible}
-            images={imageAttachments}
-            initialIndex={selectedImageIndex}
-            onClose={() => setImageViewerVisible(false)}
-          />
-        );
-      })()}
     </View>
   );
 }
@@ -917,11 +774,33 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: Platform.OS === 'ios' ? 24 : 70,
+  headerSection: {
+    backgroundColor: '#4f46e5',
+    padding: 24,
+    paddingBottom: 32,
+  },
+  backArrow: {
+    marginBottom: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
   },
   content: {
     padding: 24,
+    marginTop: -16,
   },
   loadingContainer: {
     flex: 1,
@@ -963,15 +842,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  pageSubtitle: {
-    color: '#6b7280',
-    marginBottom: 24,
-  },
   orderCard: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -994,12 +864,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     flex: 1,
     width: '100%',
-    marginBottom: 10
+    marginBottom: 10,
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 2
+    gap: 2,
   },
   auctionIcon: {
     backgroundColor: '#fed7aa',
@@ -1015,7 +885,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontWeight: '600',
-    marginRight: 2
+    marginRight: 2,
   },
   statusInProgress: {
     backgroundColor: '#dbeafe',
@@ -1141,18 +1011,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
-  backButton: {
-    backgroundColor: '#4f46e5',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 24,
-  },
-  backButtonText: {
-    textAlign: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
+  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'white',
@@ -1227,6 +1086,16 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginBottom: 12,
   },
+  orderDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  orderDetailText: {
+    color: '#6b7280',
+    marginLeft: 8,
+  },
   orderInfoFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1243,152 +1112,6 @@ const styles = StyleSheet.create({
   modalRatingText: {
     color: '#6b7280',
     marginLeft: 4,
-  },
-  proposalsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  proposalCard: {
-    backgroundColor: 'white',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  proposalCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  proposalProvider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rankingEmoji: {
-    marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  proposalProviderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  providerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  providerName: {
-    fontWeight: '600',
-  },
-  providerRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  providerRatingText: {
-    color: '#6b7280',
-    marginLeft: 4,
-  },
-  rankingFirst: {
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rankingSecond: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rankingThird: {
-    backgroundColor: '#fed7aa',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rankingDefault: {
-    backgroundColor: '#f3f4f6',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  rankingText: {
-    fontWeight: '600',
-  },
-  proposalDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  proposalDetailLabel: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  proposalDetailValue: {
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  proposalDescription: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  proposalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    alignSelf: 'flex-end',
-    marginTop: 8,
-  },
-  acceptButton: {
-    backgroundColor: '#dcfce7',
-    padding: 8,
-    borderRadius: 12,
-  },
-  rejectButton: {
-    backgroundColor: '#fee2e2',
-    padding: 8,
-    borderRadius: 12,
-  },
-  noProposalsContainer: {
-    backgroundColor: '#fffbeb',
-    borderRadius: 12,
-    padding: 24,
-    marginBottom: 24,
-  },
-  noProposalsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#92400e',
-  },
-  noProposalsMessage: {
-    color: '#b45309',
-  },
-  closeOrderButton: {
-    position: 'absolute',
-    right: 24,
-    top: 24,
-    zIndex: 10,
-  },
-  closeOrderIcon: {
-    backgroundColor: '#fee2e2',
-    padding: 8,
-    borderRadius: 12,
-  },
-  orderDetailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  orderDetailText: {
-    color: '#6b7280',
-    marginLeft: 8,
   },
   orderActionsContainer: {
     flexDirection: 'row',
@@ -1481,24 +1204,12 @@ const styles = StyleSheet.create({
   imageAttachment: {
     marginRight: 12,
     width: 120,
-    position: 'relative',
   },
   attachmentImage: {
     width: 120,
     height: 120,
     borderRadius: 8,
     backgroundColor: '#f3f4f6',
-  },
-  zoomOverlay: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 12,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   attachmentName: {
     fontSize: 12,
@@ -1560,5 +1271,147 @@ const styles = StyleSheet.create({
   documentSize: {
     fontSize: 12,
     color: '#6b7280',
+  },
+  proposalsBox: {
+    marginBottom: 20
+  },
+  proposalsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  proposalCard: {
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  proposalCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  proposalProvider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rankingEmoji: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  proposalProviderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  providerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  providerName: {
+    fontWeight: '600',
+  },
+  providerRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  providerRatingText: {
+    color: '#6b7280',
+    marginLeft: 4,
+  },
+  rankingFirst: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  rankingSecond: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  rankingThird: {
+    backgroundColor: '#fed7aa',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  rankingDefault: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  rankingText: {
+    fontWeight: '600',
+  },
+  proposalDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  proposalDetailLabel: {
+    color: '#6b7280',
+    fontSize: 14,
+  },
+  proposalDetailValue: {
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  proposalDescription: {
+    color: '#6b7280',
+    fontSize: 14,
+  },
+  proposalDescriptionText: {
+    color: '#111827',
+    fontSize: 16,
+  },
+  proposalActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-end',
+    marginTop: 8,
+  },
+  acceptButton: {
+    backgroundColor: '#dcfce7',
+    padding: 8,
+    borderRadius: 12,
+  },
+  rejectButton: {
+    backgroundColor: '#fee2e2',
+    padding: 8,
+    borderRadius: 12,
+  },
+  noProposalsContainer: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 24,
+  },
+  noProposalsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#92400e',
+  },
+  noProposalsMessage: {
+    color: '#b45309',
+  },
+  closeOrderButton: {
+    position: 'absolute',
+    right: 24,
+    top: 24,
+    zIndex: 10,
+  },
+  closeOrderIcon: {
+    backgroundColor: '#fee2e2',
+    padding: 8,
+    borderRadius: 12,
   },
 });

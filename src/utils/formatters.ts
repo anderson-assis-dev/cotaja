@@ -2,13 +2,13 @@
 export const formatCurrency = (value: string): string => {
   // Remove tudo que não é número
   const numericValue = value.replace(/[^\d]/g, '');
-  
+
   if (numericValue === '') return '';
-  
+
   // Converte para número e formata
   const number = parseInt(numericValue, 10);
   if (isNaN(number)) return '';
-  
+
   // Formata como moeda brasileira
   return number.toLocaleString('pt-BR', {
     style: 'currency',
@@ -62,4 +62,20 @@ export const formatBudgetDisplay = (value: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
-}; 
+};
+
+// Função para formatar valores monetários no formato brasileiro (X.XXX,00)
+export const formatPrice = (value: number | string | undefined | null): string => {
+  if (value === undefined || value === null) return '0,00';
+
+  const numValue = typeof value === 'string'
+    ? parseFloat(value.replace(',', '.'))
+    : value;
+
+  if (isNaN(numValue)) return '0,00';
+
+  return numValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};

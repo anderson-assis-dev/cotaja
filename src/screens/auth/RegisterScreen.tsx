@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityInd
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { TextInputMask } from 'react-native-masked-text';
 import { CommonActions } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -10,6 +11,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
   const { register, isLoading, logout, updateProfileType } = useAuth();
+  const { showError, showSuccess } = useToast();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -25,25 +27,27 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!nome || !email || !senha || !confirmarSenha || !phone || !profileType) {
-      console.log('Erro: Por favor, preencha todos os campos e selecione o tipo de perfil');
+      showError('Por favor, preencha todos os campos e selecione o tipo de perfil');
       return;
     }
 
     if (senha !== confirmarSenha) {
-      console.log('Erro: As senhas não coincidem');
+      showError('As senhas não coincidem');
       return;
     }
 
     if (senha.length < 6) {
-      console.log('Erro: A senha deve ter pelo menos 6 caracteres');
+      showError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
 
     try {
       const success = await register(nome, email, phone, senha, confirmarSenha, profileType);
-      // Profile type is now sent directly during registration
+      // Account created — needs email activation before login
+      showSuccess('Cadastro realizado! Verifique seu email para ativar sua conta.', 6000);
+      navigation.navigate('Login');
     } catch (error: any) {
-      console.log('Erro ao realizar cadastro:', error.message || error);
+      showError(error.message || 'Erro ao realizar cadastro');
     }
   };
 
@@ -296,6 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
   loginLinkContainer: {
     flexDirection: 'row',
