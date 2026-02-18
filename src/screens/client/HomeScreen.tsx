@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useCallback } from 'react';
@@ -69,6 +69,13 @@ export default function HomeScreen() {
       setLoadingOrders(true);
       const response = await orderService.getRecentOrders();
       if (response.success && Array.isArray(response.data)) {
+        // DEBUG: Ver o que a API retorna
+        response.data.forEach((order: any) => {
+          console.log(`[HomeScreen] Order ${order.id} - proposals:`, order.proposals?.length);
+          order.proposals?.forEach((p: any) => {
+            console.log(`[HomeScreen] Proposal ${p.id} - provider_name: ${p.provider_name}, provider_avatar_base64: ${p.provider_avatar_base64 ? p.provider_avatar_base64.substring(0, 60) + '...' : 'NULL/UNDEFINED'}, provider obj: ${JSON.stringify(p.provider || 'undefined')}`);
+          });
+        });
         setRecentOrders(response.data);
       }
     } catch (error) {
@@ -225,9 +232,16 @@ export default function HomeScreen() {
               >
                 <View style={styles.proposalCardHeader}>
                   <View style={styles.proposalProviderInfo}>
-                    <View style={styles.proposalAvatar}>
-                      <Icon name="person" size={18} color="#fff" />
-                    </View>
+                    {(proposal.provider?.avatar_base64 || proposal.provider_avatar_base64) ? (
+                      <Image
+                        source={{ uri: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64 }}
+                        style={styles.proposalAvatarImage}
+                      />
+                    ) : (
+                      <View style={styles.proposalAvatar}>
+                        <Icon name="person" size={18} color="#fff" />
+                      </View>
+                    )}
                     <View style={{ flex: 1 }}>
                       <Text style={styles.proposalProviderName} numberOfLines={1}>
                         {proposal.provider?.name || proposal.provider_name || 'Prestador'}
@@ -403,6 +417,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#818cf8',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  proposalAvatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   proposalProviderName: {
     fontSize: 15,

@@ -20,6 +20,7 @@ interface Proposal {
     name: string;
     rating: number;
     avatar: any;
+    avatarUri?: string | null;
   };
   price: string;
   deadline: string;
@@ -59,20 +60,23 @@ interface Order {
 // Função para converter dados da API para o formato da interface
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
   // Converter propostas da API para o formato da interface
-  const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => ({
+  const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => {
+    const avatarUri = proposal.provider_avatar_base64 || proposal.provider?.avatar_base64 || null;
+    console.log(`[OrderDetails] Proposal ${proposal.id} - provider_name: ${proposal.provider_name}, has provider obj: ${!!proposal.provider}, provider_avatar_base64: ${avatarUri ? avatarUri.substring(0, 50) + '...' : 'null'}`);
+    return {
     id: proposal.id.toString(),
     provider: {
       name: proposal.provider?.name || proposal.provider_name || 'Prestador',
       rating: 4.5, // Valor padrão, ajustar conforme necessário
-      avatar: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64
-        ? { uri: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64 }
-        : require('../../../assets/splash-icon.png'),
+      avatar: avatarUri ? { uri: avatarUri } : null,
+      avatarUri: avatarUri,
     },
     price: `R$ ${formatPrice(proposal.price || 0)}`,
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,
-  })) || [];
+  };
+  }) || [];
 
   // Determinar se tem leilão ativo
   const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at &&
@@ -188,6 +192,8 @@ export default function OrderDetailsScreen() {
 
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [avatarViewerVisible, setAvatarViewerVisible] = useState(false);
+  const [avatarViewerImage, setAvatarViewerImage] = useState<string>('');
 
   // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'client';
@@ -799,10 +805,26 @@ export default function OrderDetailsScreen() {
                           <View style={styles.proposalProvider}>
                             <View style={styles.rankingEmoji}><Trophy size={22} color={getRankingIconColor(proposal.ranking)} /></View>
                             <View style={styles.proposalProviderInfo}>
-                              <Image
-                                source={proposal.provider.avatar}
-                                style={styles.providerAvatar}
-                              />
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (proposal.provider.avatarUri) {
+                                    setAvatarViewerImage(proposal.provider.avatarUri);
+                                    setAvatarViewerVisible(true);
+                                  }
+                                }}
+                                disabled={!proposal.provider.avatarUri}
+                              >
+                                {proposal.provider.avatar ? (
+                                  <Image
+                                    source={proposal.provider.avatar}
+                                    style={styles.providerAvatar}
+                                  />
+                                ) : (
+                                  <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
+                                    <Icon name="person" size={24} color="#9ca3af" />
+                                  </View>
+                                )}
+                              </TouchableOpacity>
                               <View>
                                 <Text style={styles.providerName}>{proposal.provider.name}</Text>
                                 <View style={styles.providerRating}>
@@ -1281,6 +1303,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+  },
+  providerAvatarPlaceholder: {
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   providerName: {
     fontWeight: '600',

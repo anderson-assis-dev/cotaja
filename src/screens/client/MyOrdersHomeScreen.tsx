@@ -11,6 +11,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
+import { ImageViewer } from '../../components/ImageViewer';
 
 // Tipos TypeScript (compartilhados com OrderDetailsScreen)
 interface Proposal {
@@ -19,6 +20,7 @@ interface Proposal {
     name: string;
     rating: number;
     avatar: any;
+    avatarUri?: string | null;
   };
   price: string;
   deadline: string;
@@ -57,20 +59,22 @@ interface Order {
 
 // Função para converter dados da API para o formato da interface
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
-  const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => ({
+  const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => {
+    const avatarUri = proposal.provider_avatar_base64 || proposal.provider?.avatar_base64 || null;
+    return {
     id: proposal.id.toString(),
     provider: {
       name: proposal.provider?.name || proposal.provider_name || 'Prestador',
       rating: 4.5,
-      avatar: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64
-        ? { uri: proposal.provider?.avatar_base64 || proposal.provider_avatar_base64 }
-        : require('../../../assets/splash-icon.png'),
+      avatar: avatarUri ? { uri: avatarUri } : null,
+      avatarUri: avatarUri,
     },
     price: `R$ ${formatPrice(proposal.price || 0)}`,
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,
-  })) || [];
+  };
+  }) || [];
 
   const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at &&
     new Date() >= new Date(apiOrder.auction_started_at) &&
@@ -158,6 +162,8 @@ export default function MyOrdersHomeScreen() {
   const [closedOrders, setClosedOrders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [avatarViewerVisible, setAvatarViewerVisible] = useState(false);
+  const [avatarViewerImage, setAvatarViewerImage] = useState<string>('');
 
   const profileType = (route.params as any)?.profileType || 'client';
   const clientId = user?.id?.toString() || (route.params as any)?.clientId || '1';
@@ -687,10 +693,26 @@ export default function MyOrdersHomeScreen() {
                           <View style={styles.proposalProvider}>
 
                             <View style={styles.proposalProviderInfo}>
-                              <Image
-                                source={proposal.provider.avatar}
-                                style={styles.providerAvatar}
-                              />
+                              <TouchableOpacity
+                                onPress={() => {
+                                  if (proposal.provider.avatarUri) {
+                                    setAvatarViewerImage(proposal.provider.avatarUri);
+                                    setAvatarViewerVisible(true);
+                                  }
+                                }}
+                                disabled={!proposal.provider.avatarUri}
+                              >
+                                {proposal.provider.avatar ? (
+                                  <Image
+                                    source={proposal.provider.avatar}
+                                    style={styles.providerAvatar}
+                                  />
+                                ) : (
+                                  <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
+                                    <Icon name="person" size={24} color="#9ca3af" />
+                                  </View>
+                                )}
+                              </TouchableOpacity>
                               <View>
                                 <Text style={styles.providerName}>{proposal.provider.name}</Text>
                               </View>
@@ -762,6 +784,15 @@ export default function MyOrdersHomeScreen() {
           )}
         </View>
       </Modal>
+      {/* Avatar Viewer */}
+      {avatarViewerVisible && avatarViewerImage ? (
+        <ImageViewer
+          visible={avatarViewerVisible}
+          images={[avatarViewerImage]}
+          initialIndex={0}
+          onClose={() => setAvatarViewerVisible(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -1311,6 +1342,11 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+  },
+  providerAvatarPlaceholder: {
+    backgroundColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   providerName: {
     fontWeight: '600',
