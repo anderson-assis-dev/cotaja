@@ -145,14 +145,28 @@ export interface Order {
   description: string;
   category: string;
   budget: number;
-  deadline: number; // Mudando de string para number
+  deadline: number;
   address: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  latitude?: number;
+  longitude?: number;
   status: 'open' | 'in_progress' | 'completed' | 'cancelled';
   client_id: number;
   provider_id?: number;
   accepted_proposal_id?: number;
   auction_started_at?: string;
   auction_ends_at?: string;
+  scheduled_date?: string;
+  schedule_confirmed_by_client?: number;
+  schedule_confirmed_by_provider?: number;
+  cancel_reason?: string;
+  cancelled_by?: string;
   client?: User;
   provider?: User;
   proposals?: Proposal[];
@@ -299,8 +313,17 @@ export const orderService = {
     description: string;
     category: string;
     budget: number;
-    deadline: number; // Mudando de string para number
+    deadline: number;
     address: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    latitude?: number;
+    longitude?: number;
     attachments?: any[];
   }): Promise<{ success: boolean; message: string; data: Order }> {
     const formData = new FormData();
@@ -312,6 +335,17 @@ export const orderService = {
     formData.append('budget', data.budget.toString());
     formData.append('deadline', data.deadline.toString());
     formData.append('address', data.address);
+
+    // Campos de endereço estruturado
+    if (data.street) formData.append('street', data.street);
+    if (data.number) formData.append('number', data.number);
+    if (data.complement) formData.append('complement', data.complement);
+    if (data.neighborhood) formData.append('neighborhood', data.neighborhood);
+    if (data.city) formData.append('city', data.city);
+    if (data.state) formData.append('state', data.state);
+    if (data.zip_code) formData.append('zip_code', data.zip_code);
+    if (data.latitude) formData.append('latitude', data.latitude.toString());
+    if (data.longitude) formData.append('longitude', data.longitude.toString());
 
     // Adicionar anexos se existirem
     if (data.attachments && data.attachments.length > 0) {
@@ -425,6 +459,15 @@ export const orderService = {
     budget?: number;
     deadline?: number;
     address?: string;
+    street?: string;
+    number?: string;
+    complement?: string;
+    neighborhood?: string;
+    city?: string;
+    state?: string;
+    zip_code?: string;
+    latitude?: number;
+    longitude?: number;
     attachments?: any[];
     removedAttachments?: string[];
   }): Promise<{ success: boolean; message: string; data: Order }> {
@@ -437,6 +480,15 @@ export const orderService = {
     if (data.budget) formData.append('budget', data.budget.toString());
     if (data.deadline) formData.append('deadline', data.deadline.toString());
     if (data.address) formData.append('address', data.address);
+    if (data.street) formData.append('street', data.street);
+    if (data.number) formData.append('number', data.number);
+    if (data.complement) formData.append('complement', data.complement);
+    if (data.neighborhood) formData.append('neighborhood', data.neighborhood);
+    if (data.city) formData.append('city', data.city);
+    if (data.state) formData.append('state', data.state);
+    if (data.zip_code) formData.append('zip_code', data.zip_code);
+    if (data.latitude) formData.append('latitude', data.latitude.toString());
+    if (data.longitude) formData.append('longitude', data.longitude.toString());
 
     // Enviar lista de anexos removidos
     if (data.removedAttachments && data.removedAttachments.length > 0) {
@@ -643,4 +695,96 @@ export const serviceService = {
 
 
 
+// Tipos para Mensagens
+export interface Message {
+  id: number;
+  order_id: number;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  read_at?: string;
+  created_at: string;
+  updated_at: string;
+  sender?: { id: string; name: string; avatar_base64?: string };
+  receiver?: { id: string; name: string; avatar_base64?: string };
+}
+
+// Serviço de Chat
+export const chatService = {
+  async getMessages(orderId: number, page = 1): Promise<{ success: boolean; data: { messages: Message[]; total: number } }> {
+    const response = await api.get(`/chat/${orderId}/messages`, { params: { page } });
+    return response.data;
+  },
+
+  async sendMessage(orderId: number, content: string): Promise<{ success: boolean; data: Message }> {
+    const response = await api.post(`/chat/${orderId}/messages`, { content });
+    return response.data;
+  },
+
+  async getUnreadCount(orderId: number): Promise<{ success: boolean; data: { unread_count: number } }> {
+    const response = await api.get(`/chat/${orderId}/messages/unread`);
+    return response.data;
+  },
+};
+
+// Serviço de Cancelamento e Agendamento
+export const orderActionService = {
+  async cancelOrder(orderId: number, reason: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post(`/orders/${orderId}/cancel`, { reason });
+    return response.data;
+  },
+
+  async proposeSchedule(orderId: number, scheduledDate: string): Promise<{ success: boolean; message: string; data: Order }> {
+    const response = await api.post(`/orders/${orderId}/schedule`, { scheduled_date: scheduledDate });
+    return response.data;
+  },
+
+  async confirmSchedule(orderId: number): Promise<{ success: boolean; message: string; data: Order }> {
+    const response = await api.post(`/orders/${orderId}/confirm-schedule`);
+    return response.data;
+  },
+};
+
+// Tipos para Endereço Geocodificado
+export interface GeocodedAddress {
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  latitude: number | null;
+  longitude: number | null;
+  formatted_address: string;
+  name: string;
+}
+
 export default api;
+
+// Serviço de Geocoding (Apple Maps)
+export const geocodingService = {
+  // Obter token MapKit JS para WebView
+  async getMapKitToken(): Promise<{ success: boolean; data: { token: string } }> {
+    const response = await api.get('/geocoding/token');
+    return response.data;
+  },
+
+  // Reverse geocode: coordenadas → endereço
+  async reverseGeocode(lat: number, lng: number): Promise<{ success: boolean; data: GeocodedAddress }> {
+    const response = await api.get('/geocoding/reverse', { params: { lat, lng } });
+    return response.data;
+  },
+
+  // Forward geocode: endereço → coordenadas
+  async forwardGeocode(address: string): Promise<{ success: boolean; data: GeocodedAddress }> {
+    const response = await api.get('/geocoding/forward', { params: { address } });
+    return response.data;
+  },
+
+  // Buscar endereços (autocomplete)
+  async searchAddress(query: string, lat?: number, lng?: number): Promise<{ success: boolean; data: GeocodedAddress[] }> {
+    const response = await api.get('/geocoding/search', { params: { q: query, lat, lng } });
+    return response.data;
+  },
+};

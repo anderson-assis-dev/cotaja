@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, Activity
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Trophy, Hourglass } from 'lucide-react-native';
+import { Trophy, Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
 import Config from 'react-native-config';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
@@ -790,113 +790,143 @@ export default function OrderDetailsScreen() {
                 )}
               </View>
 
-              {/* Ranking das Propostas */}
-              {selectedOrder.proposals.length > 0 ? (
+              {/* Seção de Propostas ou Gerenciamento do Pedido */}
+              {selectedOrder.status === 'Em andamento' ? (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#4f46e5', borderRadius: 12, padding: 16,
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                    gap: 10, marginTop: 16,
+                  }}
+                  onPress={() => {
+                    setShowDetails(false);
+                    navigation.navigate('AcceptedOrder', { orderId: parseInt(selectedOrder.id) });
+                  }}
+                >
+                  <MessageSquare size={22} color="#ffffff" />
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>
+                    Gerenciar Pedido
+                  </Text>
+                  <ChevronRight size={22} color="#ffffff" />
+                </TouchableOpacity>
+              ) : selectedOrder.status === 'Cancelado' ? (
+                <View style={{ alignItems: 'center', padding: 20, marginTop: 16 }}>
+                  <XCircle size={48} color="#ef4444" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#ef4444', marginTop: 8 }}>
+                    Pedido Cancelado
+                  </Text>
+                </View>
+              ) : (
                 <>
-                  <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
-                  {selectedOrder.proposals
-                    .filter((proposal) => !(refusedProposals[selectedOrder.id]?.includes(proposal.id)))
-                    .map((proposal) => (
-                      <View
-                        key={proposal.id}
-                        style={styles.proposalCard}
-                      >
-                        <View style={styles.proposalCardHeader}>
-                          <View style={styles.proposalProvider}>
-                            <View style={styles.rankingEmoji}><Trophy size={22} color={getRankingIconColor(proposal.ranking)} /></View>
-                            <View style={styles.proposalProviderInfo}>
-                              <TouchableOpacity
-                                onPress={() => {
-                                  if (proposal.provider.avatarUri) {
-                                    setAvatarViewerImage(proposal.provider.avatarUri);
-                                    setAvatarViewerVisible(true);
-                                  }
-                                }}
-                                disabled={!proposal.provider.avatarUri}
-                              >
-                                {proposal.provider.avatar ? (
-                                  <Image
-                                    source={proposal.provider.avatar}
-                                    style={styles.providerAvatar}
-                                  />
-                                ) : (
-                                  <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
-                                    <Icon name="person" size={24} color="#9ca3af" />
+                  {/* Ranking das Propostas */}
+                  {selectedOrder.proposals.length > 0 ? (
+                    <>
+                      <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
+                      {selectedOrder.proposals
+                        .filter((proposal) => !(refusedProposals[selectedOrder.id]?.includes(proposal.id)))
+                        .map((proposal) => (
+                          <View
+                            key={proposal.id}
+                            style={styles.proposalCard}
+                          >
+                            <View style={styles.proposalCardHeader}>
+                              <View style={styles.proposalProvider}>
+                                <View style={styles.rankingEmoji}><Trophy size={22} color={getRankingIconColor(proposal.ranking)} /></View>
+                                <View style={styles.proposalProviderInfo}>
+                                  <TouchableOpacity
+                                    onPress={() => {
+                                      if (proposal.provider.avatarUri) {
+                                        setAvatarViewerImage(proposal.provider.avatarUri);
+                                        setAvatarViewerVisible(true);
+                                      }
+                                    }}
+                                    disabled={!proposal.provider.avatarUri}
+                                  >
+                                    {proposal.provider.avatar ? (
+                                      <Image
+                                        source={proposal.provider.avatar}
+                                        style={styles.providerAvatar}
+                                      />
+                                    ) : (
+                                      <View style={[styles.providerAvatar, styles.providerAvatarPlaceholder]}>
+                                        <Icon name="person" size={24} color="#9ca3af" />
+                                      </View>
+                                    )}
+                                  </TouchableOpacity>
+                                  <View>
+                                    <Text style={styles.providerName}>{proposal.provider.name}</Text>
+                                    <View style={styles.providerRating}>
+                                      <Icon name="star" size={14} color="#fbbf24" />
+                                      <Text style={styles.providerRatingText}>{proposal.provider.rating}</Text>
+                                    </View>
                                   </View>
-                                )}
-                              </TouchableOpacity>
-                              <View>
-                                <Text style={styles.providerName}>{proposal.provider.name}</Text>
-                                <View style={styles.providerRating}>
-                                  <Icon name="star" size={14} color="#fbbf24" />
-                                  <Text style={styles.providerRatingText}>{proposal.provider.rating}</Text>
                                 </View>
                               </View>
+                              <View style={getRankingStyle(proposal.ranking)}>
+                                <Text style={styles.rankingText}>{proposal.ranking}º lugar</Text>
+                              </View>
+                            </View>
+
+                            <View style={styles.proposalDetails}>
+                              <View>
+                                <Text style={styles.proposalDetailLabel}>Valor</Text>
+                                <Text style={styles.proposalDetailValue}>{proposal.price}</Text>
+                              </View>
+                              <View>
+                                <Text style={styles.proposalDetailLabel}>Prazo</Text>
+                                <Text style={styles.proposalDetailValue}>{proposal.deadline}</Text>
+                              </View>
+                            </View>
+
+                            <Text style={styles.proposalDescription}>{proposal.description}</Text>
+
+                            <View style={styles.proposalActions}>
+                              <TouchableOpacity
+                                accessibilityLabel="Aceitar proposta"
+                                onPress={() => {
+                                  setShowDetails(false);
+                                  navigation.navigate('Checkout', { proposal });
+                                }}
+                              >
+                                <View style={styles.acceptButton}>
+                                  <Icon name="check-circle" size={28} color="#22c55e" />
+                                </View>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                accessibilityLabel="Recusar proposta"
+                                onPress={() => handleRefuseProposal(selectedOrder.id, proposal.id)}
+                              >
+                                <View style={styles.rejectButton}>
+                                  <Icon name="cancel" size={28} color="#ef4444" />
+                                </View>
+                              </TouchableOpacity>
                             </View>
                           </View>
-                          <View style={getRankingStyle(proposal.ranking)}>
-                            <Text style={styles.rankingText}>{proposal.ranking}º lugar</Text>
-                          </View>
-                        </View>
+                        ))}
+                    </>
+                  ) : (
+                    <View style={styles.noProposalsContainer}>
+                      <Text style={styles.noProposalsTitle}>
+                        <Hourglass size={16} color="#92400e" /> Aguardando propostas...
+                      </Text>
+                      <Text style={styles.noProposalsMessage}>
+                        Seu pedido ainda não recebeu propostas. Continue aguardando ou considere ajustar os detalhes do pedido.
+                      </Text>
+                    </View>
+                  )}
 
-                        <View style={styles.proposalDetails}>
-                          <View>
-                            <Text style={styles.proposalDetailLabel}>Valor</Text>
-                            <Text style={styles.proposalDetailValue}>{proposal.price}</Text>
-                          </View>
-                          <View>
-                            <Text style={styles.proposalDetailLabel}>Prazo</Text>
-                            <Text style={styles.proposalDetailValue}>{proposal.deadline}</Text>
-                          </View>
-                        </View>
-
-                        <Text style={styles.proposalDescription}>{proposal.description}</Text>
-
-                        <View style={styles.proposalActions}>
-                          <TouchableOpacity
-                            accessibilityLabel="Aceitar proposta"
-                            onPress={() => {
-                              setShowDetails(false);
-                              navigation.navigate('Checkout', { proposal });
-                            }}
-                          >
-                            <View style={styles.acceptButton}>
-                              <Icon name="check-circle" size={28} color="#22c55e" />
-                            </View>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            accessibilityLabel="Recusar proposta"
-                            onPress={() => handleRefuseProposal(selectedOrder.id, proposal.id)}
-                          >
-                            <View style={styles.rejectButton}>
-                              <Icon name="cancel" size={28} color="#ef4444" />
-                            </View>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    ))}
+                  {/* Ícone para cliente encerrar/cancelar pedido */}
+                  <TouchableOpacity
+                    style={styles.closeOrderButton}
+                    onPress={() => handleCloseOrder(selectedOrder.id)}
+                    accessibilityLabel="Encerrar pedido"
+                  >
+                    <View style={styles.closeOrderIcon}>
+                      <Icon name="stop-circle" size={28} color="#ef4444" />
+                    </View>
+                  </TouchableOpacity>
                 </>
-              ) : (
-                <View style={styles.noProposalsContainer}>
-                  <Text style={styles.noProposalsTitle}>
-                    <Hourglass size={16} color="#92400e" /> Aguardando propostas...
-                  </Text>
-                  <Text style={styles.noProposalsMessage}>
-                    Seu pedido ainda não recebeu propostas. Continue aguardando ou considere ajustar os detalhes do pedido.
-                  </Text>
-                </View>
               )}
-
-              {/* Ícone para cliente encerrar/cancelar pedido */}
-              <TouchableOpacity
-                style={styles.closeOrderButton}
-                onPress={() => handleCloseOrder(selectedOrder.id)}
-                accessibilityLabel="Encerrar pedido"
-              >
-                <View style={styles.closeOrderIcon}>
-                  <Icon name="stop-circle" size={28} color="#ef4444" />
-                </View>
-              </TouchableOpacity>
             </ScrollView>
           )}
         </View>

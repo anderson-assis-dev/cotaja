@@ -1,11 +1,11 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Star } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService } from '../../services/api';
+import { authService, orderService, Order } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
@@ -46,6 +46,8 @@ export default function ProviderHomeScreen() {
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
   const [top40, setTop40] = useState(0);
 
@@ -53,10 +55,30 @@ export default function ProviderHomeScreen() {
     setTop40(40);
   }, [insets.top]);
 
+  const loadActiveOrders = useCallback(async () => {
+    setLoadingOrders(true);
+    try {
+      const response = await orderService.getOrders({ status: 'in_progress' });
+      if (response.success) {
+        setActiveOrders((response.data.data || []).slice(0, 5));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pedidos aceitos:', error);
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadActiveOrders();
+    }, [loadActiveOrders])
+  );
+
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshUser();
+      await Promise.all([refreshUser(), loadActiveOrders()]);
     } catch (error) {
       console.error('Error refreshing user data:', error);
     } finally {
@@ -146,12 +168,88 @@ export default function ProviderHomeScreen() {
           ))}
         </View>
 
-        <Text style={styles.upcomingTitle}>Próximos Serviços</Text>
-        <View style={styles.upcomingCard}>
-          <Text style={styles.noServicesText}>
-            Você não tem serviços agendados
-          </Text>
+        <View style={styles.upcomingHeader}>
+          <Text style={styles.upcomingTitle}>Próximos Serviços</Text>
+          {activeOrders.length > 0 && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('MyServicesTab')}
+            >
+              <Text style={styles.seeAllText}>Ver todos</Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        {loadingOrders ? (
+          <View style={styles.upcomingCard}>
+            <ActivityIndicator size="small" color="#4f46e5" />
+          </View>
+        ) : activeOrders.length === 0 ? (
+          <View style={styles.upcomingCard}>
+            <Text style={styles.noServicesText}>Você não tem serviços aceitos no momento</Text>
+          </View>
+        ) : (
+          <View style={styles.activeOrdersList}>
+            {activeOrders.map((order) => (
+              <TouchableOpacity
+                key={order.id}
+                style={styles.activeOrderCard}
+                onPress={() =>
+                  navigation.navigate('MyServicesTab', {
+                    screen: 'AcceptedOrder',
+                    params: { orderId: order.id },
+                  })
+                }
+              >
+                <View style={styles.activeOrderLeft}>
+                  <View style={styles.activeOrderIconBg}>
+                    <Icon name="build" size={18} color="#4f46e5" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.activeOrderTitle} numberOfLines={1}>
+                      {order.title}
+                    </Text>
+                    <Text style={styles.activeOrderCategory}>{order.category}</Text>
+                    {order.scheduled_date ? (
+                      <View style={styles.activeOrderDateRow}>
+                        <Icon
+                          name="event"
+                          size={13}
+                          color={
+                            order.schedule_confirmed_by_client &&
+                            order.schedule_confirmed_by_provider
+                              ? '#10b981'
+                              : '#f59e0b'
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.activeOrderDate,
+                            {
+                              color:
+                                order.schedule_confirmed_by_client &&
+                                order.schedule_confirmed_by_provider
+                                  ? '#10b981'
+                                  : '#f59e0b',
+                            },
+                          ]}
+                        >
+                          {new Date(order.scheduled_date).toLocaleDateString('pt-BR')} às{' '}
+                          {new Date(order.scheduled_date).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.activeOrderNoDate}>Sem data agendada</Text>
+                    )}
+                  </View>
+                </View>
+                <Icon name="chevron-right" size={22} color="#9ca3af" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.actionButton}
@@ -299,12 +397,22 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 14,
   },
+  upcomingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
   upcomingTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
-    marginTop: 24,
     color: '#111827',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4f46e5',
   },
   upcomingCard: {
     backgroundColor: '#ffffff',
@@ -323,6 +431,64 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     fontSize: 16,
+  },
+  activeOrdersList: {
+    gap: 10,
+  },
+  activeOrderCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  activeOrderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  activeOrderIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeOrderTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  activeOrderCategory: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  activeOrderDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  activeOrderDate: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  activeOrderNoDate: {
+    fontSize: 12,
+    color: '#d1d5db',
+    marginTop: 4,
   },
   actionButton: {
     backgroundColor: '#4f46e5',

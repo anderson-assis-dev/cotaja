@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image, Modal, TextInput, StyleSheet, Dimensions, KeyboardAvoidingView, Platform, Keyboard, PermissionsAndroid } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, Modal, TextInput, StyleSheet, Dimensions, KeyboardAvoidingView, Platform, Keyboard, PermissionsAndroid, ActivityIndicator } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
-import { serviceService, Service } from '../../services/api';
+import { serviceService, Service, orderService, Order } from '../../services/api';
 import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType, PhotoQuality } from 'react-native-image-picker';
 import { formatPrice } from '../../utils/formatters';
+import React from 'react';
 
 // Categorias disponíveis
 const categories = [
@@ -21,6 +22,7 @@ export default function MyServicesScreen() {
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const [services, setServices] = useState<Service[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
   const [extraScrollHeight, setExtraScrollHeight] = useState(0);
@@ -43,7 +45,26 @@ export default function MyServicesScreen() {
   // Carregar serviços do usuário
   useEffect(() => {
     loadMyServices();
+    loadActiveOrders();
   }, []);
+
+  // Refresh active orders when screen gains focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadActiveOrders();
+    }, [])
+  );
+
+  const loadActiveOrders = async () => {
+    try {
+      const response = await orderService.getOrders({ status: 'in_progress' });
+      if (response.success) {
+        setActiveOrders(response.data.data || []);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar pedidos ativos:', error);
+    }
+  };
 
   const loadMyServices = async () => {
     try {
@@ -408,6 +429,49 @@ export default function MyServicesScreen() {
             </View>
           </View>
         </View>
+
+        {/* Active Orders Section */}
+        {activeOrders.length > 0 && (
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 12 }}>
+              Pedidos em Andamento
+            </Text>
+            {activeOrders.map((order) => (
+              <TouchableOpacity
+                key={order.id}
+                style={{
+                  backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 10,
+                  borderLeftWidth: 4, borderLeftColor: '#4f46e5',
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2,
+                }}
+                onPress={() => navigation.navigate('AcceptedOrder', { orderId: order.id })}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1, marginRight: 12 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }} numberOfLines={1}>
+                      {order.title}
+                    </Text>
+                    <Text style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                      {order.category} • R$ {formatPrice(Number(order.budget || 0))}
+                    </Text>
+                    {order.scheduled_date && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                        <Icon name="event" size={14} color={order.schedule_confirmed_by_client && order.schedule_confirmed_by_provider ? '#10b981' : '#f59e0b'} />
+                        <Text style={{ fontSize: 12, color: order.schedule_confirmed_by_client && order.schedule_confirmed_by_provider ? '#10b981' : '#f59e0b', fontWeight: '500' }}>
+                          {new Date(order.scheduled_date).toLocaleDateString('pt-BR')} às {new Date(order.scheduled_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Icon name="chat" size={18} color="#4f46e5" />
+                    <Icon name="chevron-right" size={20} color="#9ca3af" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Services List */}
         <View style={styles.servicesList}>

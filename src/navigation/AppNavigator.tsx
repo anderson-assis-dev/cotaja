@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { ActivityIndicator, View, StyleSheet, StatusBar, Alert } from 'react-native';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { navigationRef } from './navigationRef';
+import InAppNotification from '../components/InAppNotification';
 
 import InitialScreen from '../screens/InitialScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -25,6 +27,7 @@ import CheckoutScreen from '../screens/client/CheckoutScreen';
 import PaymentScreen from '../screens/client/PaymentScreen';
 import SearchScreen from '../screens/client/SearchScreen';
 import MyOrdersHomeScreen from '../screens/client/MyOrdersHomeScreen';
+import AcceptedOrderScreen from '../screens/client/AcceptedOrderScreen';
 
 // Telas do Prestador
 import ProviderHomeScreen from '../screens/provider/HomeScreen';
@@ -103,6 +106,10 @@ function ClientHomeStackNavigator({ route }: any) {
           clientInfo: clientInfo
         }}
       />
+      <ClientHomeStack.Screen
+        name="HomeAcceptedOrder"
+        component={AcceptedOrderScreen}
+      />
     </ClientHomeStack.Navigator>
   );
 }
@@ -177,6 +184,10 @@ function MyOrdersStackNavigator({ route }: any) {
           clientInfo: clientInfo
         }}
       />
+      <MyOrdersStack.Screen
+        name="AcceptedOrder"
+        component={AcceptedOrderScreen}
+      />
     </MyOrdersStack.Navigator>
   );
 }
@@ -193,6 +204,7 @@ function MyServicesStackNavigator({ route }: any) {
             <MyServicesStack.Screen name="MyServices" component={MyServicesScreen} />
             <MyServicesStack.Screen name="ProviderAuction" component={AuctionScreen} />
             <MyServicesStack.Screen name="RateClient" component={RateClientScreen} />
+            <MyServicesStack.Screen name="AcceptedOrder" component={AcceptedOrderScreen} />
         </MyServicesStack.Navigator>
     );
 }
@@ -400,13 +412,13 @@ export default function AppNavigator() {
   }
 
   return (
-    <>
+    <InAppNotification>
       <StatusBar
         barStyle={isDarkStatus ? "dark-content" : "light-content"}
         backgroundColor={isDarkStatus ? "#f3f4f6" : "#4f46e5"}
         translucent={false}
       />
-      <NavigationContainer onStateChange={onNavigationStateChange}>
+      <NavigationContainer ref={navigationRef} onStateChange={onNavigationStateChange}>
         <Stack.Navigator
         initialRouteName={
           !onboardingCompleted ? 'Onboarding'
@@ -451,7 +463,7 @@ export default function AppNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
-    </>
+    </InAppNotification>
   );
 }
 

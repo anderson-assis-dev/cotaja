@@ -1,17 +1,18 @@
-import { Platform, Alert } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 // @ts-ignore
 import PushNotification from 'react-native-push-notification';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { navigationRef } from '../navigation/navigationRef';
 
 class PushNotificationService {
   private deviceToken: string | null = null;
   private isInitialized = false;
-  private isSendingToken = false; // Flag para evitar envios duplicados
+  private isSendingToken = false;
 
   async initialize() {
     try {
-      console.log('🔔 Inicializando Push Notifications (Community Version)...');
+      console.log('Inicializando Push Notifications...');
 
       if (Platform.OS === 'ios') {
         await this.initializeIOS();
@@ -20,9 +21,9 @@ class PushNotificationService {
       }
 
       this.isInitialized = true;
-      console.log('✅ Push Notifications inicializadas com sucesso');
+      console.log('[Push] Notifications inicializadas com sucesso');
     } catch (error) {
-      console.error('❌ Erro ao inicializar push notifications:', error);
+      console.error('[Push] Erro ao inicializar push notifications:', error);
       throw error;
     }
   }
@@ -32,25 +33,44 @@ class PushNotificationService {
       // Setup event listeners FIRST - before requesting permissions
       // These need to be active when the token arrives
       const onRegistered = (token: string) => {
-        console.log('✅ [iOS] Token FCM obtido:', token);
-        console.log('📝 [iOS] Salvando token no deviceToken interno e AsyncStorage...');
+        console.log('[iOS] Token FCM obtido:', token);
         this.deviceToken = token;
         AsyncStorage.setItem('device_token', token).then(() => {
-          console.log('💾 [iOS] Token salvo no AsyncStorage com sucesso!');
-          console.log('ℹ️ [iOS] Token será enviado ao backend via payload de login/registro/abertura do app');
-          // NÃO enviar automaticamente aqui - confiar no payload
+          console.log('[iOS] Token salvo no AsyncStorage');
         }).catch((error) => {
-          console.error('❌ [iOS] Erro ao salvar token no AsyncStorage:', error);
+          console.error('[iOS] Erro ao salvar token no AsyncStorage:', error);
         });
       };
 
       const onRegistrationError = (error: any) => {
-        console.error('❌ Erro registro iOS:', error);
+        console.error('[iOS] Erro registro:', error);
       };
 
       const onRemoteNotification = (notification: any) => {
-        console.log('📱 Notificação iOS recebida:', notification);
-        this.handleNotification(notification);
+        console.log('[iOS] Notificacao recebida:', notification);
+        const data = notification._data || notification.data || {};
+
+        // Check if user tapped the notification
+        if (notification.getData && notification.getData().userInteraction) {
+          this.handleNotificationTap(data);
+        } else if (notification._data?.userInteraction) {
+          this.handleNotificationTap(data);
+        } else {
+          // Foreground: show in-app toast
+          const title = notification._alert?.title || notification.title || 'Cotaja';
+          const body = notification._alert?.body || notification.message || notification.body || '';
+          if (title || body) {
+            DeviceEventEmitter.emit('in_app_notification', {
+              title,
+              message: body,
+              type: data.type,
+              order_id: data.order_id ? parseInt(data.order_id) : undefined,
+            });
+          }
+        }
+
+        // Required for iOS
+        notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
       };
 
       // Add event listeners
@@ -66,7 +86,7 @@ class PushNotificationService {
         critical: true,
       }).then(
         (permissions) => {
-          console.log('🍎 Permissões iOS concedidas:', permissions);
+          console.log('[iOS] Permissoes concedidas:', permissions);
 
           if (permissions.alert || permissions.badge || permissions.sound) {
             resolve();
@@ -75,7 +95,7 @@ class PushNotificationService {
           }
         },
         (error) => {
-          console.log('❌ PushNotificationIOS.requestPermissions failed', error);
+          console.log('[iOS] requestPermissions failed:', error);
           reject(error);
         },
       );
@@ -90,86 +110,131 @@ class PushNotificationService {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
         );
-        console.log('📱 Permissão Android POST_NOTIFICATIONS:', granted);
+        console.log('[Android] Permissao POST_NOTIFICATIONS:', granted);
       }
     } catch (err) {
-      console.warn('❌ Erro ao solicitar permissão Android:', err);
+      console.warn('[Android] Erro ao solicitar permissao:', err);
     }
 
     // Configure Firebase Cloud Messaging para Android
-    console.log('🔥 [Android] Configurando Firebase Cloud Messaging...');
+    console.log('[Android] Configurando Firebase Cloud Messaging...');
 
     PushNotification.configure({
       onRegister: (token: any) => {
-        console.log('✅ [Android] Token FCM obtido:', token.token);
-        console.log('📝 [Android] Salvando token no deviceToken interno e AsyncStorage...');
+        console.log('[Android] Token FCM obtido:', token.token);
         this.deviceToken = token.token;
         AsyncStorage.setItem('device_token', token.token).then(() => {
-          console.log('💾 [Android] Token salvo no AsyncStorage com sucesso!');
-          console.log('ℹ️ [Android] Token será enviado ao backend via payload de login/registro/abertura do app');
+          console.log('[Android] Token salvo no AsyncStorage com sucesso!');
         }).catch((error) => {
-          console.error('❌ [Android] Erro ao salvar token no AsyncStorage:', error);
+          console.error('[Android] Erro ao salvar token no AsyncStorage:', error);
         });
       },
       onNotification: (notification: any) => {
-        console.log('📱 Notificação Android recebida:', notification);
-        this.handleNotification(notification);
+        console.log('[Android] Notificacao recebida:', JSON.stringify(notification));
+
+        // If user tapped the notification (userInteraction = true), navigate
+        if (notification.userInteraction) {
+          this.handleNotificationTap(notification.data || notification);
+        } else if (notification.foreground) {
+          const data = notification.data || {};
+
+          // Skip if this is our own local notification copy (avoid infinite loop)
+          if (data._isLocalCopy) {
+            notification.finish(PushNotificationIOS.FetchResult.NoData);
+            return;
+          }
+
+          const title = notification.title || data.title || 'Cotaja';
+          const message = notification.message || data.body || '';
+          if (title || message) {
+            // Show in-app toast
+            DeviceEventEmitter.emit('in_app_notification', {
+              title,
+              message,
+              type: data.type,
+              order_id: data.order_id ? parseInt(data.order_id) : undefined,
+            });
+
+            // Also show in notification center so it appears in the status bar
+            PushNotification.localNotification({
+              channelId: 'cotaja-default',
+              title: title,
+              message: message,
+              smallIcon: 'ic_notification',
+              color: '#4f46e5',
+              playSound: true,
+              soundName: 'default',
+              userInfo: { ...data, _isLocalCopy: true },
+            });
+          }
+        }
+
         notification.finish(PushNotificationIOS.FetchResult.NoData);
       },
       onAction: (notification: any) => {
-        console.log('🎯 Ação Android:', notification.action);
+        console.log('[Android] Acao:', notification.action);
+        // When user taps the local notification, navigate
+        this.handleNotificationTap(notification.data || notification.userInfo || {});
       },
       onRegistrationError: (err: any) => {
-        console.error('❌ Erro registro Android:', err.message, err);
+        console.error('[Android] Erro registro:', err.message, err);
       },
       permissions: { alert: true, badge: true, sound: true },
       popInitialNotification: true,
       requestPermissions: true,
     });
 
-    console.log('✅ [Android] Firebase Cloud Messaging configurado');
+    // Create notification channel for Android 8+
+    PushNotification.createChannel(
+      {
+        channelId: 'cotaja-default',
+        channelName: 'Cotaja Notificacoes',
+        channelDescription: 'Notificacoes do aplicativo Cotaja',
+        playSound: true,
+        soundName: 'default',
+        importance: 4, // IMPORTANCE_HIGH
+        vibrate: true,
+      },
+      (created: boolean) => console.log(`[Android] Canal de notificacao ${created ? 'criado' : 'ja existia'}`)
+    );
+
+    console.log('[Android] Firebase Cloud Messaging configurado');
   }
 
-  private handleNotification(notification: any) {
-    // Handle different notification types
-    if (notification.data) {
-      const { type } = notification.data;
+  private handleNotificationTap(data: any) {
+    const type = data?.type;
+    const orderId = data?.order_id ? parseInt(data.order_id) : null;
+    if (!type && !orderId) return;
 
-      switch (type) {
-        case 'new_proposal':
-          this.handleNewProposal(notification);
-          break;
-        case 'proposal_accepted':
-          this.handleProposalAccepted(notification);
-          break;
-        case 'new_order':
-          this.handleNewOrder(notification);
-          break;
-        default:
-          console.log('📱 Notificação genérica:', notification);
+    const attemptNavigate = (attempt = 0) => {
+      if (!navigationRef.isReady()) {
+        if (attempt < 15) setTimeout(() => attemptNavigate(attempt + 1), 300);
+        return;
       }
-    }
 
-    // Show alert if app is in foreground (iOS specific handling)
-    if (Platform.OS === 'ios' && notification.foreground) {
-      Alert.alert(
-        notification.title || 'Nova Notificação',
-        notification.message || notification.body || '',
-        [{ text: 'OK' }]
-      );
-    }
-  }
+      if (type === 'chat_message' && orderId) {
+        AsyncStorage.getItem('user').then(json => {
+          const profile = json ? JSON.parse(json)?.profile_type : null;
+          try {
+            if (profile === 'provider') {
+              (navigationRef as any).navigate('Provider', {
+                screen: 'MyServicesTab',
+                params: { screen: 'AcceptedOrder', params: { orderId } },
+              });
+            } else {
+              (navigationRef as any).navigate('Client', {
+                screen: 'MyOrdersTab',
+                params: { screen: 'AcceptedOrder', params: { orderId } },
+              });
+            }
+          } catch (e) {
+            console.log('[Push] Erro ao navegar para chat:', e);
+          }
+        });
+      }
+    };
 
-  private handleNewProposal(notification: any) {
-    console.log('🎯 Nova proposta recebida:', notification.data);
-  }
-
-  private handleProposalAccepted(notification: any) {
-    console.log('✅ Proposta aceita:', notification.data);
-  }
-
-  private handleNewOrder(notification: any) {
-    console.log('📋 Nova demanda disponível:', notification.data);
+    attemptNavigate();
   }
 
   async sendTokenToBackend(token: string, retryCount = 0) {
@@ -250,9 +315,14 @@ class PushNotificationService {
     } else {
       try {
         PushNotification.localNotification({
+          channelId: 'cotaja-default',
           title: title,
           message: body,
-          userInfo: data || {}
+          smallIcon: 'ic_notification',
+          color: '#4f46e5',
+          playSound: true,
+          soundName: 'default',
+          userInfo: data || {},
         });
       } catch (error) {
         console.warn('⚠️ [Android] Push notification não disponível (Firebase não configurado):', error);
@@ -372,10 +442,15 @@ class PushNotificationService {
     } else {
       try {
         PushNotification.localNotificationSchedule({
+          channelId: 'cotaja-default',
           title: title,
           message: message,
           date: date,
-          userInfo: data || {}
+          smallIcon: 'ic_notification',
+          color: '#4f46e5',
+          playSound: true,
+          soundName: 'default',
+          userInfo: data || {},
         });
       } catch (error) {
         console.warn('⚠️ [Android] Scheduled notification não disponível (Firebase não configurado):', error);

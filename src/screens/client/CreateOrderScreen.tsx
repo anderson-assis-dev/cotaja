@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Image } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Image, PermissionsAndroid } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import Geolocation from '@react-native-community/geolocation';
 import Config from 'react-native-config';
-import { orderService } from '../../services/api';
+import { orderService, geocodingService, GeocodedAddress } from '../../services/api';
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
@@ -68,7 +69,19 @@ export default function CreateOrderScreen() {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [address, setAddress] = useState('');
+  const [street, setStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [complement, setComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [addressState, setAddressState] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [addressSearchResults, setAddressSearchResults] = useState<GeocodedAddress[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [removedAttachments, setRemovedAttachments] = useState<string[]>([]); // Paths dos anexos removidos
   const [isLoading, setIsLoading] = useState(false);
@@ -95,7 +108,16 @@ export default function CreateOrderScreen() {
       const deadlineValue = orderData.deadline?.replace(' dias', '');
       setDeadline(formatDeadline(deadlineValue || '0'));
 
-      setAddress(orderData.location || '');
+      // Carregar campos de endereço estruturado
+      setStreet(orderData.street || '');
+      setAddressNumber(orderData.number || '');
+      setComplement(orderData.complement || '');
+      setNeighborhood(orderData.neighborhood || '');
+      setCity(orderData.city || '');
+      setAddressState(orderData.state || '');
+      setZipCode(orderData.zip_code || '');
+      if (orderData.latitude) setLatitude(parseFloat(orderData.latitude));
+      if (orderData.longitude) setLongitude(parseFloat(orderData.longitude));
 
       // Carregar anexos existentes
       if (orderData.attachments && Array.isArray(orderData.attachments)) {
@@ -151,6 +173,155 @@ export default function CreateOrderScreen() {
   const handleDeadlineChange = (value: string) => {
     const formatted = formatDeadline(value);
     setDeadline(formatted);
+  };
+
+  // Handler para CEP com formatação
+  const handleZipCodeChange = (value: string) => {
+    const numbers = value.replace(/[^0-9]/g, '');
+    if (numbers.length <= 5) {
+      setZipCode(numbers);
+    } else {
+      setZipCode(`${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`);
+    }
+  };
+
+  // Buscar endereço por texto (autocomplete com debounce)
+  const handleStreetChange = (text: string) => {
+    setStreet(text);
+
+    // Limpar timeout anterior
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (text.length < 3) {
+      setAddressSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    // Debounce: esperar 500ms após parar de digitar
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await geocodingService.searchAddress(
+          text,
+          latitude || undefined,
+          longitude || undefined
+        );
+        if (response.success && response.data) {
+          setAddressSearchResults(response.data.slice(0, 5));
+          setShowSearchResults(true);
+        }
+      } catch (error) {
+        console.log('Erro na busca de endereço:', error);
+      }
+    }, 500);
+  };
+
+  // Selecionar endereço dos resultados de busca
+  const handleSelectAddress = (address: GeocodedAddress) => {
+    setStreet(address.street || '');
+    setAddressNumber(address.number || '');
+    setNeighborhood(address.neighborhood || '');
+    setCity(address.city || '');
+    setAddressState(address.state || '');
+    setZipCode(address.zip_code || '');
+    if (address.latitude) setLatitude(address.latitude);
+    if (address.longitude) setLongitude(address.longitude);
+    setShowSearchResults(false);
+    setAddressSearchResults([]);
+  };
+
+  // Obter localização GPS do dispositivo
+  const handleGetLocation = async () => {
+    setIsLoadingLocation(true);
+
+    try {
+      // Solicitar permissão no Android
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Permissão de Localização',
+            message: 'Cotaja precisa acessar sua localização para preencher o endereço automaticamente.',
+            buttonNeutral: 'Perguntar depois',
+            buttonNegative: 'Cancelar',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permissão negada', 'Não foi possível obter sua localização.');
+          setIsLoadingLocation(false);
+          return;
+        }
+      }
+
+      Geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude: lat, longitude: lng } = position.coords;
+          console.log('📍 Localização obtida:', lat, lng);
+          setLatitude(lat);
+          setLongitude(lng);
+
+          try {
+            // Reverse geocode via backend
+            const response = await geocodingService.reverseGeocode(lat, lng);
+            if (response.success && response.data) {
+              const addr = response.data;
+              setStreet(addr.street || '');
+              setAddressNumber(addr.number || '');
+              setNeighborhood(addr.neighborhood || '');
+              setCity(addr.city || '');
+              setAddressState(addr.state || '');
+              setZipCode(addr.zip_code || '');
+              console.log('✅ Endereço preenchido automaticamente:', addr.formatted_address);
+            }
+          } catch (error) {
+            console.error('Erro no reverse geocode:', error);
+            Alert.alert('Aviso', 'Localização obtida, mas não foi possível converter em endereço. Preencha manualmente.');
+          }
+
+          setIsLoadingLocation(false);
+        },
+        (error) => {
+          console.error('Erro ao obter localização:', error);
+          let message = 'Não foi possível obter sua localização.';
+          if (error.code === 1) message = 'Permissão de localização negada.';
+          if (error.code === 2) message = 'Localização indisponível. Verifique se o GPS está ativado.';
+          if (error.code === 3) message = 'Tempo esgotado ao tentar obter localização.';
+          Alert.alert('Erro', message);
+          setIsLoadingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 10000,
+        },
+      );
+    } catch (error) {
+      console.error('Erro geral de localização:', error);
+      Alert.alert('Erro', 'Não foi possível acessar a localização.');
+      setIsLoadingLocation(false);
+    }
+  };
+
+  // Construir endereço completo a partir dos campos
+  const buildFullAddress = () => {
+    const parts = [];
+    if (street) {
+      let streetLine = street;
+      if (addressNumber) streetLine += `, ${addressNumber}`;
+      parts.push(streetLine);
+    }
+    if (complement) parts.push(complement);
+    if (neighborhood) parts.push(neighborhood);
+    if (city) {
+      let cityLine = city;
+      if (addressState) cityLine += ` - ${addressState}`;
+      parts.push(cityLine);
+    }
+    if (zipCode) parts.push(zipCode);
+    return parts.join(', ');
   };
 
   // Adicionar imagem (câmera ou galeria)
@@ -324,7 +495,8 @@ export default function CreateOrderScreen() {
 
   const handleSubmit = async () => {
     console.log('🔵 handleSubmit chamado');
-    console.log('Valores:', { title, category, description, budget, deadline, address });
+    const fullAddress = buildFullAddress();
+    console.log('Valores:', { title, category, description, budget, deadline, fullAddress });
 
     // Verificar se há propostas e está em modo de edição
     if (editMode && hasProposals) {
@@ -336,9 +508,9 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    if (!title || !category || !description || !budget || !deadline || !address) {
+    if (!title || !category || !description || !budget || !deadline || !street || !city || !addressState) {
       console.log('❌ Erro: Por favor, preencha todos os campos obrigatórios');
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
+      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios (título, categoria, descrição, orçamento, prazo, rua, cidade e estado).');
       return;
     }
 
@@ -394,27 +566,36 @@ export default function CreateOrderScreen() {
                   name: attachment.name,
                 }));
 
-              const orderData = {
+              const orderPayload = {
                 title,
                 description,
                 category,
-                budget: budgetValue, // Envia o valor numérico
-                deadline: deadlineDays, // Envia o número de dias
-                address,
+                budget: budgetValue,
+                deadline: deadlineDays,
+                address: fullAddress,
+                street,
+                number: addressNumber,
+                complement,
+                neighborhood,
+                city,
+                state: addressState,
+                zip_code: zipCode,
+                latitude: latitude || undefined,
+                longitude: longitude || undefined,
                 attachments: newAttachments,
                 removedAttachments: editMode ? removedAttachments : undefined,
               };
 
-              console.log(editMode ? '📝 Atualizando pedido:' : '📦 Criando pedido:', orderData);
+              console.log(editMode ? '📝 Atualizando pedido:' : '📦 Criando pedido:', orderPayload);
               console.log('📎 Total de anexos:', attachments.length);
               console.log('🆕 Novos anexos:', newAttachments.length);
               console.log('🗑️ Anexos removidos:', removedAttachments.length);
 
               let response;
               if (editMode && orderId) {
-                response = await orderService.updateOrder(parseInt(orderId), orderData);
+                response = await orderService.updateOrder(parseInt(orderId), orderPayload);
               } else {
-                response = await orderService.createOrder(orderData);
+                response = await orderService.createOrder(orderPayload);
               }
 
               console.log('📨 Resposta recebida:', response);
@@ -522,11 +703,123 @@ export default function CreateOrderScreen() {
               />
 
               <Text style={styles.label}>Endereço do Serviço</Text>
+
+              {/* Botão de Geolocalização */}
+              <TouchableOpacity
+                style={[styles.locationButton, isLoadingLocation && styles.locationButtonDisabled]}
+                onPress={handleGetLocation}
+                disabled={isLoading || isLoadingLocation}
+              >
+                {isLoadingLocation ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Icon name="my-location" size={20} color="#ffffff" />
+                )}
+                <Text style={styles.locationButtonText}>
+                  {isLoadingLocation ? 'Obtendo localização...' : 'Usar minha localização'}
+                </Text>
+              </TouchableOpacity>
+
+              {latitude && longitude && (
+                <View style={styles.coordinatesInfo}>
+                  <Icon name="place" size={14} color="#059669" />
+                  <Text style={styles.coordinatesText}>
+                    Localização obtida ({latitude.toFixed(4)}, {longitude.toFixed(4)})
+                  </Text>
+                </View>
+              )}
+
+              <Text style={styles.addressSubLabel}>Rua / Logradouro</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex: Rua das Flores, 123, Bairro, Cidade - UF"
-                value={address}
-                onChangeText={setAddress}
+                placeholder="Ex: Rua das Flores"
+                value={street}
+                onChangeText={handleStreetChange}
+                editable={!isLoading}
+              />
+              {showSearchResults && addressSearchResults.length > 0 && (
+                <View style={styles.searchResultsContainer}>
+                  {addressSearchResults.map((result, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.searchResultItem}
+                      onPress={() => handleSelectAddress(result)}
+                    >
+                      <Icon name="place" size={18} color="#6b7280" />
+                      <Text style={styles.searchResultText} numberOfLines={2}>
+                        {result.formatted_address || `${result.street}, ${result.city} - ${result.state}`}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.addressRow}>
+                <View style={styles.addressFieldSmall}>
+                  <Text style={styles.addressSubLabel}>Número</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="123"
+                    value={addressNumber}
+                    onChangeText={setAddressNumber}
+                    keyboardType="numeric"
+                    editable={!isLoading}
+                  />
+                </View>
+                <View style={styles.addressFieldLarge}>
+                  <Text style={styles.addressSubLabel}>Complemento</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Apto 101, Bloco B"
+                    value={complement}
+                    onChangeText={setComplement}
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.addressSubLabel}>Bairro</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ex: Centro"
+                value={neighborhood}
+                onChangeText={setNeighborhood}
+                editable={!isLoading}
+              />
+
+              <View style={styles.addressRow}>
+                <View style={styles.addressFieldLarge}>
+                  <Text style={styles.addressSubLabel}>Cidade</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: São Paulo"
+                    value={city}
+                    onChangeText={setCity}
+                    editable={!isLoading}
+                  />
+                </View>
+                <View style={styles.addressFieldSmall}>
+                  <Text style={styles.addressSubLabel}>Estado</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="SP"
+                    value={addressState}
+                    onChangeText={(text) => setAddressState(text.toUpperCase().slice(0, 2))}
+                    maxLength={2}
+                    autoCapitalize="characters"
+                    editable={!isLoading}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.addressSubLabel}>CEP</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="00000-000"
+                value={zipCode}
+                onChangeText={handleZipCodeChange}
+                keyboardType="numeric"
+                maxLength={9}
                 editable={!isLoading}
               />
 
@@ -947,5 +1240,82 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     marginLeft: 8,
+  },
+  // Estilos de endereço estruturado
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  locationButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  locationButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  coordinatesInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ecfdf5',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 12,
+    gap: 4,
+  },
+  coordinatesText: {
+    fontSize: 12,
+    color: '#059669',
+  },
+  addressSubLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginBottom: 4,
+    marginTop: 4,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  addressFieldSmall: {
+    flex: 1,
+  },
+  addressFieldLarge: {
+    flex: 2,
+  },
+  searchResultsContainer: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    marginTop: -12,
+    marginBottom: 12,
+    maxHeight: 200,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  searchResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 8,
+  },
+  searchResultText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#374151',
   },
 });
