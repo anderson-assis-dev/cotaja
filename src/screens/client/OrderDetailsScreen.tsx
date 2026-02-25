@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Trophy, Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
@@ -267,14 +267,16 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  // Carregar pedidos quando o componente montar
-  useEffect(() => {
-    if (user?.id) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [fromLeiloes, selectedCategory, user?.id]);
+  // Carregar pedidos toda vez que a tela receber foco
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        fetchOrders();
+      } else {
+        setLoading(false);
+      }
+    }, [fromLeiloes, selectedCategory, user?.id])
+  );
 
   // Filtra os pedidos conforme o tipo de usuário e categoria
   let filteredOrders = profileType === 'client'

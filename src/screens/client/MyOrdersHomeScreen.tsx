@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
@@ -227,13 +227,15 @@ export default function MyOrdersHomeScreen() {
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [fromLeiloes, selectedCategory, user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        fetchOrders();
+      } else {
+        setLoading(false);
+      }
+    }, [fromLeiloes, selectedCategory, user?.id])
+  );
 
   let filteredOrders = profileType === 'client'
     ? orders.filter(o => o.clientId === clientId)
