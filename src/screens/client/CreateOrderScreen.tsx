@@ -79,6 +79,7 @@ export default function CreateOrderScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [addressSearchResults, setAddressSearchResults] = useState<GeocodedAddress[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -175,13 +176,27 @@ export default function CreateOrderScreen() {
     setDeadline(formatted);
   };
 
-  // Handler para CEP com formatação
-  const handleZipCodeChange = (value: string) => {
+  const handleZipCodeChange = async (value: string) => {
     const numbers = value.replace(/[^0-9]/g, '');
-    if (numbers.length <= 5) {
-      setZipCode(numbers);
-    } else {
-      setZipCode(`${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`);
+    const formatted = numbers.length > 5
+      ? `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`
+      : numbers;
+    setZipCode(formatted);
+    if (numbers.length === 8) {
+      setIsLoadingCep(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${numbers}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setStreet(data.logradouro || '');
+          setNeighborhood(data.bairro || '');
+          setCity(data.localidade || '');
+          setAddressState(data.uf || '');
+        }
+      } catch (error) {
+      } finally {
+        setIsLoadingCep(false);
+      }
     }
   };
 
@@ -704,6 +719,23 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Endereço do Serviço</Text>
 
+              <Text style={styles.addressSubLabel}>CEP</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="00000-000"
+                value={zipCode}
+                onChangeText={handleZipCodeChange}
+                keyboardType="numeric"
+                maxLength={9}
+                editable={!isLoading && !isLoadingCep}
+              />
+              {isLoadingCep && (
+                <View style={styles.cepLoadingContainer}>
+                  <ActivityIndicator size="small" color="#4f46e5" />
+                  <Text style={styles.cepLoadingText}>Buscando endereço...</Text>
+                </View>
+              )}
+
               {/* Botão de Geolocalização */}
               <TouchableOpacity
                 style={[styles.locationButton, isLoadingLocation && styles.locationButtonDisabled]}
@@ -811,17 +843,6 @@ export default function CreateOrderScreen() {
                   />
                 </View>
               </View>
-
-              <Text style={styles.addressSubLabel}>CEP</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="00000-000"
-                value={zipCode}
-                onChangeText={handleZipCodeChange}
-                keyboardType="numeric"
-                maxLength={9}
-                editable={!isLoading}
-              />
 
               <Text style={styles.label}>Anexos</Text>
 
@@ -1317,5 +1338,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: '#374151',
+  },
+  cepLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    marginTop: -8,
+  },
+  cepLoadingText: {
+    fontSize: 13,
+    color: '#4f46e5',
   },
 });

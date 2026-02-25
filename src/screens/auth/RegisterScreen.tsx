@@ -18,6 +18,8 @@ export default function RegisterScreen() {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [phone, setPhone] = useState('');
   const [profileType, setProfileType] = useState<'client' | 'provider' | ''>('');
+  const [showSenha, setShowSenha] = useState(false);
+  const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
 
   const nomeInputRef = useRef<TextInput>(null);
   const emailInputRef = useRef<TextInput>(null);
@@ -167,30 +169,40 @@ export default function RegisterScreen() {
           />
 
           <Text style={styles.label}>Senha</Text>
-          <TextInput
-            ref={senhaInputRef}
-            style={styles.input}
-            placeholder="Digite sua senha"
-            value={senha}
-            onChangeText={setSenha}
-            secureTextEntry
-            editable={!isLoading}
-            returnKeyType="next"
-            onSubmitEditing={() => confirmarSenhaInputRef.current?.focus()}
-          />
+          <View style={styles.passwordContainer}>
+            <TextInput
+              ref={senhaInputRef}
+              style={styles.passwordInput}
+              placeholder="Digite sua senha"
+              value={senha}
+              onChangeText={setSenha}
+              secureTextEntry={!showSenha}
+              editable={!isLoading}
+              returnKeyType="next"
+              onSubmitEditing={() => confirmarSenhaInputRef.current?.focus()}
+            />
+            <TouchableOpacity onPress={() => setShowSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
+              <Icon name={showSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.label}>Confirmar Senha</Text>
-          <TextInput
-            ref={confirmarSenhaInputRef}
-            style={[styles.input, styles.lastInput]}
-            placeholder="Confirme sua senha"
-            value={confirmarSenha}
-            onChangeText={setConfirmarSenha}
-            secureTextEntry
-            editable={!isLoading}
-            returnKeyType="done"
-            onSubmitEditing={handleRegister}
-          />
+          <View style={[styles.passwordContainer, styles.lastInput]}>
+            <TextInput
+              ref={confirmarSenhaInputRef}
+              style={styles.passwordInput}
+              placeholder="Confirme sua senha"
+              value={confirmarSenha}
+              onChangeText={setConfirmarSenha}
+              secureTextEntry={!showConfirmarSenha}
+              editable={!isLoading}
+              returnKeyType="done"
+              onSubmitEditing={handleRegister}
+            />
+            <TouchableOpacity onPress={() => setShowConfirmarSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
+              <Icon name={showConfirmarSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={[styles.button, isLoading ? styles.buttonDisabled : styles.buttonEnabled]}
@@ -275,6 +287,24 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
+    color: '#111827',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 12,
+    color: '#111827',
+  },
+  eyeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   lastInput: {
     marginBottom: 24,
