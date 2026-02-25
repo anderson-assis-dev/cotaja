@@ -54,8 +54,10 @@
 	<string>Este app precisa de acesso à câmera para tirar fotos dos seus serviços</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Este app usa Face ID para autenticação biométrica segura</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O Cotaja precisa acessar sua localização para preencher o endereço do serviço automaticamente.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>O Cotaja precisa acessar sua localização para preencher o endereço do serviço automaticamente.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Este app precisa de acesso para salvar fotos na biblioteca</string>
 	<key>NSPhotoLibraryUsageDescription</key>
