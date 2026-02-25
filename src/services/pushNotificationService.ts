@@ -47,18 +47,30 @@ class PushNotificationService {
       };
 
       const onRemoteNotification = (notification: any) => {
-        console.log('[iOS] Notificacao recebida:', notification);
+        console.log('[iOS] Notificacao recebida (raw):', JSON.stringify(notification));
         const data = notification._data || notification.data || {};
+        const getDataResult = notification.getData ? notification.getData() : {};
 
-        // Check if user tapped the notification
-        if (notification.getData && notification.getData().userInteraction) {
-          this.handleNotificationTap(data);
-        } else if (notification._data?.userInteraction) {
+        // Check userInteraction in ALL possible locations
+        // RNCPushNotificationIOS can set it at different levels depending on version
+        const isUserTap =
+          notification.userInteraction === true ||
+          notification.userInteraction === 1 ||
+          data.userInteraction === true ||
+          data.userInteraction === 1 ||
+          getDataResult.userInteraction === true ||
+          getDataResult.userInteraction === 1;
+
+        console.log('[iOS] userInteraction detected:', isUserTap, '| data:', JSON.stringify(data));
+
+        if (isUserTap) {
+          // User tapped the notification - navigate to chat
+          console.log('[iOS] User tapped notification, navigating...');
           this.handleNotificationTap(data);
         } else {
           // Foreground: show in-app toast
-          const title = notification._alert?.title || notification.title || 'Cotaja';
-          const body = notification._alert?.body || notification.message || notification.body || '';
+          const title = notification._alert?.title || notification.title || data.title || 'Cotaja';
+          const body = notification._alert?.body || notification.message || notification.body || data.body || '';
           if (title || body) {
             DeviceEventEmitter.emit('in_app_notification', {
               title,
@@ -73,10 +85,56 @@ class PushNotificationService {
         notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
       };
 
+      // Handler specifically for notification TAPS
+      // In RNCPushNotificationIOS v1.11.0, didReceiveNotificationResponse posts to
+      // 'localNotificationReceived' channel, so taps arrive as 'localNotification' events
+      const onLocalNotification = (notification: any) => {
+        console.log('[iOS] localNotification event (TAP):', JSON.stringify(notification));
+        const data = notification._data || notification.data || {};
+        const getDataResult = notification.getData ? notification.getData() : {};
+
+        // localNotification from didReceiveNotificationResponse always has userInteraction=1
+        const isUserTap =
+          notification.userInteraction === true ||
+          notification.userInteraction === 1 ||
+          data.userInteraction === true ||
+          data.userInteraction === 1 ||
+          getDataResult.userInteraction === true ||
+          getDataResult.userInteraction === 1;
+
+        console.log('[iOS] localNotification userInteraction:', isUserTap);
+
+        if (isUserTap) {
+          console.log('[iOS] TAP detected via localNotification, navigating...');
+          // The payload from APNs is inside the notification data
+          const navData = {
+            type: data.type || getDataResult.type,
+            order_id: data.order_id || getDataResult.order_id,
+          };
+          this.handleNotificationTap(navData);
+        }
+
+        notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
+      };
+
       // Add event listeners
       PushNotificationIOS.addEventListener('register', onRegistered);
       PushNotificationIOS.addEventListener('registrationError', onRegistrationError);
       PushNotificationIOS.addEventListener('notification', onRemoteNotification);
+      PushNotificationIOS.addEventListener('localNotification', onLocalNotification);
+
+      // Handle cold start: app was killed and user tapped a notification to open it
+      PushNotificationIOS.getInitialNotification().then((notification) => {
+        if (notification) {
+          console.log('[iOS] Initial notification found (cold start tap):', JSON.stringify(notification));
+          const initialData = notification.getData ? notification.getData() : (notification as any)._data || {};
+          if (initialData.type || initialData.order_id) {
+            this.handleNotificationTap(initialData);
+          }
+        }
+      }).catch((err) => {
+        console.log('[iOS] getInitialNotification error:', err);
+      });
 
       // NOW request permissions - this will trigger the 'register' event
       PushNotificationIOS.requestPermissions({

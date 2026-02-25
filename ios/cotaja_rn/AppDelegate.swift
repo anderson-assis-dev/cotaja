@@ -99,8 +99,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     let userInfo = response.notification.request.content.userInfo
     print("🎯 Notification tapped: \(userInfo)")
 
-    // Use didReceiveNotificationResponse to properly set userInteraction=true on JS side
-    RNCPushNotificationIOS.didReceiveNotificationResponse(response)
+    // Use didReceive to properly set userInteraction=true on JS side
+    RNCPushNotificationIOS.didReceive(response)
 
     completionHandler()
   }

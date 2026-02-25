@@ -27,14 +27,6 @@
       android:networkSecurityConfig="@xml/network_security_config"
       android:supportsRtl="true">
 
-      <!-- Desabilitar auto-inicialização do Firebase (push notification ainda não configurado) -->
-      <!-- Remover estas 2 linhas quando configurar o google-services.json -->
-      <provider
-        android:name="com.google.firebase.provider.FirebaseInitProvider"
-        android:authorities="${applicationId}.firebaseinitprovider"
-        android:exported="false"
-        tools:node="remove" />
-
       <meta-data android:name="com.dieam.reactnativepushnotification.notification_foreground" android:value="true"/>
       <meta-data android:name="com.dieam.reactnativepushnotification.notification_color" android:resource="@color/notification_color"/>
       <meta-data android:name="com.dieam.reactnativepushnotification.notification_icon" android:resource="@drawable/ic_notification"/>
@@ -42,6 +34,14 @@
 
       <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_notification"/>
       <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/notification_color"/>
+
+      <service
+          android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationListenerService"
+          android:exported="false">
+          <intent-filter>
+              <action android:name="com.google.firebase.MESSAGING_EVENT" />
+          </intent-filter>
+      </service>
 
       <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationActions" android:exported="false" />
       <receiver android:name="com.dieam.reactnativepushnotification.modules.RNPushNotificationPublisher" android:exported="false" />
