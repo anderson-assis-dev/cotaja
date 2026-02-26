@@ -337,42 +337,34 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  // Função para cliente pausar/retomar pedido
+  // Função para cliente pausar/retomar pedido (otimista — UI atualiza instantaneamente)
   const handleToggleStopOrder = async (orderId: string) => {
-    const order = orders.find(o => o.id === orderId);
-    const isStopped = order?.status === 'Pausado';
-    const action = isStopped ? 'Retomar' : 'Pausar';
+    const isStopped = selectedOrder?.status === 'Pausado';
+    const newStatus = isStopped ? 'Aguardando propostas' : 'Pausado';
 
-    Alert.alert(
-      `${action} Pedido`,
-      isStopped
-        ? 'Deseja retomar este pedido? Ele voltará a ser visível para prestadores.'
-        : 'Deseja pausar este pedido? Ele ficará invisível para prestadores até ser retomado.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: action,
-          onPress: async () => {
-            try {
-              const response = await orderService.toggleStopOrder(parseInt(orderId));
+    // Atualização otimista — muda o UI imediatamente
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: newStatus });
+    }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+    showSuccess(isStopped ? 'Pedido ativado!' : 'Pedido pausado!');
 
-              if (response.success) {
-                showSuccess(response.message || `Pedido ${isStopped ? 'retomado' : 'pausado'} com sucesso`);
-                fetchOrders();
-                // Atualizar o selectedOrder para refletir o novo status
-                if (selectedOrder && selectedOrder.id === orderId) {
-                  setSelectedOrder({ ...selectedOrder, status: isStopped ? 'Aguardando propostas' : 'Pausado' });
-                }
-              } else {
-                showError(response.message || `Erro ao ${action.toLowerCase()} pedido`);
-              }
-            } catch (error: any) {
-              showError(error.message || `Erro ao ${action.toLowerCase()} pedido`);
-            }
-          }
-        }
-      ]
-    );
+    // Dispara API em background
+    orderService.toggleStopOrder(parseInt(orderId)).then(response => {
+      if (!response.success) {
+        // Reverter em caso de erro
+        const revertStatus = isStopped ? 'Pausado' : 'Aguardando propostas';
+        setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: revertStatus } : prev);
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: revertStatus } : o));
+        showError(response.message || 'Erro ao alterar status do pedido');
+      }
+    }).catch((error: any) => {
+      // Reverter em caso de erro
+      const revertStatus = isStopped ? 'Pausado' : 'Aguardando propostas';
+      setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: revertStatus } : prev);
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: revertStatus } : o));
+      showError(error.message || 'Erro ao alterar status do pedido');
+    });
   };
 
   // Função para excluir pedido
@@ -888,7 +880,7 @@ export default function OrderDetailsScreen() {
                     Pedido Pausado
                   </Text>
                   <Text style={{ fontSize: 13, color: '#92400e', marginTop: 4, textAlign: 'center' }}>
-                    Este pedido está invisível para prestadores. Toque no botão abaixo para retomar.
+                    Este pedido está invisível para prestadores. Toque no botão abaixo para ativar novamente.
                   </Text>
                 </View>
               ) : (
@@ -990,11 +982,11 @@ export default function OrderDetailsScreen() {
                     </View>
                   )}
 
-                  {/* Ícone para cliente pausar/retomar pedido */}
+                  {/* Ícone para cliente pausar/ativar pedido */}
                   <TouchableOpacity
                     style={styles.closeOrderButton}
                     onPress={() => handleToggleStopOrder(selectedOrder.id)}
-                    accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Retomar pedido' : 'Pausar pedido'}
+                    accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Ativar pedido' : 'Pausar pedido'}
                   >
                     <View style={styles.closeOrderIcon}>
                       <Icon
@@ -1003,8 +995,8 @@ export default function OrderDetailsScreen() {
                         color={selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b'}
                       />
                     </View>
-                    <Text style={{ fontSize: 11, color: selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
-                      {selectedOrder.status === 'Pausado' ? 'Retomar' : 'Pausar'}
+                    <Text style={{ fontSize: 11, color: selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b', marginTop: 2, fontWeight: '600' }}>
+                      {selectedOrder.status === 'Pausado' ? 'Ativar Novamente' : 'Pausar'}
                     </Text>
                   </TouchableOpacity>
                 </>
