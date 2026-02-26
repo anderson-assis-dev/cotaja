@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Star } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { authService, orderService, Order } from '../../services/api';
+import { orderService, Order } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
@@ -71,8 +71,10 @@ export default function ProviderHomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadActiveOrders();
-    }, [loadActiveOrders])
+      if (user?.id) {
+        loadActiveOrders();
+      }
+    }, [user?.id, loadActiveOrders])
   );
 
   const onRefresh = async () => {

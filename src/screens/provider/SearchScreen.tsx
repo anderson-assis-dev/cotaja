@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Lightbulb } from 'lucide-react-native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { orderService } from '../../services/api';
+import { formatPrice } from '../../utils/formatters';
 
 // Navigation types
 type RootStackParamList = {
@@ -36,6 +38,7 @@ interface Demand {
   budget: string;
   location: string;
   description: string;
+  _raw?: any;
 }
 
 // Mock data for example
@@ -54,89 +57,6 @@ const mockCategories: Category[] = [
   { id: '12', name: 'Outros', icon: 'more-horiz' },
 ];
 
-// Mock demand data for search
-const mockDemands: Demand[] = [
-  {
-    id: '1',
-    title: 'Pintura de apartamento',
-    category: 'Pintura',
-    budget: 'R$ 3.000,00',
-    location: 'São Paulo, SP',
-    description: 'Preciso pintar um apartamento de 80m², 2 quartos, sala, cozinha e banheiro. Cores neutras.',
-  },
-  {
-    id: '2',
-    title: 'Instalação de ar condicionado',
-    category: 'Elétrica',
-    budget: 'R$ 1.500,00',
-    location: 'Rio de Janeiro, RJ',
-    description: 'Instalar ar condicionado split 12.000 BTUs na sala. Já tenho o aparelho.',
-  },
-  {
-    id: '3',
-    title: 'Limpeza pós-obra',
-    category: 'Limpeza',
-    budget: 'R$ 800,00',
-    location: 'Belo Horizonte, MG',
-    description: 'Limpeza completa de casa após reforma. 120m², 3 quartos, 2 banheiros.',
-  },
-  {
-    id: '4',
-    title: 'Manutenção de computador',
-    category: 'Tecnologia',
-    budget: 'R$ 200,00',
-    location: 'São Paulo, SP',
-    description: 'Meu computador está lento e com problemas. Preciso de manutenção e limpeza.',
-  },
-  {
-    id: '5',
-    title: 'Aula de inglês online',
-    category: 'Aulas',
-    budget: 'R$ 50,00',
-    location: 'Online',
-    description: 'Preciso de aulas de inglês para conversação. 2x por semana, 1 hora cada.',
-  },
-  {
-    id: '6',
-    title: 'Design de logo',
-    category: 'Design',
-    budget: 'R$ 500,00',
-    location: 'São Paulo, SP',
-    description: 'Preciso de um logo para minha empresa de tecnologia. Quero algo moderno e profissional.',
-  },
-  {
-    id: '7',
-    title: 'Organização de evento corporativo',
-    category: 'Eventos',
-    budget: 'R$ 5.000,00',
-    location: 'São Paulo, SP',
-    description: 'Preciso organizar um evento corporativo para 100 pessoas. Inclui decoração e catering.',
-  },
-  {
-    id: '8',
-    title: 'Reparo de encanamento',
-    category: 'Encanamento',
-    budget: 'R$ 300,00',
-    location: 'São Paulo, SP',
-    description: 'Vazamento na pia da cozinha. Preciso de reparo urgente.',
-  },
-  {
-    id: '9',
-    title: 'Poda de árvores',
-    category: 'Jardinagem',
-    budget: 'R$ 400,00',
-    location: 'São Paulo, SP',
-    description: 'Preciso podar 3 árvores no meu quintal. Uma delas está muito alta.',
-  },
-  {
-    id: '10',
-    title: 'Transporte de móveis',
-    category: 'Transporte',
-    budget: 'R$ 250,00',
-    location: 'São Paulo, SP',
-    description: 'Preciso transportar móveis de um apartamento para outro. Distância de 5km.',
-  },
-];
 
 export default function ProviderSearchScreen() {
   const navigation = useNavigation<ProviderSearchScreenNavigationProp>();
@@ -145,22 +65,55 @@ export default function ProviderSearchScreen() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredDemands, setFilteredDemands] = useState<Demand[]>([]);
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Function to filter demands based on search
+  // Busca no backend com debounce de 500ms
   useEffect(() => {
-    if (searchQuery.trim().length > 0) {
-      const filtered = mockDemands.filter(demand =>
-        demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        demand.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        demand.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        demand.location.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredDemands(filtered);
-      setShowSearchResults(true);
-    } else {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    const query = searchQuery.trim();
+    if (query.length === 0) {
       setFilteredDemands([]);
       setShowSearchResults(false);
+      return;
     }
+
+    setLoading(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const response = await orderService.getAvailableOrders({ search: query });
+        if (response.success && Array.isArray(response.data.data)) {
+          const demands: Demand[] = response.data.data.map((order: any) => ({
+            id: order.id.toString(),
+            title: order.title || 'Sem título',
+            category: order.category || 'Sem categoria',
+            budget: `R$ ${formatPrice(Number(order.budget || 0))}`,
+            location: order.address || 'Local não informado',
+            description: order.description || 'Sem descrição',
+            _raw: order,
+          }));
+          setFilteredDemands(demands);
+        } else {
+          setFilteredDemands([]);
+        }
+        setShowSearchResults(true);
+      } catch (error) {
+        console.error('Erro ao buscar demandas:', error);
+        setFilteredDemands([]);
+        setShowSearchResults(true);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
   }, [searchQuery]);
 
   const handleCategoryPress = (category: Category) => {
@@ -176,15 +129,32 @@ export default function ProviderSearchScreen() {
   };
 
   const handleDemandPress = (demand: Demand) => {
-    // Navigate to auctions screen with demand category filter
-    navigation.navigate('AuctionsTab', {
-      screen: 'ProviderAuction',
-      params: {
-        profileType: 'provider',
-        selectedCategory: demand.category,
-        fromSearch: true
+    const raw = demand._raw;
+    const deadlineValue = raw?.deadline ? Number.parseInt(raw.deadline, 10) : 0;
+    let attachments = raw?.attachments;
+    if (typeof attachments === 'string') {
+      try { attachments = JSON.parse(attachments); } catch (parseError) {
+        console.warn('Failed to parse attachments:', parseError);
+        attachments = [];
       }
-    });
+    }
+    const fullDemand = {
+      id: demand.id,
+      title: demand.title,
+      category: demand.category,
+      budget: demand.budget,
+      deadline: `${deadlineValue} dias`,
+      description: demand.description,
+      location: demand.location,
+      clientRating: 4.8,
+      proposals: [],
+      insights: [],
+      attachments: Array.isArray(attachments) ? attachments : [],
+      clientId: raw?.client_id?.toString() || '0',
+      hasActiveAuction: false,
+      isNewDemand: true,
+    };
+    navigation.navigate('SendProposal', { demand: fullDemand });
   };
 
   const clearSearch = () => {
@@ -201,6 +171,65 @@ export default function ProviderSearchScreen() {
         fromSearch: true
       }
     });
+  };
+
+  const renderResults = () => {
+    if (loading) {
+      return (
+        <View style={styles.noResultsContainer}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+          <Text style={[styles.noResultsText, { marginTop: 12 }]}>Buscando...</Text>
+        </View>
+      );
+    }
+    if (filteredDemands.length > 0) {
+      return (
+        <View>
+          {filteredDemands.map((demand) => (
+            <TouchableOpacity
+              key={demand.id}
+              style={styles.demandCard}
+              onPress={() => handleDemandPress(demand)}
+            >
+              <View style={styles.demandCardInner}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.demandTitle} numberOfLines={1}>
+                    {demand.title}
+                  </Text>
+                  <Text style={styles.demandDescription} numberOfLines={2}>
+                    {demand.description}
+                  </Text>
+                  <View style={styles.demandMeta}>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryText}>{demand.category}</Text>
+                    </View>
+                    <View style={styles.locationContainer}>
+                      <Icon name="location-on" size={12} color="#9ca3af" />
+                      <Text style={styles.locationText} numberOfLines={1}>
+                        {demand.location}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.demandRight}>
+                  <Text style={styles.budgetText}>{demand.budget}</Text>
+                  <Icon name="chevron-right" size={20} color="#d1d5db" style={{ marginTop: 6 }} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      );
+    }
+    return (
+      <View style={styles.noResultsContainer}>
+        <Icon name="search-off" size={48} color="#9ca3af" />
+        <Text style={styles.noResultsTitle}>Nenhum resultado encontrado</Text>
+        <Text style={styles.noResultsText}>
+          Tente usar outras palavras-chave ou explore as categorias abaixo
+        </Text>
+      </View>
+    );
   };
 
   return (
@@ -232,64 +261,25 @@ export default function ProviderSearchScreen() {
         </View>
 
         {/* Search Results */}
-        {showSearchResults && (
+        {(loading || showSearchResults) && (
           <View style={styles.searchResultsContainer}>
             <View style={styles.searchResultsHeader}>
               <Text style={styles.searchResultsTitle}>
                 Resultados da busca
               </Text>
-              <Text style={styles.searchResultsCount}>
-                {filteredDemands.length} {filteredDemands.length === 1 ? 'resultado' : 'resultados'}
-              </Text>
+              {!loading && (
+                <Text style={styles.searchResultsCount}>
+                  {filteredDemands.length} {filteredDemands.length === 1 ? 'resultado' : 'resultados'}
+                </Text>
+              )}
             </View>
 
-            {filteredDemands.length > 0 ? (
-              <View>
-                {filteredDemands.map((demand) => (
-                  <TouchableOpacity
-                    key={demand.id}
-                    style={styles.demandCard}
-                    onPress={() => handleDemandPress(demand)}
-                  >
-                    <View style={styles.demandHeader}>
-                      <Text style={styles.demandTitle} numberOfLines={2}>
-                        {demand.title}
-                      </Text>
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryText}>{demand.category}</Text>
-                      </View>
-                    </View>
-
-                    <Text style={styles.demandDescription} numberOfLines={2}>
-                      {demand.description}
-                    </Text>
-
-                    <View style={styles.demandFooter}>
-                      <View style={styles.locationContainer}>
-                        <Icon name="location-on" size={14} color="#6b7280" />
-                        <Text style={styles.locationText}>{demand.location}</Text>
-                      </View>
-                      <Text style={styles.budgetText}>{demand.budget}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              <View style={styles.noResultsContainer}>
-                <Icon name="search-off" size={48} color="#9ca3af" />
-                <Text style={styles.noResultsTitle}>
-                  Nenhum resultado encontrado
-                </Text>
-                <Text style={styles.noResultsText}>
-                  Tente usar outras palavras-chave ou explore as categorias abaixo
-                </Text>
-              </View>
-            )}
+            {renderResults()}
           </View>
         )}
 
         {/* Categories - only shows when there's no active search */}
-        {!showSearchResults && (
+        {!showSearchResults && !loading && (
           <View style={styles.categoriesContainer}>
             <Text style={styles.categoriesTitle}>Categorias</Text>
             <Text style={styles.categoriesSubtitle}>
@@ -311,7 +301,7 @@ export default function ProviderSearchScreen() {
         )}
 
         {/* Information - only shows when there's no active search */}
-        {!showSearchResults && (
+        {!showSearchResults && !loading && (
           <View style={styles.infoContainer}>
             <Text style={styles.infoTitle}><Lightbulb size={16} color="#f59e0b" /> Como funciona?</Text>
             <Text style={styles.infoText}>
@@ -325,7 +315,7 @@ export default function ProviderSearchScreen() {
         )}
 
         {/* Button to view all demands - only shows when there's no active search */}
-        {!showSearchResults && (
+        {!showSearchResults && !loading && (
           <TouchableOpacity
             style={styles.viewAllButton}
             onPress={handleViewAllDemands}
@@ -405,63 +395,71 @@ const styles = StyleSheet.create({
   demandCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    marginBottom: 12,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    elevation: 3,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
   },
-  demandHeader: {
+  demandCardInner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 12,
   },
   demandTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1f2937',
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 4,
+  },
+  demandDescription: {
+    color: '#6b7280',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  demandMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
   },
   categoryBadge: {
     backgroundColor: '#e0e7ff',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   categoryText: {
     color: '#4f46e5',
-    fontSize: 14,
-  },
-  demandDescription: {
-    color: '#6b7280',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  demandFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    fontSize: 12,
+    fontWeight: '600',
   },
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    gap: 2,
+    minWidth: 0,
   },
   locationText: {
-    color: '#6b7280',
-    fontSize: 14,
-    marginLeft: 4,
+    color: '#9ca3af',
+    fontSize: 12,
+    flex: 1,
+  },
+  demandRight: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 70,
   },
   budgetText: {
     color: '#059669',
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 15,
   },
   noResultsContainer: {
     backgroundColor: '#ffffff',

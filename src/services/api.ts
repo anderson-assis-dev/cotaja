@@ -636,7 +636,7 @@ export const orderService = {
   },
 
   // Listar pedidos disponíveis para prestadores
-  async getAvailableOrders(params?: { category?: string }): Promise<{ success: boolean; data: { data: Order[]; current_page: number; total: number } }> {
+  async getAvailableOrders(params?: { category?: string; cep?: string; search?: string }): Promise<{ success: boolean; data: { data: Order[]; current_page: number; total: number } }> {
     const response = await api.get('/orders/available', { params });
     return response.data;
   },

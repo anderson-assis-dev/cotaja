@@ -318,6 +318,7 @@ export default function AuctionScreen() {
     setCepFilter('');
     setCategoryFilter('');
     setShowCategoryAutocomplete(false);
+    applyFilters({});
   };
 
   // Load available categories
@@ -325,81 +326,70 @@ export default function AuctionScreen() {
     fetchAvailableCategories();
   }, []);
 
-  // Apply filters when changed
-  useEffect(() => {
-    const applyFilters = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const applyFilters = async (overrideParams?: Record<string, any>) => {
+    if (!user?.id) return;
+    try {
+      setLoading(true);
+      setError(null);
 
-        let params: Record<string, any> = {};
-
-        // Apply category filter
+      let params: Record<string, any>;
+      if (overrideParams !== undefined) {
+        params = overrideParams;
+      } else {
+        params = {};
         if (categoryFilter) {
           params.category = categoryFilter;
         }
-
-        // Apply CEP filter
-        if (cepFilter && cepFilter.length >= 5) {
-          // Clean CEP (remove non-numeric characters)
-          const cleanCep = cepFilter.replace(/[^0-9]/g, '');
-          if (cleanCep.length >= 5) {
-            params.cep = cleanCep;
-          }
+        if (cepFilter && cepFilter.replace(/[^0-9]/g, '').length >= 5) {
+          params.cep = cepFilter.replace(/[^0-9]/g, '');
         }
-
-        console.log('🔍 Aplicando filtros:', params);
-
-        const response = await orderService.getAvailableOrders(params);
-
-        if (response.success) {
-          console.log('📦 Dados filtrados recebidos:', response.data.data?.length || 0);
-
-          if (!response.data.data || !Array.isArray(response.data.data)) {
-            setAuctions([]);
-            return;
-          }
-
-          const convertedAuctions = response.data.data.map((apiOrder: any) => {
-            try {
-              return convertApiOrderToAuction(apiOrder);
-            } catch (error) {
-              console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
-              return {
-                id: apiOrder.id?.toString() || '0',
-                title: apiOrder.title || 'Demanda sem título',
-                category: apiOrder.category || 'Sem categoria',
-                budget: 'R$ 0,00',
-                deadline: '0 dias',
-                status: 'Aguardando propostas',
-                description: apiOrder.description || 'Sem descrição',
-                location: apiOrder.address || 'Local não informado',
-                clientRating: 4.8,
-                proposals: [],
-                insights: ['Dados incompletos'],
-                clientId: apiOrder.client_id?.toString() || '0',
-                hasActiveAuction: false,
-                isNewDemand: false,
-              } as Auction;
-            }
-          });
-
-          setAuctions(convertedAuctions);
-        } else {
-          throw new Error('Erro ao carregar demandas');
-        }
-      } catch (error: any) {
-        console.error('❌ Erro ao aplicar filtros:', error);
-        setError(error.message || 'Erro ao aplicar filtros');
-      } finally {
-        setLoading(false);
       }
-    };
 
-    if (user?.id) {
-      applyFilters();
+      console.log('🔍 Aplicando filtros:', params);
+
+      const response = await orderService.getAvailableOrders(params);
+
+      if (response.success) {
+        if (!response.data.data || !Array.isArray(response.data.data)) {
+          setAuctions([]);
+          return;
+        }
+
+        const convertedAuctions = response.data.data.map((apiOrder: any) => {
+          try {
+            return convertApiOrderToAuction(apiOrder);
+          } catch (error) {
+            console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
+            return {
+              id: apiOrder.id?.toString() || '0',
+              title: apiOrder.title || 'Demanda sem título',
+              category: apiOrder.category || 'Sem categoria',
+              budget: 'R$ 0,00',
+              deadline: '0 dias',
+              status: 'Aguardando propostas',
+              description: apiOrder.description || 'Sem descrição',
+              location: apiOrder.address || 'Local não informado',
+              clientRating: 4.8,
+              proposals: [],
+              insights: ['Dados incompletos'],
+              clientId: apiOrder.client_id?.toString() || '0',
+              hasActiveAuction: false,
+              isNewDemand: false,
+            } as Auction;
+          }
+        });
+
+        setAuctions(convertedAuctions);
+      } else {
+        throw new Error('Erro ao carregar demandas');
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao aplicar filtros:', error);
+      setError(error.message || 'Erro ao aplicar filtros');
+    } finally {
+      setLoading(false);
     }
-  }, [categoryFilter, cepFilter, user?.id]);
+  };
 
   // Filter demands according to user type
   let filteredAuctions = auctions; // For providers, don't filter by clientId
@@ -634,15 +624,24 @@ export default function AuctionScreen() {
             </View>
           </View>
 
-          {/* Botão Limpar Filtros */}
-          {(cepFilter || categoryFilter) && (
+          {/* Botões de ação */}
+          <View style={styles.filterActions}>
+            {(cepFilter || categoryFilter) && (
+              <TouchableOpacity
+                onPress={clearFilters}
+                style={styles.clearFiltersButton}
+              >
+                <Text style={styles.clearFiltersText}>Limpar</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              onPress={clearFilters}
-              style={styles.clearFiltersButton}
+              onPress={() => applyFilters()}
+              style={styles.searchButton}
             >
-              <Text style={styles.clearFiltersText}>Limpar Filtros</Text>
+              <Icon name="search" size={18} color="#fff" />
+              <Text style={styles.searchButtonText}>Buscar</Text>
             </TouchableOpacity>
-          )}
+          </View>
         </View>
 
         {filteredAuctions.map((auction) => (
@@ -911,17 +910,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
   },
+  filterActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
   clearFiltersButton: {
     backgroundColor: '#f3f4f6',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 6,
-    alignSelf: 'flex-start',
   },
   clearFiltersText: {
     fontSize: 14,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#4f46e5',
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  searchButtonText: {
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
   },
   auctionCard: {
     backgroundColor: 'white',
