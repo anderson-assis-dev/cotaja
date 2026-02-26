@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { ratingService, serviceService } from '../../services/api';
+import { getAttachmentName, getAttachmentUrl } from '../../utils/attachmentHelpers';
 
 const mockCategories = [
   { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
@@ -60,6 +61,10 @@ export default function SearchScreen() {
   const [providerRatings,setProviderRatings]=useState<ProviderRatingItem[]>([]);
   const [loadingRatings,setLoadingRatings]=useState(false);
   const [ratingsError,setRatingsError]=useState<string|null>(null);
+  const [attachmentsModalVisible,setAttachmentsModalVisible]=useState(false);
+  const [attachmentsModalItems,setAttachmentsModalItems]=useState<any[]>([]);
+  const [attachmentsModalTitle,setAttachmentsModalTitle]=useState('');
+  const [previewImageUrl,setPreviewImageUrl]=useState<string|null>(null);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const isRatingMode = (route.params as any)?.isRatingMode || false;
@@ -153,6 +158,25 @@ export default function SearchScreen() {
   const handleCloseModal = () => {
     setSelectedCompany(null);
   };
+  const handleCloseAttachmentsModal=()=>{
+    setAttachmentsModalVisible(false);
+    setAttachmentsModalItems([]);
+    setAttachmentsModalTitle('');
+    setPreviewImageUrl(null);
+  };
+  const handleOpenAttachment=async(att:any)=>{
+    const url=getAttachmentUrl(att);
+    if(!url){Alert.alert('Erro','Anexo inválido');return;}
+    if(typeof url==='string'&&url.startsWith('data:image/')){setPreviewImageUrl(url);return;}
+    try{
+      const supported=await Linking.canOpenURL(url);
+      if(!supported){Alert.alert('Erro','Não foi possível abrir o anexo');return;}
+      await Linking.openURL(url);
+    }catch(e){
+      console.warn('openAttachment error',e);
+      Alert.alert('Erro','Não foi possível abrir o anexo');
+    }
+  };
 
   const handleNavigateToRate = (company: Company) => {
     handleCloseModal();
@@ -189,6 +213,12 @@ export default function SearchScreen() {
       const avatar=normalizeAvatarUri(r.client_avatar_base64||undefined);
       const ratingValue=Number(r.rating)||0;
       const attachmentsCount=Array.isArray(r.attachments)?r.attachments.length:0;
+      const openAttachments=()=>{
+        if(!Array.isArray(r.attachments)||r.attachments.length===0)return;
+        setAttachmentsModalTitle(r.client_name||'Anexos');
+        setAttachmentsModalItems(r.attachments);
+        setAttachmentsModalVisible(true);
+      };
       return(
         <View key={`${r.id||'r'}-${idx}`} style={styles.ratingItem}>
           <View style={styles.ratingHeader}>
@@ -205,7 +235,11 @@ export default function SearchScreen() {
             </View>
           </View>
           {r.comment?(<Text style={styles.ratingComment}>{String(r.comment)}</Text>):null}
-          {attachmentsCount>0?(<Text style={styles.ratingAttachments}>{`${attachmentsCount} anexo(s)`}</Text>):null}
+          {attachmentsCount>0?(
+            <TouchableOpacity style={styles.attachmentsButton} onPress={openAttachments}>
+              <Text style={styles.attachmentsButtonText}>{`Ver anexos (${attachmentsCount})`}</Text>
+            </TouchableOpacity>
+          ):null}
         </View>
       );
     });
@@ -298,6 +332,49 @@ export default function SearchScreen() {
               </>
             )}
           </View>
+
+          {attachmentsModalVisible && (
+            <View style={styles.attachmentsOverlayInModal}>
+              <TouchableOpacity style={styles.attachmentsBackdrop} onPress={handleCloseAttachmentsModal} />
+              <View style={[styles.attachmentsModalContent,{paddingBottom:insets.bottom+16}]}>
+                <View style={styles.attachmentsModalHeader}>
+                  <Text style={styles.attachmentsModalTitle}>{attachmentsModalTitle||'Anexos'}</Text>
+                  <TouchableOpacity onPress={handleCloseAttachmentsModal} style={styles.attachmentsModalClose}>
+                    <Icon name="close" size={24} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView keyboardShouldPersistTaps="handled">
+                  {previewImageUrl?(
+                    <View style={styles.previewBox}>
+                      <Image source={{uri:previewImageUrl}} style={styles.previewImage} />
+                      <TouchableOpacity style={styles.previewClose} onPress={()=>setPreviewImageUrl(null)}>
+                        <Text style={styles.previewCloseText}>Fechar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ):null}
+                  {attachmentsModalItems.length>0?attachmentsModalItems.map((att,idx)=>{
+                    const name=getAttachmentName(att);
+                    const url=getAttachmentUrl(att);
+                    const type=att?.mime_type||att?.type||'';
+                    return(
+                      <TouchableOpacity key={`${name}-${idx}`} style={styles.attachmentRow} onPress={()=>handleOpenAttachment(att)}>
+                        <View style={styles.attachmentRowLeft}>
+                          <Icon name="attach-file" size={20} color="#4f46e5" />
+                          <View style={styles.attachmentRowInfo}>
+                            <Text style={styles.attachmentRowName} numberOfLines={1}>{name}</Text>
+                            <Text style={styles.attachmentRowMeta} numberOfLines={1}>{type||url}</Text>
+                          </View>
+                        </View>
+                        <Icon name="open-in-new" size={18} color="#6b7280" />
+                      </TouchableOpacity>
+                    );
+                  }):(
+                    <Text style={styles.noRatingsText}>Nenhum anexo.</Text>
+                  )}
+                </ScrollView>
+              </View>
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -647,6 +724,110 @@ const styles = StyleSheet.create({
     marginTop:8,
     color:'#6b7280',
     fontSize:12,
+  },
+  attachmentsButton:{
+    alignSelf:'flex-start',
+    marginTop:10,
+    backgroundColor:'#eef2ff',
+    borderRadius:10,
+    paddingHorizontal:12,
+    paddingVertical:8,
+  },
+  attachmentsButtonText:{
+    color:'#4f46e5',
+    fontWeight:'700',
+  },
+  attachmentsOverlayInModal:{
+    position:'absolute',
+    left:0,
+    right:0,
+    top:0,
+    bottom:0,
+    justifyContent:'center',
+    padding:20,
+    zIndex:50,
+  },
+  attachmentsBackdrop:{
+    position:'absolute',
+    left:0,
+    right:0,
+    top:0,
+    bottom:0,
+    backgroundColor:'rgba(0,0,0,0.45)',
+  },
+  attachmentsModalContent:{
+    backgroundColor:'white',
+    borderRadius:16,
+    padding:16,
+    maxHeight:'80%',
+  },
+  attachmentsModalHeader:{
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'space-between',
+    marginBottom:12,
+  },
+  attachmentsModalTitle:{
+    fontSize:18,
+    fontWeight:'700',
+    color:'#374151',
+    flex:1,
+    marginRight:12,
+  },
+  attachmentsModalClose:{
+    padding:8,
+  },
+  attachmentRow:{
+    backgroundColor:'#f9fafb',
+    borderRadius:12,
+    padding:12,
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'space-between',
+    marginBottom:10,
+  },
+  attachmentRowLeft:{
+    flexDirection:'row',
+    alignItems:'center',
+    flex:1,
+    marginRight:10,
+  },
+  attachmentRowInfo:{
+    flex:1,
+    marginLeft:8,
+  },
+  attachmentRowName:{
+    color:'#374151',
+    fontWeight:'700',
+  },
+  attachmentRowMeta:{
+    color:'#6b7280',
+    fontSize:12,
+    marginTop:2,
+  },
+  previewBox:{
+    backgroundColor:'#111827',
+    borderRadius:12,
+    padding:12,
+    marginBottom:12,
+  },
+  previewImage:{
+    width:'100%',
+    height:240,
+    borderRadius:10,
+    resizeMode:'contain',
+    backgroundColor:'#111827',
+  },
+  previewClose:{
+    marginTop:10,
+    backgroundColor:'#4f46e5',
+    borderRadius:10,
+    paddingVertical:10,
+  },
+  previewCloseText:{
+    color:'white',
+    fontWeight:'700',
+    textAlign:'center',
   },
   noRatingsText:{
     color:'#6b7280',
