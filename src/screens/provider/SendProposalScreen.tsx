@@ -398,6 +398,23 @@ export default function SendProposalScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header fixo roxo */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.backButtonHeader}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Icon name="arrow-back" size={22} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Enviar Proposta</Text>
+          {refreshing && (
+            <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+          )}
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -415,25 +432,7 @@ export default function SendProposalScreen() {
             { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 100 }
           ]}
         >
-        <View style={[styles.content, { paddingTop: insets.top + 60, marginTop: -60 }]}>
-        {/* Header com botão Voltar */}
-        <View style={styles.topHeader}>
-          <TouchableOpacity
-            style={styles.backButtonTop}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
-          >
-            <Icon name="arrow-back" size={24} color="#4f46e5" />
-            <Text style={styles.backButtonTopText}>Voltar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.header}>
-          <Text style={styles.title}>Enviar Proposta</Text>
-          {refreshing && (
-            <ActivityIndicator size="small" color="#4f46e5" />
-          )}
-        </View>
+        <View style={styles.content}>
 
         {/* Demand Information */}
         <View style={styles.demandCard}>
@@ -894,7 +893,7 @@ export default function SendProposalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
   },
   keyboardView: {
     flex: 1,
@@ -906,26 +905,32 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 100,
   },
-  content: {
-    padding: 24,
+  header: {
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    backgroundColor: '#4f46e5',
   },
-  topHeader: {
-    marginBottom: 16,
-    marginLeft: -15,
-  },
-  backButtonTop: {
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    alignSelf: 'flex-start',
-    borderRadius: 8,
+    gap: 10,
   },
-  backButtonTopText: {
-    color: '#4f46e5',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+  backButtonHeader: {
+    padding: 2,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    flex: 1,
+  },
+  content: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+    minHeight: 500,
   },
   errorContainer: {
     flex: 1,
@@ -948,17 +953,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 18,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
   },
   demandCard: {
     backgroundColor: '#ffffff',
