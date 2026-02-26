@@ -80,7 +80,34 @@ export default function SendProposalScreen() {
   const route = useRoute<SendProposalScreenRouteProp>();
   const { user } = useAuth();
   const [price, setPrice] = useState<string>('');
+  const [priceDisplay, setPriceDisplay] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
+
+  // Formatar valor como moeda brasileira (R$ 1.234,56)
+  const handlePriceChange = (text: string) => {
+    // Remover tudo que não é dígito
+    const digits = text.replace(/\D/g, '');
+    if (!digits) {
+      setPrice('');
+      setPriceDisplay('');
+      return;
+    }
+    // Guardar centavos como string de dígitos
+    setPrice(digits);
+    // Formatar para exibição
+    const numericValue = parseInt(digits, 10);
+    const formatted = (numericValue / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    setPriceDisplay(`R$ ${formatted}`);
+  };
+
+  // Handler para prazo - apenas números
+  const handleDeadlineChange = (text: string) => {
+    const numbers = text.replace(/[^0-9]/g, '');
+    setDeadline(numbers);
+  };
   const [description, setDescription] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [demand, setDemand] = useState<Demand | null>(() => {
@@ -255,7 +282,7 @@ export default function SendProposalScreen() {
       return;
     }
 
-    const priceNumber = Number(price);
+    const priceNumber = parseInt(price, 10) / 100;
     if (isNaN(priceNumber) || priceNumber <= 0) {
       Alert.alert('Erro', 'Por favor, informe um valor válido para a proposta');
       return;
@@ -277,7 +304,7 @@ export default function SendProposalScreen() {
       if (alreadyProposed && myProposal) {
         // Update existing proposal
         const updatePayload: ApiProposalUpdatePayload = {
-          price: Number(price),
+          price: parseInt(price, 10) / 100,
           deadline: deadline,
           description: description,
         };
@@ -290,6 +317,7 @@ export default function SendProposalScreen() {
       if (response.success) {
         // Clear form fields
         setPrice('');
+        setPriceDisplay('');
         setDeadline('');
         setDescription('');
 
@@ -716,21 +744,22 @@ export default function SendProposalScreen() {
         {/* Proposal Form - Only show if not submitted yet */}
         {!alreadyProposed && (
           <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Valor da Proposta (R$)</Text>
+            <Text style={styles.formLabel}>Valor da Proposta</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 2800"
-              value={price}
-              onChangeText={(text) => setPrice(text.replace(/[^0-9]/g, ''))}
+              placeholder="R$ 0,00"
+              value={priceDisplay}
+              onChangeText={handlePriceChange}
               keyboardType="numeric"
             />
 
-            <Text style={styles.formLabel}>Prazo de Execução</Text>
+            <Text style={styles.formLabel}>Prazo de Execução (dias)</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 12 dias"
+              placeholder="Ex: 12"
               value={deadline}
-              onChangeText={setDeadline}
+              onChangeText={handleDeadlineChange}
+              keyboardType="numeric"
             />
 
             <Text style={styles.formLabel}>Descrição da Proposta</Text>
@@ -774,21 +803,22 @@ export default function SendProposalScreen() {
               </Text>
             </View>
 
-            <Text style={styles.formLabel}>Novo Valor da Proposta (R$)</Text>
+            <Text style={styles.formLabel}>Novo Valor da Proposta</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 2800"
-              value={price}
-              onChangeText={(text) => setPrice(text.replace(/[^0-9]/g, ''))}
+              placeholder="R$ 0,00"
+              value={priceDisplay}
+              onChangeText={handlePriceChange}
               keyboardType="numeric"
             />
 
-            <Text style={styles.formLabel}>Novo Prazo de Execução</Text>
+            <Text style={styles.formLabel}>Novo Prazo de Execução (dias)</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 12 dias"
+              placeholder="Ex: 12"
               value={deadline}
-              onChangeText={setDeadline}
+              onChangeText={handleDeadlineChange}
+              keyboardType="numeric"
             />
 
             <Text style={styles.formLabel}>Nova Descrição da Proposta</Text>
