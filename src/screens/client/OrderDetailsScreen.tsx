@@ -132,16 +132,27 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
   let attachments: Attachment[] = [];
   if (apiOrder.attachments) {
     try {
+      console.log('📎 Processando anexos para pedido:', apiOrder.id);
+      console.log('📎 Tipo de attachments:', typeof apiOrder.attachments);
+      console.log('📎 Valor de attachments:', apiOrder.attachments);
+
+      // Se attachments for string JSON, parsear
       const attachmentsData = typeof apiOrder.attachments === 'string'
         ? JSON.parse(apiOrder.attachments)
         : apiOrder.attachments;
 
+      console.log('📎 Dados parseados:', attachmentsData);
+      console.log('📎 É array?', Array.isArray(attachmentsData));
+
       if (Array.isArray(attachmentsData)) {
         attachments = attachmentsData;
+        console.log('✅ Anexos processados:', attachments.length);
       }
     } catch (error) {
       console.error('❌ Erro ao parsear anexos:', error);
     }
+  } else {
+    console.log('⚠️ apiOrder.attachments é null/undefined para pedido:', apiOrder.id);
   }
 
   const convertedOrder = {
@@ -198,9 +209,9 @@ export default function OrderDetailsScreen() {
   const fromLeiloes = (route.params as any)?.fromLeiloes || false;
 
   // Buscar pedidos da API
-  const fetchOrders = async (showSpinner = true) => {
+  const fetchOrders = async () => {
     try {
-      if (showSpinner) setLoading(true);
+      setLoading(true);
       setError(null);
 
       let params: any = {};
@@ -278,7 +289,7 @@ export default function OrderDetailsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user?.id && !loading) {
-        fetchOrders(false); // background refresh, sem spinner
+        fetchOrders();
       }
     }, [user?.id, fromLeiloes, selectedCategory])
   );
