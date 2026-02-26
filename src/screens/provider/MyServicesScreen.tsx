@@ -224,6 +224,15 @@ export default function MyServicesScreen() {
     }
   };
 
+  const getStatusBorderColor = (status: string) => {
+    switch (status) {
+      case 'active': return '#22c55e';
+      case 'paused': return '#f59e0b';
+      case 'inactive': return '#9ca3af';
+      default: return '#9ca3af';
+    }
+  };
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'active':
@@ -263,6 +272,21 @@ export default function MyServicesScreen() {
     }
   };
 
+  const formatCurrencyInput = (text: string): string => {
+    const digits = text.replaceAll(/\D/g, '');
+    if (!digits) return '';
+    const number = Number.parseInt(digits, 10);
+    return (number / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const parseCurrencyInput = (formatted: string): number => {
+    const normalized = formatted.replaceAll('.', '').replace(',', '.');
+    return Number.parseFloat(normalized);
+  };
+
   const deleteService = (serviceId: number) => {
     Alert.alert(
       'Confirmar Exclusão',
@@ -292,7 +316,7 @@ export default function MyServicesScreen() {
     setNewService({
       title: service.title,
       description: service.description,
-      price: service.price.toString().replace('.', ','),
+      price: Number.parseFloat(service.price.toString()).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       category: service.category,
       status: service.status
     });
@@ -309,8 +333,7 @@ export default function MyServicesScreen() {
       return;
     }
 
-    const priceString = newService.price.replace(',', '.');
-    const price = parseFloat(priceString);
+    const price = parseCurrencyInput(newService.price);
     if (isNaN(price) || price <= 0) {
       Alert.alert('Erro', 'Por favor, insira um preço válido');
       return;
@@ -391,22 +414,25 @@ export default function MyServicesScreen() {
   return (
     <View style={styles.container}>
     <ScrollView
-      style={[styles.scrollView, { paddingTop: insets.top }]}
+      style={styles.scrollView}
       onScroll={handleScroll}
       scrollEventThrottle={16}
     >
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        <View>
           <Text style={styles.title}>Meus Serviços</Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowNewServiceModal(true)}
-          >
-            <Icon name="add" size={24} color="#4f46e5" />
-          </TouchableOpacity>
+          <Text style={styles.subtitle}>Gerencie seus serviços ativos</Text>
         </View>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowNewServiceModal(true)}
+        >
+          <Icon name="add" size={24} color="#4f46e5" />
+        </TouchableOpacity>
+      </View>
 
+      <View style={styles.content}>
         {/* Stats */}
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>Resumo</Text>
@@ -415,12 +441,14 @@ export default function MyServicesScreen() {
               <Text style={styles.statNumber}>{services.length}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.activeText]}>
                 {services.filter(s => s.status === 'active').length}
               </Text>
               <Text style={styles.statLabel}>Ativos</Text>
             </View>
+            <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, styles.pendingText]}>
                 {services.filter(s => s.status === 'inactive' || s.status === 'paused').length}
@@ -433,16 +461,16 @@ export default function MyServicesScreen() {
         {/* Active Orders Section */}
         {activeOrders.length > 0 && (
           <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#FFF', marginBottom: 12 }}>
+            <Text style={styles.sectionTitle}>
               Pedidos em Andamento
             </Text>
             {activeOrders.map((order) => (
               <TouchableOpacity
                 key={order.id}
                 style={{
-                  backgroundColor: '#ffffff', borderRadius: 12, padding: 16, marginBottom: 10,
+                  backgroundColor: '#ffffff', borderRadius: 16, padding: 16, marginBottom: 10,
                   borderLeftWidth: 4, borderLeftColor: '#4f46e5',
-                  shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2,
+                  shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
                 }}
                 onPress={() => navigation.navigate('AcceptedOrder', { orderId: order.id })}
               >
@@ -476,7 +504,7 @@ export default function MyServicesScreen() {
         {/* Services List */}
         <View style={styles.servicesList}>
           {services.map((service) => (
-            <View key={service.id} style={styles.serviceCard}>
+            <View key={service.id} style={[styles.serviceCard, { borderLeftColor: getStatusBorderColor(service.status) }]}>
               <View style={styles.serviceHeader}>
                 <View style={styles.serviceInfo}>
                   <Text style={styles.serviceTitle}>{service.title}</Text>
@@ -490,7 +518,7 @@ export default function MyServicesScreen() {
               <Text style={styles.serviceDescription}>{service.description}</Text>
 
               <View style={styles.serviceMeta}>
-                <Text style={styles.servicePrice}>R$ {formatPrice(parseFloat(service.price.toString().replace(",", ".")))}</Text>
+                <Text style={styles.servicePrice}>R$ {formatPrice(Number.parseFloat(service.price.toString().replace(",", ".")))}</Text>
                 <Text style={styles.serviceDate}>
                   Criado em {new Date(service.created_at).toLocaleDateString('pt-BR')}
                 </Text>
@@ -668,7 +696,7 @@ export default function MyServicesScreen() {
                 style={styles.textInput}
                 placeholder="0,00"
                 value={newService.price}
-                onChangeText={(text) => setNewService(prev => ({ ...prev, price: text }))}
+                onChangeText={(text) => setNewService(prev => ({ ...prev, price: formatCurrencyInput(text) }))}
                 keyboardType="numeric"
                 onFocus={() => {
                   setExtraScrollHeight(180);
@@ -814,54 +842,78 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  content: {
-    paddingHorizontal: 24,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    backgroundColor: '#4f46e5',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#ffffff',
+  },
+  subtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 2,
   },
   addButton: {
     backgroundColor: '#ffffff',
     borderRadius: 25,
-    padding: 3,
+    padding: 6,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 5,
   },
+  content: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 32,
+    minHeight: 500,
+  },
   statsCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   statsTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 12,
-    color: '#111827',
+    marginBottom: 16,
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   statsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    alignItems: 'center',
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#e5e7eb',
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#4f46e5',
   },
@@ -872,74 +924,85 @@ const styles = StyleSheet.create({
     color: '#f59e0b',
   },
   statLabel: {
-    color: '#6b7280',
-    fontSize: 14,
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 12,
   },
   servicesList: {
-    gap: 2,
+    gap: 12,
   },
   serviceCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 6,
+    borderLeftWidth: 4,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   serviceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   serviceInfo: {
     flex: 1,
+    marginRight: 8,
   },
   serviceTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
   serviceCategory: {
-    color: '#6b7280',
-    fontSize: 14,
+    color: '#9ca3af',
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 20,
   },
   statusText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
   },
   serviceDescription: {
-    color: '#374151',
+    color: '#6b7280',
     marginBottom: 12,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
   },
   serviceMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
   servicePrice: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#4f46e5',
   },
   serviceDate: {
-    color: '#6b7280',
-    fontSize: 14,
+    color: '#9ca3af',
+    fontSize: 11,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -962,38 +1025,41 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 12,
+    gap: 8,
   },
   editButton: {
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#eef2ff',
     padding: 8,
-    borderRadius: 20,
+    borderRadius: 10,
   },
   toggleButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f9fafb',
     padding: 8,
-    borderRadius: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   deleteButton: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#fff1f2',
     padding: 8,
-    borderRadius: 20,
+    borderRadius: 10,
   },
   emptyState: {
     alignItems: 'center',
     paddingVertical: 48,
+    paddingHorizontal: 24,
   },
   emptyTitle: {
-    color: '#ffffff',
+    color: '#374151',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
   },
   emptySubtitle: {
-    color: '#ffffff',
+    color: '#9ca3af',
     textAlign: 'center',
-    opacity: 0.8,
-    fontSize: 16,
+    fontSize: 14,
+    lineHeight: 20,
   },
   modalContainer: {
     flex: 1,
