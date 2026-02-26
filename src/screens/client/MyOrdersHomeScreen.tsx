@@ -436,7 +436,13 @@ export default function MyOrdersHomeScreen() {
           {filteredOrders.map((order) => (
             <TouchableOpacity
               key={order.id}
-              style={styles.orderCard}
+              style={[styles.orderCard, {
+                borderLeftColor:
+                  order.status === 'Em andamento' ? '#059669' :
+                  order.status === 'Concluído' ? '#22c55e' :
+                  order.status === 'Cancelado' ? '#ef4444' :
+                  order.status === 'Pausado' ? '#f59e0b' : '#4f46e5'
+              }]}
               onPress={() => handleOrderPress(order)}
             >
               <View style={styles.orderHeader}>
@@ -935,15 +941,15 @@ export default function MyOrdersHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
   },
   scrollView: {
     flex: 1,
   },
   headerSection: {
     backgroundColor: '#4f46e5',
-    padding: 24,
-    paddingBottom: 32,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
   backArrow: {
     marginBottom: 12,
@@ -965,8 +971,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   content: {
-    padding: 24,
-    marginTop: -16,
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+    minHeight: 500,
   },
   loadingContainer: {
     flex: 1,
@@ -1010,14 +1020,15 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
     elevation: 2,
-    marginBottom: 16,
+    marginBottom: 12,
+    borderLeftWidth: 4,
   },
   orderHeader: {
     flexDirection: 'column',

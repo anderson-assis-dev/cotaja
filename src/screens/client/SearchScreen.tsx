@@ -1,22 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
-
-// --- Dados Mockados Enriquecidos ---
-const mockCompanies = [
-  { id: '1', name: 'Eletro Flash', category: 'Reparos', rating: 4.8, description: 'Especialistas em reparos elétricos residenciais e comerciais. Atendimento 24h.', phone: '(11) 99999-1111', image: require('../../../assets/icon.png') },
-  { id: '2', name: 'Limpa Tudo', category: 'Limpeza', rating: 4.9, description: 'Serviços de limpeza pós-obra, faxinas pesadas e manutenção. Produtos inclusos.', phone: '(21) 99999-2222', image: require('../../../assets/icon.png') },
-  { id: '3', name: 'Tech Experts', category: 'Tecnologia', rating: 5.0, description: 'Manutenção de computadores, notebooks e redes. Orçamento sem compromisso.', phone: '(31) 99999-3333', image: require('../../../assets/icon.png') },
-  { id: '4', name: 'Jardim Secreto', category: 'Jardinagem', rating: 4.7, description: 'Criação e manutenção de jardins, paisagismo e controle de pragas.', phone: '(41) 99999-4444', image: require('../../../assets/icon.png') },
-  { id: '5', name: 'Mestre Cuca Aulas', category: 'Aulas', rating: 4.9, description: 'Aulas de culinária para iniciantes e avançados. Turmas e particular.', phone: '(51) 99999-5555', image: require('../../../assets/icon.png') },
-  { id: '6', name: 'Design Criativo', category: 'Design', rating: 4.8, description: 'Criação de logos, identidade visual e materiais gráficos para sua empresa.', phone: '(61) 99999-6666', image: require('../../../assets/icon.png') },
-  { id: '7', name: 'Festa & Cia', category: 'Eventos', rating: 4.9, description: 'Organização completa de festas e eventos. Decoração, buffet e mais.', phone: '(71) 99999-7777', image: require('../../../assets/icon.png') },
-  { id: '8', name: 'Reparos Rápidos', category: 'Reparos', rating: 4.6, description: 'Pequenos reparos hidráulicos e de alvenaria. O famoso "marido de aluguel".', phone: '(81) 99999-8888', image: require('../../../assets/icon.png') },
-];
+import { serviceService } from '../../services/api';
 
 const mockCategories = [
   { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
@@ -27,10 +16,14 @@ const mockCategories = [
   { id: '6', name: 'Eventos', icon: 'celebration' },
 ];
 
-// --- Tipos ---
-type Company = typeof mockCompanies[0];
+const defaultCompanyImage = require('../../../assets/icon.png');
+type Company = { id: string; name: string; category: string; rating: number; description: string; phone: string; image: any; _raw?: any; };
+const normalizeAvatarUri = (avatar?: string) => {
+  if (!avatar) return null;
+  if (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('file:')) return avatar;
+  return `data:image/jpeg;base64,${avatar}`;
+};
 
-// --- Componente de Card da Empresa ---
 const CompanyCard = ({ company, onPress }: { company: Company, onPress: () => void }) => (
   <TouchableOpacity onPress={onPress} style={styles.companyCard}>
     <View style={styles.companyInfo}>
@@ -47,7 +40,6 @@ const CompanyCard = ({ company, onPress }: { company: Company, onPress: () => vo
   </TouchableOpacity>
 );
 
-// --- Tela Principal ---
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const route = useRoute();
@@ -56,32 +48,63 @@ export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(false);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const isRatingMode = (route.params as any)?.isRatingMode || false;
 
-  const filteredCompanies = useMemo(() => {
-    let companies = mockCompanies;
-
-    // Filtro por categoria
-    if (selectedCategory) {
-      companies = companies.filter(c => c.category === selectedCategory);
+  const fetchCompanies = async (category?: string | null) => {
+    setLoadingCompanies(true);
+    try {
+      const params = category ? { category } : undefined;
+      const response = await serviceService.getAvailableServices(params);
+      const services = response?.success && response.data?.data && Array.isArray(response.data.data) ? response.data.data : [];
+      const map = new Map<string, Company>();
+      for (const service of services) {
+        const provider = service?.provider;
+        if (!provider?.id) continue;
+        if (map.has(provider.id.toString())) continue;
+        const providerCategory = category || (service?.category || (provider?.service_categories?.[0] || 'Serviços'));
+        const avatarUri = normalizeAvatarUri(provider?.avatar_base64);
+        map.set(provider.id.toString(), {
+          id: provider.id.toString(),
+          name: provider?.name || 'Empresa',
+          category: providerCategory,
+          rating: typeof provider?.rate === 'number' ? provider.rate : 0,
+          description: provider?.address || 'Sem descrição',
+          phone: provider?.phone || 'Não informado',
+          image: avatarUri ? { uri: avatarUri } : defaultCompanyImage,
+          _raw: provider
+        });
+      }
+      const list = Array.from(map.values()).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      setCompanies(list);
+    } catch (e) {
+      setCompanies([]);
+    } finally {
+      setLoadingCompanies(false);
     }
+  };
 
-    // Filtro por texto de busca (nome da empresa ou categoria)
+  useEffect(() => {
+    fetchCompanies(selectedCategory);
+  }, [selectedCategory]);
+
+  const filteredCompanies = useMemo(() => {
+    let list = companies;
     if (searchQuery.length > 1) {
       const lowercasedQuery = searchQuery.toLowerCase();
-      companies = companies.filter(
+      list = list.filter(
         c => c.name.toLowerCase().includes(lowercasedQuery) ||
              c.category.toLowerCase().includes(lowercasedQuery)
       );
     }
-
-    return companies;
-  }, [searchQuery, selectedCategory]);
+    return list;
+  }, [searchQuery, companies]);
 
   const handleCategoryPress = (categoryName: string) => {
-    setSearchQuery(''); // Limpa a busca por texto ao clicar na categoria
+    setSearchQuery('');
     setSelectedCategory(prev => (prev === categoryName ? null : categoryName));
   };
 
@@ -102,71 +125,50 @@ export default function SearchScreen() {
   };
 
   return (
-    <View style={styles.outerContainer}>
-      <ScrollView
-        style={styles.container}
-        keyboardShouldPersistTaps="handled"
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        <View style={[styles.content, { paddingTop: insets.top + 60, marginTop: -60 }]}>
-          <Text style={styles.pageTitle}>Encontrar Empresas</Text>
-          <Text style={styles.pageSubtitle}>Busque prestadores e serviços</Text>
-
-          {/* Search Bar */}
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
+        <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
+          <Text style={styles.headerTitle}>Encontrar Empresas</Text>
+          <Text style={styles.headerSubtitle}>Busque prestadores e serviços</Text>
+        </View>
+        <View style={styles.content}>
           <View style={styles.searchContainer}>
             <Icon name="search" size={24} color="#9ca3af" />
-            <TextInput
-              placeholder="Buscar por nome ou categoria..."
-              style={styles.searchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
+            <TextInput placeholder="Buscar por nome ou categoria..." style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
           </View>
-
-          {/* Categorias */}
           <View style={styles.categoriesSection}>
             <Text style={styles.sectionTitle}>Categorias</Text>
             <View style={styles.categoriesGrid}>
               {mockCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    selectedCategory === category.name ? styles.selectedCategory : styles.unselectedCategory
-                  ]}
-                  onPress={() => handleCategoryPress(category.name)}
-                >
+                <TouchableOpacity key={category.id} style={[styles.categoryButton, selectedCategory === category.name ? styles.selectedCategory : styles.unselectedCategory]} onPress={() => handleCategoryPress(category.name)}>
                   <Icon name={category.icon} size={32} color={selectedCategory === category.name ? '#4f46e5' : '#6b7280'} />
-                  <Text style={[
-                    styles.categoryText,
-                    selectedCategory === category.name ? styles.selectedCategoryText : styles.unselectedCategoryText
-                  ]}>{category.name}</Text>
+                  <Text style={[styles.categoryText, selectedCategory === category.name ? styles.selectedCategoryText : styles.unselectedCategoryText]}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-
-          {/* Resultados */}
           <View>
-            <Text style={styles.sectionTitle}>
-              {searchQuery || selectedCategory ? 'Resultados da Busca' : 'Empresas Populares'}
-            </Text>
-            {filteredCompanies.length > 0 ? (
+            <Text style={styles.sectionTitle}>{searchQuery || selectedCategory ? 'Resultados da Busca' : 'Empresas Populares'}</Text>
+            {loadingCompanies ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="large" color="#4f46e5" />
+                <Text style={styles.loadingText}>Carregando empresas...</Text>
+              </View>
+            ) : filteredCompanies.length > 0 ? (
               filteredCompanies.map((company) => (
                 <CompanyCard key={company.id} company={company} onPress={() => handleCompanyPress(company)} />
               ))
             ) : (
               <View style={styles.emptyState}>
-                  <Icon name="search-off" size={40} color="#9ca3af" />
-                  <Text style={styles.emptyStateText}>Nenhuma empresa encontrada. Tente uma busca diferente.</Text>
+                <Icon name="search-off" size={40} color="#9ca3af" />
+                <Text style={styles.emptyStateText}>Nenhuma empresa encontrada. Tente uma busca diferente.</Text>
               </View>
             )}
           </View>
+          <View style={{ height: insets.bottom + 16 }} />
         </View>
       </ScrollView>
 
-      {/* --- Modal de Detalhes da Empresa --- */}
       <Modal
         visible={!!selectedCompany}
         animationType="slide"
@@ -209,7 +211,7 @@ export default function SearchScreen() {
                 ) : (
                   <TouchableOpacity
                     style={styles.quoteButton}
-                    onPress={() => { /* Navegar para criar pedido */ handleCloseModal(); }}
+                    onPress={() => { handleCloseModal(); }}
                   >
                     <Text style={styles.actionButtonText}>Solicitar Orçamento</Text>
                   </TouchableOpacity>
@@ -220,34 +222,41 @@ export default function SearchScreen() {
         </View>
       </Modal>
 
-      {/* Status Bar Overlay */}
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
   },
-  content: {
-    padding: 24,
+  scrollView: {
+    flex: 1,
   },
-  pageTitle: {
-    fontSize: 30,
+  headerSection: {
+    backgroundColor: '#4f46e5',
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+  },
+  headerTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#374151',
+    color: 'white',
     marginBottom: 4,
   },
-  pageSubtitle: {
-    color: '#6b7280',
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 14,
-    marginBottom: 16,
+  },
+  content: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+    minHeight: 500,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -266,6 +275,22 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
     fontSize: 18,
+  },
+  loadingBox: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  loadingText: {
+    color: '#6b7280',
+    marginTop: 12,
+    textAlign: 'center',
   },
   categoriesSection: {
     marginBottom: 24,
@@ -377,7 +402,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'white',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 24,
