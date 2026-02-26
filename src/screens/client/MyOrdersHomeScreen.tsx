@@ -775,8 +775,15 @@ export default function MyOrdersHomeScreen() {
                     Pedido Pausado
                   </Text>
                   <Text style={{ fontSize: 13, color: '#92400e', marginTop: 4, textAlign: 'center' }}>
-                    Este pedido está invisível para prestadores. Toque no botão abaixo para ativar novamente.
+                    Este pedido está invisível para prestadores.
                   </Text>
+                  <TouchableOpacity
+                    style={{ marginTop: 16, backgroundColor: '#22c55e', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                    onPress={() => handleToggleStopOrder(selectedOrder.id)}
+                  >
+                    <Icon name="play-circle-filled" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Ativar Novamente</Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 <>
