@@ -572,6 +572,12 @@ export const orderService = {
     return response.data;
   },
 
+  // Pausar/Retomar pedido (toggle stopped <-> open)
+  async toggleStopOrder(id: number): Promise<{ success: boolean; message: string; data: Order }> {
+    const response = await api.post(`/orders/${id}/toggle-stop`);
+    return response.data;
+  },
+
   // Iniciar leilão
   async startAuction(id: number): Promise<{ success: boolean; message: string; data: Order }> {
     const response = await api.post(`/orders/${id}/start-auction`);
@@ -762,14 +768,8 @@ export interface GeocodedAddress {
 
 export default api;
 
-// Serviço de Geocoding (Apple Maps)
+// Serviço de Geocoding (Nominatim + ViaCEP)
 export const geocodingService = {
-  // Obter token MapKit JS para WebView
-  async getMapKitToken(): Promise<{ success: boolean; data: { token: string } }> {
-    const response = await api.get('/geocoding/token');
-    return response.data;
-  },
-
   // Reverse geocode: coordenadas → endereço
   async reverseGeocode(lat: number, lng: number): Promise<{ success: boolean; data: GeocodedAddress }> {
     const response = await api.get('/geocoding/reverse', { params: { lat, lng } });
@@ -785,6 +785,13 @@ export const geocodingService = {
   // Buscar endereços (autocomplete)
   async searchAddress(query: string, lat?: number, lng?: number): Promise<{ success: boolean; data: GeocodedAddress[] }> {
     const response = await api.get('/geocoding/search', { params: { q: query, lat, lng } });
+    return response.data;
+  },
+
+  // Consultar CEP → endereço (ViaCEP)
+  async lookupCep(cep: string): Promise<{ success: boolean; data: GeocodedAddress }> {
+    const cleanCep = cep.replace(/[^0-9]/g, '');
+    const response = await api.get(`/geocoding/cep/${cleanCep}`);
     return response.data;
   },
 };

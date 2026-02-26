@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Config from 'react-native-config';
+import { getAttachmentUrl } from '../utils/attachmentHelpers';
 
 interface ImageViewerProps {
   visible: boolean;
@@ -35,6 +36,24 @@ export function ImageViewer({ visible, images, initialIndex = 0, onClose }: Imag
   const scrollViewRef = useRef<ScrollView>(null);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
+
+  // Sync currentIndex and scroll position when viewer opens or initialIndex changes
+  useEffect(() => {
+    if (visible) {
+      setCurrentIndex(initialIndex);
+      scale.value = 1;
+      savedScale.value = 1;
+      // Scroll to the correct image after a brief delay for layout
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ x: initialIndex * SCREEN_WIDTH, animated: false });
+      }, 50);
+    }
+  }, [visible, initialIndex]);
+
+  // Don't render anything when not visible - prevents GestureDetector from capturing touches
+  if (!visible) {
+    return null;
+  }
 
   const pinchGesture = Gesture.Pinch()
     .onUpdate((event) => {
@@ -73,16 +92,8 @@ export function ImageViewer({ visible, images, initialIndex = 0, onClose }: Imag
     if (imagePath.startsWith('data:') || imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
     }
-    const API_URL = Config.API_URL || Config.SERVER_BASE_URL || 'http://10.0.2.2:3000';
-    // Extract relative part after "uploads/" to handle absolute paths
-    const uploadsIdx = imagePath.indexOf('uploads/');
-    let cleanPath: string;
-    if (uploadsIdx !== -1) {
-      cleanPath = imagePath.substring(uploadsIdx + 'uploads/'.length);
-    } else {
-      cleanPath = imagePath;
-    }
-    return `${API_URL}/uploads/${cleanPath}`;
+    // Use shared helper for path-based URLs
+    return getAttachmentUrl({ path: imagePath });
   };
 
   return (

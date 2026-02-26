@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { ImageViewer } from '../../components/ImageViewer';
+import { FileViewer } from '../../components/FileViewer';
+import { getAttachmentUrl, isImageAttachment, isVideoAttachment, isDocumentAttachment } from '../../utils/attachmentHelpers';
 
 // Tipos TypeScript
 interface Proposal {
@@ -93,6 +95,7 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       case 'in_progress': return 'Em andamento';
       case 'completed': return 'Concluído';
       case 'cancelled': return 'Cancelado';
+      case 'stopped': return 'Pausado';
       default: return 'Aguardando propostas';
     }
   };
@@ -194,6 +197,10 @@ export default function OrderDetailsScreen() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [avatarViewerVisible, setAvatarViewerVisible] = useState(false);
   const [avatarViewerImage, setAvatarViewerImage] = useState<string>('');
+  const [fileViewerVisible, setFileViewerVisible] = useState(false);
+  const [fileViewerUrl, setFileViewerUrl] = useState('');
+  const [fileViewerTitle, setFileViewerTitle] = useState('');
+  const [fileViewerMime, setFileViewerMime] = useState('');
 
   // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'client';
@@ -236,6 +243,7 @@ export default function OrderDetailsScreen() {
           try {
             return convertApiOrderToOrder(apiOrder);
           } catch (error) {
+            console.error('❌ Erro ao converter pedido:', apiOrder.id, error);
             // Retornar um pedido padrão em caso de erro
             return {
               id: apiOrder.id?.toString() || '0',
@@ -252,6 +260,7 @@ export default function OrderDetailsScreen() {
               clientId: apiOrder.client_id?.toString() || '0',
               hasActiveAuction: false,
               isNewDemand: false,
+              attachments: [],
             };
           }
         });
@@ -267,15 +276,22 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  // Carregar pedidos toda vez que a tela receber foco
+  // Carregar pedidos quando o componente montar
+  useEffect(() => {
+    if (user?.id) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+    }
+  }, [fromLeiloes, selectedCategory, user?.id]);
+
+  // Recarregar pedidos ao voltar para esta tela (ex: retorno do chat)
   useFocusEffect(
     useCallback(() => {
-      if (user?.id) {
+      if (user?.id && !loading) {
         fetchOrders();
-      } else {
-        setLoading(false);
       }
-    }, [fromLeiloes, selectedCategory, user?.id])
+    }, [user?.id, fromLeiloes, selectedCategory])
   );
 
   // Filtra os pedidos conforme o tipo de usuário e categoria
@@ -321,8 +337,46 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  // Função para cliente encerrar/cancelar pedido
-  const handleCloseOrder = (orderId: string) => {
+  // Função para cliente pausar/retomar pedido
+  const handleToggleStopOrder = async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    const isStopped = order?.status === 'Pausado';
+    const action = isStopped ? 'Retomar' : 'Pausar';
+
+    Alert.alert(
+      `${action} Pedido`,
+      isStopped
+        ? 'Deseja retomar este pedido? Ele voltará a ser visível para prestadores.'
+        : 'Deseja pausar este pedido? Ele ficará invisível para prestadores até ser retomado.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: action,
+          onPress: async () => {
+            try {
+              const response = await orderService.toggleStopOrder(parseInt(orderId));
+
+              if (response.success) {
+                showSuccess(response.message || `Pedido ${isStopped ? 'retomado' : 'pausado'} com sucesso`);
+                fetchOrders();
+                // Atualizar o selectedOrder para refletir o novo status
+                if (selectedOrder && selectedOrder.id === orderId) {
+                  setSelectedOrder({ ...selectedOrder, status: isStopped ? 'Aguardando propostas' : 'Pausado' });
+                }
+              } else {
+                showError(response.message || `Erro ao ${action.toLowerCase()} pedido`);
+              }
+            } catch (error: any) {
+              showError(error.message || `Erro ao ${action.toLowerCase()} pedido`);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Função para excluir pedido
+  const handleDeleteOrder = (orderId: string) => {
     Alert.alert(
       'Excluir Pedido',
       'Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.',
@@ -335,9 +389,10 @@ export default function OrderDetailsScreen() {
               const response = await orderService.deleteOrder(parseInt(orderId));
 
               if (response.success) {
+                setShowDetails(false);
+                setSelectedOrder(null);
                 showSuccess('Pedido excluído com sucesso');
                 setClosedOrders((prev) => [...prev, orderId]);
-                // Refresh the list
                 fetchOrders();
               } else {
                 showError(response.message || 'Erro ao excluir pedido');
@@ -374,6 +429,7 @@ export default function OrderDetailsScreen() {
       case 'Em andamento': return styles.statusInProgress;
       case 'Concluído': return styles.statusCompleted;
       case 'Cancelado': return styles.statusCancelled;
+      case 'Pausado': return styles.statusStopped;
       default: return styles.statusDefault;
     }
   };
@@ -658,7 +714,7 @@ export default function OrderDetailsScreen() {
 
                   <TouchableOpacity
                     style={styles.deleteOrderButton}
-                    onPress={() => handleCloseOrder(selectedOrder.id)}
+                    onPress={() => handleDeleteOrder(selectedOrder.id)}
                   >
                     <Icon name="delete" size={20} color="#ef4444" />
                     <Text style={styles.deleteOrderButtonText}>Excluir</Text>
@@ -676,7 +732,7 @@ export default function OrderDetailsScreen() {
                   <View style={styles.attachmentsContainer}>
                     {/* Imagens */}
                     {selectedOrder.attachments
-                      .filter(att => att.mime_type.startsWith('image/'))
+                      .filter(isImageAttachment)
                       .length > 0 && (
                         <>
                           <Text style={styles.attachmentTypeLabel}>
@@ -684,19 +740,9 @@ export default function OrderDetailsScreen() {
                           </Text>
                           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
                             {selectedOrder.attachments
-                              .filter(att => att.mime_type.startsWith('image/') || att.type === 'image')
+                              .filter(isImageAttachment)
                               .map((att, index) => {
-                                // Support base64 data URIs (new format) and legacy file paths
-                                let imageUrl: string;
-                                if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-                                  imageUrl = att.data;
-                                } else if (att.path) {
-                                  const uploadsIndex = att.path.indexOf('uploads/');
-                                  const imagePath = uploadsIndex !== -1 ? att.path.substring(uploadsIndex) : att.path;
-                                  imageUrl = `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
-                                } else {
-                                  imageUrl = '';
-                                }
+                                const imageUrl = getAttachmentUrl(att);
 
                                 return (
                                   <TouchableOpacity
@@ -730,16 +776,24 @@ export default function OrderDetailsScreen() {
 
                     {/* Vídeos */}
                     {selectedOrder.attachments
-                      .filter(att => att.mime_type.startsWith('video/') || att.type === 'video')
+                      .filter(isVideoAttachment)
                       .length > 0 && (
                         <>
                           <Text style={styles.attachmentTypeLabel}>
                             <Icon name="videocam" size={16} color="#6b7280" /> Vídeos
                           </Text>
                           {selectedOrder.attachments
-                            .filter(att => att.mime_type.startsWith('video/') || att.type === 'video')
+                            .filter(isVideoAttachment)
                             .map((att, index) => (
-                              <TouchableOpacity key={index} style={styles.videoAttachment}>
+                              <TouchableOpacity key={index} style={styles.videoAttachment} onPress={() => {
+                                const url = getAttachmentUrl(att);
+                                if (url) {
+                                  setFileViewerUrl(url);
+                                  setFileViewerTitle(att.original_name || att.filename || 'Vídeo');
+                                  setFileViewerMime(att.mime_type || 'video/mp4');
+                                  setFileViewerVisible(true);
+                                }
+                              }}>
                                 <View style={styles.videoThumbnailContainer}>
                                   <Icon name="play-circle-filled" size={48} color="#4f46e5" />
                                 </View>
@@ -751,6 +805,7 @@ export default function OrderDetailsScreen() {
                                     {(att.size / (1024 * 1024)).toFixed(2)} MB
                                   </Text>
                                 </View>
+                                <Icon name="play-arrow" size={20} color="#4f46e5" />
                               </TouchableOpacity>
                             ))}
                         </>
@@ -758,16 +813,24 @@ export default function OrderDetailsScreen() {
 
                     {/* Documentos */}
                     {selectedOrder.attachments
-                      .filter(att => att.type === 'document' || (!att.mime_type.startsWith('image/') && !att.mime_type.startsWith('video/')))
+                      .filter(isDocumentAttachment)
                       .length > 0 && (
                         <>
                           <Text style={styles.attachmentTypeLabel}>
                             <Icon name="insert-drive-file" size={16} color="#6b7280" /> Documentos
                           </Text>
                           {selectedOrder.attachments
-                            .filter(att => att.type === 'document' || (!att.mime_type.startsWith('image/') && !att.mime_type.startsWith('video/')))
+                            .filter(isDocumentAttachment)
                             .map((att, index) => (
-                              <TouchableOpacity key={index} style={styles.documentAttachment}>
+                              <TouchableOpacity key={index} style={styles.documentAttachment} onPress={() => {
+                                const url = getAttachmentUrl(att);
+                                if (url) {
+                                  setFileViewerUrl(url);
+                                  setFileViewerTitle(att.original_name || att.filename || 'Documento');
+                                  setFileViewerMime(att.mime_type || 'application/octet-stream');
+                                  setFileViewerVisible(true);
+                                }
+                              }}>
                                 <Icon name="insert-drive-file" size={32} color="#6b7280" />
                                 <View style={styles.documentInfo}>
                                   <Text style={styles.documentName} numberOfLines={1}>
@@ -777,7 +840,7 @@ export default function OrderDetailsScreen() {
                                     {(att.size / 1024).toFixed(0)} KB • {att.mime_type}
                                   </Text>
                                 </View>
-                                <Icon name="download" size={24} color="#4f46e5" />
+                                <Icon name="visibility" size={24} color="#4f46e5" />
                               </TouchableOpacity>
                             ))}
                         </>
@@ -816,6 +879,16 @@ export default function OrderDetailsScreen() {
                   <XCircle size={48} color="#ef4444" />
                   <Text style={{ fontSize: 16, fontWeight: '700', color: '#ef4444', marginTop: 8 }}>
                     Pedido Cancelado
+                  </Text>
+                </View>
+              ) : selectedOrder.status === 'Pausado' ? (
+                <View style={{ alignItems: 'center', padding: 20, marginTop: 16 }}>
+                  <Icon name="pause-circle-filled" size={48} color="#f59e0b" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#f59e0b', marginTop: 8 }}>
+                    Pedido Pausado
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#92400e', marginTop: 4, textAlign: 'center' }}>
+                    Este pedido está invisível para prestadores. Toque no botão abaixo para retomar.
                   </Text>
                 </View>
               ) : (
@@ -917,48 +990,65 @@ export default function OrderDetailsScreen() {
                     </View>
                   )}
 
-                  {/* Ícone para cliente encerrar/cancelar pedido */}
+                  {/* Ícone para cliente pausar/retomar pedido */}
                   <TouchableOpacity
                     style={styles.closeOrderButton}
-                    onPress={() => handleCloseOrder(selectedOrder.id)}
-                    accessibilityLabel="Encerrar pedido"
+                    onPress={() => handleToggleStopOrder(selectedOrder.id)}
+                    accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Retomar pedido' : 'Pausar pedido'}
                   >
                     <View style={styles.closeOrderIcon}>
-                      <Icon name="stop-circle" size={28} color="#ef4444" />
+                      <Icon
+                        name={selectedOrder.status === 'Pausado' ? 'play-circle-filled' : 'pause-circle-filled'}
+                        size={28}
+                        color={selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b'}
+                      />
                     </View>
+                    <Text style={{ fontSize: 11, color: selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b', marginTop: 2 }}>
+                      {selectedOrder.status === 'Pausado' ? 'Retomar' : 'Pausar'}
+                    </Text>
                   </TouchableOpacity>
                 </>
               )}
             </ScrollView>
           )}
         </View>
-      </Modal>
 
-      {/* Image Viewer with zoom */}
-      {selectedOrder && (() => {
-        const imageAttachments = (selectedOrder.attachments || [])
-          .filter(att => att.mime_type.startsWith('image/') || att.type === 'image')
-          .map(att => {
-            if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-              return att.data;
-            } else if (att.path) {
-              const uploadsIndex = att.path.indexOf('uploads/');
-              const imagePath = uploadsIndex !== -1 ? att.path.substring(uploadsIndex) : att.path;
-              return `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
-            }
-            return '';
-          })
-          .filter(url => url !== '');
+        {/* Image Viewer with zoom - inside modal for proper iOS stacking */}
+        {imageViewerVisible && selectedOrder && (() => {
+          const imageAttachments = (selectedOrder.attachments || [])
+            .filter(isImageAttachment)
+            .map(att => getAttachmentUrl(att))
+            .filter(url => url !== '');
 
-        return (
+          return imageAttachments.length > 0 ? (
+            <ImageViewer
+              visible={true}
+              images={imageAttachments}
+              initialIndex={selectedImageIndex}
+              onClose={() => setImageViewerVisible(false)}
+            />
+          ) : null;
+        })()}
+
+        {/* Avatar Viewer - inside modal for proper iOS stacking */}
+        {avatarViewerVisible && avatarViewerImage ? (
           <ImageViewer
-            visible={imageViewerVisible}
-            images={imageAttachments}
-            initialIndex={selectedImageIndex}
-            onClose={() => setImageViewerVisible(false)}
+            visible={true}
+            images={[avatarViewerImage]}
+            initialIndex={0}
+            onClose={() => setAvatarViewerVisible(false)}
           />
-        );
-      })()}
+        ) : null}
+
+        {/* File Viewer for videos and documents - inside modal */}
+        <FileViewer
+          visible={fileViewerVisible}
+          url={fileViewerUrl}
+          title={fileViewerTitle}
+          mimeType={fileViewerMime}
+          onClose={() => setFileViewerVisible(false)}
+        />
+      </Modal>
     </View>
   );
 }
@@ -1091,6 +1181,12 @@ const styles = StyleSheet.create({
   },
   statusCancelled: {
     backgroundColor: '#fee2e2',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusStopped: {
+    backgroundColor: '#fef3c7',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,

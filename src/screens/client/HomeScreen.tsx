@@ -192,8 +192,12 @@ export default function HomeScreen() {
               <Text style={[styles.noServicesText, { marginTop: 8 }]}>Carregando...</Text>
             </View>
           ) : (() => {
-            // Extrair todas as propostas de todos os pedidos e pegar as 5 mais recentes
-            const allProposals = recentOrders.flatMap((order) =>
+            // Filtrar apenas pedidos do usuário logado (segurança extra)
+            const myOrders = recentOrders.filter((order: any) =>
+              order.client_id?.toString() === user?.id?.toString()
+            );
+            // Extrair todas as propostas dos pedidos do usuário e pegar as 5 mais recentes
+            const allProposals = myOrders.flatMap((order) =>
               (order.proposals || []).map((p: any) => ({
                 ...p,
                 orderTitle: order.title,

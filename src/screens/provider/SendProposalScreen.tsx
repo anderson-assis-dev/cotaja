@@ -11,43 +11,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { ImageViewer } from '../../components/ImageViewer';
+import { getAttachmentUrl as sharedGetAttachmentUrl, isImageAttachment as sharedIsImageAttachment } from '../../utils/attachmentHelpers';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BASE_URL = Config.API_URL || Config.SERVER_BASE_URL || 'http://10.0.2.2:3000';
 
-// Resolve attachment URL — supports base64 data URIs, http URLs, and legacy file paths.
-const getAttachmentUrl = (att: any): string => {
-  // New format: base64 data URI stored in `data` field
-  if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-    return att.data;
-  }
-
-  // Legacy: file path stored in `path` or `file_path`
-  const rawPath = att.path || att.file_path || att.filename || '';
-  if (rawPath.startsWith('http')) return rawPath;
-  if (rawPath.startsWith('data:')) return rawPath;
-
-  // Extract relative part after "uploads/" (handles absolute Windows paths too)
-  const uploadsIdx = rawPath.indexOf('uploads/');
-  let cleanPath: string;
-  if (uploadsIdx !== -1) {
-    cleanPath = rawPath.substring(uploadsIdx + 'uploads/'.length);
-  } else {
-    cleanPath = rawPath;
-  }
-
-  return `${BASE_URL}/uploads/${cleanPath}`;
-};
-
-// Check if an attachment is an image
-const isImageAttachment = (att: any): boolean => {
-  const mime = att.mime_type || att.type || '';
-  if (mime.startsWith('image/') || mime === 'image') return true;
-  // Check data URI prefix
-  if (att.data && typeof att.data === 'string' && att.data.startsWith('data:image/')) return true;
-  return false;
-};
+// Use shared helpers for attachment URL resolution
+const getAttachmentUrl = sharedGetAttachmentUrl;
+const isImageAttachment = sharedIsImageAttachment;
 
 // Navigation types
 type RootStackParamList = {

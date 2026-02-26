@@ -2009,6 +2009,34 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
+  - react-native-webview (13.16.0):
+    - boost
+    - DoubleConversion
+    - fast_float
+    - fmt
+    - glog
+    - hermes-engine
+    - RCT-Folly
+    - RCT-Folly/Fabric
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - SocketRocket
+    - Yoga
   - React-NativeModulesApple (0.81.4):
     - boost
     - DoubleConversion
@@ -2980,6 +3008,7 @@ DEPENDENCIES:
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - "react-native-image-resizer (from `../node_modules/@bam.tech/react-native-image-resizer`)"
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
+  - react-native-webview (from `../node_modules/react-native-webview`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-oscompat (from `../node_modules/react-native/ReactCommon/oscompat`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -3126,6 +3155,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@bam.tech/react-native-image-resizer"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
+  react-native-webview:
+    :path: "../node_modules/react-native-webview"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-oscompat:
@@ -3259,6 +3290,7 @@ SPEC CHECKSUMS:
   react-native-image-picker: 0314366753615115fa55c3cc937ac44cb7e75702
   react-native-image-resizer: 290b045c34c69db7574e4d08aadfc4abe1ff5a99
   react-native-safe-area-context: c6e2edd1c1da07bdce287fa9d9e60c5f7b514616
+  react-native-webview: 654f794a7686b47491cf43aa67f7f428bea00eed
   React-NativeModulesApple: 879fbdc5dcff7136abceb7880fe8a2022a1bd7c3
   React-oscompat: 93b5535ea7f7dff46aaee4f78309a70979bdde9d
   React-perflogger: 5536d2df3d18fe0920263466f7b46a56351c0510
