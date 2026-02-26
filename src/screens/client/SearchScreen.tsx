@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
-import { serviceService } from '../../services/api';
+import { ratingService, serviceService } from '../../services/api';
 
 const mockCategories = [
   { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
@@ -18,10 +18,17 @@ const mockCategories = [
 
 const defaultCompanyImage = require('../../../assets/icon.png');
 type Company = { id: string; name: string; category: string; rating: number; ratingsCount: number; description: string; phone: string; image: any; _raw?: any; };
+type ProviderRatingItem={id?:number;provider_id?:string;client_id?:string;rating?:number;comment?:string|null;attachments?:any[]|null;created_at?:string;client_name?:string;client_avatar_base64?:string;};
 const normalizeAvatarUri = (avatar?: string) => {
   if (!avatar) return null;
   if (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('file:')) return avatar;
   return `data:image/jpeg;base64,${avatar}`;
+};
+const formatDate=(value?:string)=>{
+  if(!value)return'';
+  const d=new Date(value);
+  if(Number.isNaN(d.getTime()))return String(value);
+  return d.toLocaleDateString('pt-BR');
 };
 
 const CompanyCard = ({ company, onPress }: { company: Company, onPress: () => void }) => (
@@ -50,6 +57,9 @@ export default function SearchScreen() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [providerRatings,setProviderRatings]=useState<ProviderRatingItem[]>([]);
+  const [loadingRatings,setLoadingRatings]=useState(false);
+  const [ratingsError,setRatingsError]=useState<string|null>(null);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const isRatingMode = (route.params as any)?.isRatingMode || false;
@@ -103,6 +113,21 @@ export default function SearchScreen() {
   useEffect(() => {
     fetchCompanies(selectedCategory);
   }, [selectedCategory]);
+  useEffect(()=>{
+    let mounted=true;
+    const providerId=selectedCompany?.id;
+    if(!providerId){setProviderRatings([]);setRatingsError(null);setLoadingRatings(false);return()=>{mounted=false;};}
+    setLoadingRatings(true);
+    setRatingsError(null);
+    ratingService.getProviderRatings(providerId).then(res=>{
+      const rows=Array.isArray(res?.data?.data)?res.data.data:[];
+      if(mounted)setProviderRatings(rows);
+    }).catch(e=>{
+      console.warn('fetchRatings error',e);
+      if(mounted){setProviderRatings([]);setRatingsError('Erro ao carregar avaliações');}
+    }).finally(()=>{if(mounted)setLoadingRatings(false);});
+    return()=>{mounted=false;};
+  },[selectedCompany?.id]);
 
   const filteredCompanies = useMemo(() => {
     let list = companies;
@@ -152,6 +177,40 @@ export default function SearchScreen() {
         <Text style={styles.emptyStateText}>Nenhuma empresa encontrada. Tente uma busca diferente.</Text>
       </View>
     );
+  };
+  const renderRatings=()=>{
+    if(loadingRatings)return(
+      <View style={styles.ratingsLoading}>
+        <ActivityIndicator size="small" color="#4f46e5" />
+        <Text style={styles.ratingsLoadingText}>Carregando avaliações...</Text>
+      </View>
+    );
+    if(providerRatings.length>0)return providerRatings.map((r,idx)=>{
+      const avatar=normalizeAvatarUri(r.client_avatar_base64||undefined);
+      const ratingValue=Number(r.rating)||0;
+      const attachmentsCount=Array.isArray(r.attachments)?r.attachments.length:0;
+      return(
+        <View key={`${r.id||'r'}-${idx}`} style={styles.ratingItem}>
+          <View style={styles.ratingHeader}>
+            <View style={styles.clientRow}>
+              <Image source={avatar?{uri:avatar}:defaultCompanyImage} style={styles.clientAvatar} />
+              <View style={styles.clientInfo}>
+                <Text style={styles.clientName}>{r.client_name||'Cliente'}</Text>
+                <Text style={styles.ratingMeta}>{formatDate(r.created_at)}</Text>
+              </View>
+            </View>
+            <View style={styles.ratingValueBox}>
+              <Icon name="star" size={16} color="#f59e0b" />
+              <Text style={styles.ratingValueText}>{ratingValue.toFixed(1)}</Text>
+            </View>
+          </View>
+          {r.comment?(<Text style={styles.ratingComment}>{String(r.comment)}</Text>):null}
+          {attachmentsCount>0?(<Text style={styles.ratingAttachments}>{`${attachmentsCount} anexo(s)`}</Text>):null}
+        </View>
+      );
+    });
+    if(ratingsError)return <Text style={styles.noRatingsText}>{ratingsError}</Text>;
+    return <Text style={styles.noRatingsText}>Nenhuma avaliação ainda.</Text>;
   };
 
   return (
@@ -205,7 +264,7 @@ export default function SearchScreen() {
                     <Text style={styles.modalCompanyCategory}>{selectedCompany.category}</Text>
                     <View style={styles.modalRatingBadge}>
                         <Icon name="star" size={18} color="#f59e0b" />
-                        <Text style={styles.modalRatingText}>{selectedCompany.rating}</Text>
+                        <Text style={styles.modalRatingText}>{`${Number(selectedCompany.rating||0).toFixed(1)} (${selectedCompany.ratingsCount||0})`}</Text>
                     </View>
                 </View>
 
@@ -214,6 +273,10 @@ export default function SearchScreen() {
                     <View style={styles.contactCard}>
                         <Text style={styles.contactTitle}>Contato</Text>
                         <Text style={styles.contactPhone}>{selectedCompany.phone}</Text>
+                    </View>
+                    <View style={styles.ratingsSection}>
+                      <Text style={styles.ratingsTitle}>Avaliações</Text>
+                      {renderRatings()}
                     </View>
                 </ScrollView>
 
@@ -504,5 +567,90 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  ratingsSection:{
+    marginTop:8,
+  },
+  ratingsTitle:{
+    fontSize:18,
+    fontWeight:'600',
+    color:'#374151',
+    marginBottom:12,
+  },
+  ratingsLoading:{
+    flexDirection:'row',
+    alignItems:'center',
+    backgroundColor:'white',
+    borderRadius:12,
+    padding:12,
+  },
+  ratingsLoadingText:{
+    marginLeft:10,
+    color:'#6b7280',
+  },
+  ratingItem:{
+    backgroundColor:'white',
+    borderRadius:12,
+    padding:14,
+    marginBottom:12,
+    borderWidth:1,
+    borderColor:'#e5e7eb',
+  },
+  ratingHeader:{
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'space-between',
+  },
+  clientRow:{
+    flexDirection:'row',
+    alignItems:'center',
+    flex:1,
+    marginRight:12,
+  },
+  clientAvatar:{
+    width:34,
+    height:34,
+    borderRadius:17,
+    marginRight:10,
+  },
+  clientInfo:{
+    flex:1,
+  },
+  clientName:{
+    color:'#374151',
+    fontWeight:'600',
+  },
+  ratingMeta:{
+    color:'#9ca3af',
+    fontSize:12,
+    marginTop:2,
+  },
+  ratingValueBox:{
+    flexDirection:'row',
+    alignItems:'center',
+    backgroundColor:'#fef3c7',
+    borderRadius:10,
+    paddingHorizontal:10,
+    paddingVertical:4,
+  },
+  ratingValueText:{
+    marginLeft:6,
+    fontWeight:'700',
+    color:'#d97706',
+  },
+  ratingComment:{
+    marginTop:10,
+    color:'#4b5563',
+    lineHeight:20,
+  },
+  ratingAttachments:{
+    marginTop:8,
+    color:'#6b7280',
+    fontSize:12,
+  },
+  noRatingsText:{
+    color:'#6b7280',
+    textAlign:'center',
+    paddingVertical:12,
   },
 });
