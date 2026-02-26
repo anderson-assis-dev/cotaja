@@ -538,17 +538,18 @@ export default function AuctionScreen() {
   return (
     <View style={styles.container}>
       <ScrollView
-        style={[styles.scrollView, { paddingTop: insets.top }]}
+        style={styles.scrollView}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={{ paddingBottom: insets.bottom}}
+        contentContainerStyle={{ paddingBottom: insets.bottom }}
       >
-      <View style={styles.content}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>{getPageTitle()}</Text>
-        <Text style={styles.subtitle}>
-          {getPageSubtitle()}
-        </Text>
+        <Text style={styles.subtitle}>{getPageSubtitle()}</Text>
+      </View>
 
+      <View style={styles.content}>
         {/* Filtros */}
         <View style={styles.filtersCard}>
           <Text style={styles.filtersTitle}>Filtros</Text>
@@ -780,19 +781,29 @@ export default function AuctionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#4f46e5',
   },
   scrollView: {
     flex: 1,
   },
+  header: {
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    backgroundColor: '#4f46e5',
+  },
   content: {
-    padding: 16,
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+    minHeight: 500,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f4f6',
   },
   loadingText: {
     marginTop: 12,
@@ -804,7 +815,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f4f6',
   },
   errorText: {
     fontSize: 16,
@@ -815,33 +826,31 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 8,
+    color: '#ffffff',
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginBottom: 24,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.75)',
   },
   filtersCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   filtersTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#374151',
     marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   filterSection: {
     marginBottom: 16,
@@ -944,25 +953,22 @@ const styles = StyleSheet.create({
   },
   auctionCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   auctionHeader: {
     marginBottom: 12,
   },
   auctionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#111827',
   },
   auctionStatusRow: {
     marginBottom: 12,
@@ -1059,10 +1065,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   statusProposalsContainer: {
-    backgroundColor: '#dbeafe',
-    borderRadius: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 10,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   statusProposalsTitle: {
     fontWeight: '600',
@@ -1105,9 +1111,14 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 32,
-    alignItems: 'center'
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyStateTitle: {
     fontSize: 16,
@@ -1135,15 +1146,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   backButtonBottom: {
-    backgroundColor: '#4f46e5',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 24,
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
   },
   backButtonBottomText: {
     textAlign: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: '#6b7280',
+    fontWeight: '600',
+    fontSize: 15,
   },
 });
