@@ -97,14 +97,14 @@ export default function ProviderHomeScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={['#4f46e5']} // Android
-            tintColor="#4f46e5" // iOS
+            tintColor="#ffffff" // iOS
             progressViewOffset={top40}
           />
         }
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-      <View style={[styles.header, { paddingTop: insets.top + 60, marginTop: -60 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.welcomeText}>Olá, {user?.name || 'Usuário'}!</Text>
         <Text style={styles.subtitleText}>
           Como vai seu trabalho hoje?
@@ -274,28 +274,32 @@ export default function ProviderHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
   },
   scrollView: {
     flex: 1,
   },
   header: {
     backgroundColor: '#4f46e5',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitleText: {
-    color: '#ffffff',
-    opacity: 0.9,
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 15,
   },
   content: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
+    minHeight: 500,
   },
   statsCard: {
     backgroundColor: '#ffffff',
@@ -371,13 +375,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     width: '48%',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
     elevation: 2,
   },
   serviceIcon: {
@@ -393,11 +399,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1f2937',
     marginBottom: 4,
-    fontSize: 16,
+    fontSize: 15,
   },
   serviceDescription: {
     color: '#6b7280',
-    fontSize: 14,
+    fontSize: 13,
   },
   upcomingHeader: {
     flexDirection: 'row',
