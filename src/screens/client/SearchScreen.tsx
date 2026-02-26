@@ -17,7 +17,7 @@ const mockCategories = [
 ];
 
 const defaultCompanyImage = require('../../../assets/icon.png');
-type Company = { id: string; name: string; category: string; rating: number; description: string; phone: string; image: any; _raw?: any; };
+type Company = { id: string; name: string; category: string; rating: number; ratingsCount: number; description: string; phone: string; image: any; _raw?: any; };
 const normalizeAvatarUri = (avatar?: string) => {
   if (!avatar) return null;
   if (avatar.startsWith('data:') || avatar.startsWith('http') || avatar.startsWith('file:')) return avatar;
@@ -67,20 +67,33 @@ export default function SearchScreen() {
         if (map.has(provider.id.toString())) continue;
         const providerCategory = category || (service?.category || (provider?.service_categories?.[0] || 'Serviços'));
         const avatarUri = normalizeAvatarUri(provider?.avatar_base64);
+        const avgRatingRaw: any = (provider as any)?.avg_rating ?? (provider as any)?.rate ?? 0;
+        const ratingsCountRaw: any = (provider as any)?.ratings_count ?? 0;
+        const avgRating = Number(avgRatingRaw);
+        const ratingsCount = Number(ratingsCountRaw);
         map.set(provider.id.toString(), {
           id: provider.id.toString(),
           name: provider?.name || 'Empresa',
           category: providerCategory,
-          rating: typeof provider?.rate === 'number' ? provider.rate : 0,
+          rating: Number.isFinite(avgRating) ? avgRating : 0,
+          ratingsCount: Number.isFinite(ratingsCount) ? ratingsCount : 0,
           description: provider?.address || 'Sem descrição',
           phone: provider?.phone || 'Não informado',
           image: avatarUri ? { uri: avatarUri } : defaultCompanyImage,
           _raw: provider
         });
       }
-      const list = Array.from(map.values()).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      const list = Array.from(map.values()).sort((a, b) => {
+        const ac = a.ratingsCount || 0;
+        const bc = b.ratingsCount || 0;
+        if (ac === 0 && bc > 0) return 1;
+        if (bc === 0 && ac > 0) return -1;
+        if (bc !== ac) return bc - ac;
+        return (b.rating || 0) - (a.rating || 0);
+      });
       setCompanies(list);
     } catch (e) {
+      console.warn('fetchCompanies error', e);
       setCompanies([]);
     } finally {
       setLoadingCompanies(false);
@@ -123,6 +136,23 @@ export default function SearchScreen() {
       params: { companyToRate: company }
     });
   };
+  const renderCompanies=()=>{
+    if(loadingCompanies)return(
+      <View style={styles.loadingBox}>
+        <ActivityIndicator size="large" color="#4f46e5" />
+        <Text style={styles.loadingText}>Carregando empresas...</Text>
+      </View>
+    );
+    if(filteredCompanies.length>0)return filteredCompanies.map((company)=>(
+      <CompanyCard key={company.id} company={company} onPress={()=>handleCompanyPress(company)} />
+    ));
+    return(
+      <View style={styles.emptyState}>
+        <Icon name="search-off" size={40} color="#9ca3af" />
+        <Text style={styles.emptyStateText}>Nenhuma empresa encontrada. Tente uma busca diferente.</Text>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -149,21 +179,7 @@ export default function SearchScreen() {
           </View>
           <View>
             <Text style={styles.sectionTitle}>{searchQuery || selectedCategory ? 'Resultados da Busca' : 'Empresas Populares'}</Text>
-            {loadingCompanies ? (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color="#4f46e5" />
-                <Text style={styles.loadingText}>Carregando empresas...</Text>
-              </View>
-            ) : filteredCompanies.length > 0 ? (
-              filteredCompanies.map((company) => (
-                <CompanyCard key={company.id} company={company} onPress={() => handleCompanyPress(company)} />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Icon name="search-off" size={40} color="#9ca3af" />
-                <Text style={styles.emptyStateText}>Nenhuma empresa encontrada. Tente uma busca diferente.</Text>
-              </View>
-            )}
+            {renderCompanies()}
           </View>
           <View style={{ height: insets.bottom + 16 }} />
         </View>

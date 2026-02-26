@@ -97,6 +97,8 @@ export interface User {
   updated_at: string;
   // User stats fields
   rate?: number;
+  avg_rating?: number;
+  ratings_count?: number;
   balance?: number;
   active_services?: number;
   completed_services?: number;
