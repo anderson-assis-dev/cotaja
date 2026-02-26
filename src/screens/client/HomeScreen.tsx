@@ -116,23 +116,18 @@ export default function HomeScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={['#4f46e5']} // Android
-            tintColor="#4f46e5" // iOS
+            tintColor="#ffffff" // iOS
             progressViewOffset={top40}
           />
         }
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 60, marginTop: -60 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.welcomeText}>Olá, {user?.name || 'Usuário'}!</Text>
           <Text style={styles.subtitleText}>
             Como podemos ajudar você hoje?
           </Text>
-          {clientId && (
-            <Text style={styles.idText}>
-              ID: {clientId}
-            </Text>
-          )}
         </View>
 
         <View style={styles.content}>
@@ -292,34 +287,37 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
   },
   scrollView: {
     flex: 1,
   },
   header: {
-    backgroundColor: 'transparent',
-    padding: 24,
+    backgroundColor: '#4f46e5',
+    paddingHorizontal: 24,
+    paddingBottom: 28,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 8,
+    color: '#ffffff',
+    marginBottom: 4,
   },
   subtitleText: {
-    color: '#000000',
-    opacity: 0.9,
-    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 15,
   },
   idText: {
-    color: '#ffffff',
-    opacity: 0.8,
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 13,
     marginTop: 4,
   },
   content: {
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
+    minHeight: 500,
   },
   sectionTitle: {
     fontSize: 20,
@@ -338,13 +336,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     width: '48%',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
     elevation: 2,
   },
   serviceIcon: {
@@ -360,17 +360,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1f2937',
     marginBottom: 4,
-    fontSize: 16,
+    fontSize: 15,
   },
   serviceDescription: {
     color: '#6b7280',
-    fontSize: 14,
+    fontSize: 13,
   },
   upcomingTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
-    marginTop: 24,
+    marginTop: 8,
     color: '#111827',
   },
   upcomingCard: {
