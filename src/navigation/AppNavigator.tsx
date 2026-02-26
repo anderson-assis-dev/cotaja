@@ -401,7 +401,13 @@ export default function AppNavigator() {
     }
   };
 
-  const isDarkStatus = currentRouteName === 'ProviderSearch' || currentRouteName === 'SearchTab' || currentRouteName === 'ProviderAuction';
+  // Perfil e telas de auth têm fundo escuro → light-content
+  // Todas as outras tabs (Home, Meus Pedidos, Buscar, etc.) têm fundo claro → dark-content
+  const lightContentScreens = [
+    'ProfileTab', 'ProfileScreen',
+    'Splash', 'Initial', 'Login', 'Register', 'ForgotPassword', 'Onboarding', 'ProfileSelection',
+  ];
+  const isDarkStatus = !lightContentScreens.includes(currentRouteName);
 
   if (isLoading || onboardingCompleted === null) {
     return (

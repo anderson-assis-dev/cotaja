@@ -179,9 +179,9 @@ export default function MyOrdersHomeScreen() {
   const selectedCategory = (route.params as any)?.selectedCategory;
   const fromLeiloes = (route.params as any)?.fromLeiloes || false;
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       setError(null);
 
       let params: any = {};
@@ -250,7 +250,7 @@ export default function MyOrdersHomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user?.id && !loading) {
-        fetchOrders();
+        fetchOrders(false); // background refresh, sem spinner
       }
     }, [user?.id, fromLeiloes, selectedCategory])
   );
