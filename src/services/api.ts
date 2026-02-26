@@ -355,46 +355,70 @@ export const orderService = {
         // Normalizar URI
         let uri = attachment.uri;
 
-        // Remover file:// para verificar o arquivo
-        const filePath = uri.replace('file://', '');
-
-        console.log(`🔍 Verificando arquivo ${i + 1}:`, filePath);
+        console.log(`🔍 Verificando arquivo ${i + 1}:`, uri);
 
         try {
-          // Verificar se o arquivo existe
-          const fileExists = await RNFS.exists(filePath);
-          console.log(`  Existe: ${fileExists}`);
-
-          if (fileExists) {
-            const stat = await RNFS.stat(filePath);
-            console.log(`  Tamanho: ${stat.size} bytes`);
-            console.log(`  Path: ${stat.path}`);
-
-            // Adicionar file:// se necessário
-            if (!uri.startsWith('file://')) {
-              uri = 'file://' + uri;
-            }
-
+          // Para URIs content:// (document picker), não verificar com RNFS
+          // O FormData do React Native lida com content:// nativamente
+          if (uri.startsWith('content://')) {
             const file: any = {
               uri: uri,
               type: attachment.type || 'application/octet-stream',
               name: attachment.name || `file_${i}`,
             };
-
-            console.log(`📎 Adicionando arquivo ${i + 1} ao FormData:`, {
+            console.log(`📎 Adicionando arquivo ${i + 1} (content://) ao FormData:`, {
               name: file.name,
               type: file.type,
-              size: stat.size
             });
-
             formData.append('attachments', file);
           } else {
-            console.error(`❌ Arquivo não existe: ${filePath}`);
-            throw new Error(`Arquivo não encontrado: ${attachment.name}`);
+            // Para file:// URIs, decodificar e verificar existência
+            const filePath = decodeURIComponent(uri.replace('file://', ''));
+
+            const fileExists = await RNFS.exists(filePath);
+            console.log(`  Existe: ${fileExists}, path: ${filePath}`);
+
+            if (fileExists) {
+              const stat = await RNFS.stat(filePath);
+
+              // Garantir que o URI tenha file://
+              if (!uri.startsWith('file://')) {
+                uri = 'file://' + uri;
+              }
+
+              const file: any = {
+                uri: uri,
+                type: attachment.type || 'application/octet-stream',
+                name: attachment.name || `file_${i}`,
+              };
+
+              console.log(`📎 Adicionando arquivo ${i + 1} ao FormData:`, {
+                name: file.name,
+                type: file.type,
+                size: stat.size
+              });
+
+              formData.append('attachments', file);
+            } else {
+              console.warn(`⚠️ RNFS.exists falhou, tentando enviar mesmo assim: ${filePath}`);
+              // Tentar enviar mesmo assim — o React Native pode resolver o URI
+              const file: any = {
+                uri: uri.startsWith('file://') ? uri : 'file://' + uri,
+                type: attachment.type || 'application/octet-stream',
+                name: attachment.name || `file_${i}`,
+              };
+              formData.append('attachments', file);
+            }
           }
         } catch (error) {
           console.error(`❌ Erro ao verificar arquivo ${i + 1}:`, error);
-          throw error;
+          // Tentar enviar mesmo assim em vez de abortar tudo
+          const file: any = {
+            uri: uri,
+            type: attachment.type || 'application/octet-stream',
+            name: attachment.name || `file_${i}`,
+          };
+          formData.append('attachments', file);
         }
       }
     }
@@ -502,34 +526,61 @@ export const orderService = {
         let uri = attachment.uri;
 
         // Normalizar URI
-        const filePath = uri.replace('file://', '');
-
         try {
-          const fileExists = await RNFS.exists(filePath);
-
-          if (fileExists) {
-            const stat = await RNFS.stat(filePath);
-
-            if (!uri.startsWith('file://')) {
-              uri = 'file://' + uri;
-            }
-
+          // Para URIs content:// (document picker), não verificar com RNFS
+          if (uri.startsWith('content://')) {
             const file: any = {
               uri: uri,
               type: attachment.type || 'application/octet-stream',
               name: attachment.name || `file_${i}`,
             };
-
-            console.log(`📎 Adicionando novo arquivo ${i + 1} ao FormData:`, {
+            console.log(`📎 Adicionando novo arquivo ${i + 1} (content://) ao FormData:`, {
               name: file.name,
               type: file.type,
-              size: stat.size
             });
-
             formData.append('attachments', file);
+          } else {
+            const filePath = decodeURIComponent(uri.replace('file://', ''));
+            const fileExists = await RNFS.exists(filePath);
+
+            if (fileExists) {
+              const stat = await RNFS.stat(filePath);
+
+              if (!uri.startsWith('file://')) {
+                uri = 'file://' + uri;
+              }
+
+              const file: any = {
+                uri: uri,
+                type: attachment.type || 'application/octet-stream',
+                name: attachment.name || `file_${i}`,
+              };
+
+              console.log(`📎 Adicionando novo arquivo ${i + 1} ao FormData:`, {
+                name: file.name,
+                type: file.type,
+                size: stat.size
+              });
+
+              formData.append('attachments', file);
+            } else {
+              console.warn(`⚠️ RNFS.exists falhou, tentando enviar mesmo assim: ${filePath}`);
+              const file: any = {
+                uri: uri.startsWith('file://') ? uri : 'file://' + uri,
+                type: attachment.type || 'application/octet-stream',
+                name: attachment.name || `file_${i}`,
+              };
+              formData.append('attachments', file);
+            }
           }
         } catch (error) {
           console.error(`❌ Erro ao verificar arquivo ${i + 1}:`, error);
+          const file: any = {
+            uri: uri,
+            type: attachment.type || 'application/octet-stream',
+            name: attachment.name || `file_${i}`,
+          };
+          formData.append('attachments', file);
         }
       }
     }
@@ -569,6 +620,12 @@ export const orderService = {
   // Excluir pedido
   async deleteOrder(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.delete(`/orders/${id}`);
+    return response.data;
+  },
+
+  // Pausar/Retomar pedido (toggle stopped <-> open)
+  async toggleStopOrder(id: number): Promise<{ success: boolean; message: string; data: Order }> {
+    const response = await api.post(`/orders/${id}/toggle-stop`);
     return response.data;
   },
 
@@ -762,14 +819,8 @@ export interface GeocodedAddress {
 
 export default api;
 
-// Serviço de Geocoding (Apple Maps)
+// Serviço de Geocoding (Nominatim + ViaCEP)
 export const geocodingService = {
-  // Obter token MapKit JS para WebView
-  async getMapKitToken(): Promise<{ success: boolean; data: { token: string } }> {
-    const response = await api.get('/geocoding/token');
-    return response.data;
-  },
-
   // Reverse geocode: coordenadas → endereço
   async reverseGeocode(lat: number, lng: number): Promise<{ success: boolean; data: GeocodedAddress }> {
     const response = await api.get('/geocoding/reverse', { params: { lat, lng } });
@@ -785,6 +836,13 @@ export const geocodingService = {
   // Buscar endereços (autocomplete)
   async searchAddress(query: string, lat?: number, lng?: number): Promise<{ success: boolean; data: GeocodedAddress[] }> {
     const response = await api.get('/geocoding/search', { params: { q: query, lat, lng } });
+    return response.data;
+  },
+
+  // Consultar CEP → endereço (ViaCEP)
+  async lookupCep(cep: string): Promise<{ success: boolean; data: GeocodedAddress }> {
+    const cleanCep = cep.replace(/[^0-9]/g, '');
+    const response = await api.get(`/geocoding/cep/${cleanCep}`);
     return response.data;
   },
 };

@@ -11,43 +11,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { ImageViewer } from '../../components/ImageViewer';
+import { getAttachmentUrl as sharedGetAttachmentUrl, isImageAttachment as sharedIsImageAttachment } from '../../utils/attachmentHelpers';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BASE_URL = Config.API_URL || Config.SERVER_BASE_URL || 'http://10.0.2.2:3000';
 
-// Resolve attachment URL — supports base64 data URIs, http URLs, and legacy file paths.
-const getAttachmentUrl = (att: any): string => {
-  // New format: base64 data URI stored in `data` field
-  if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-    return att.data;
-  }
-
-  // Legacy: file path stored in `path` or `file_path`
-  const rawPath = att.path || att.file_path || att.filename || '';
-  if (rawPath.startsWith('http')) return rawPath;
-  if (rawPath.startsWith('data:')) return rawPath;
-
-  // Extract relative part after "uploads/" (handles absolute Windows paths too)
-  const uploadsIdx = rawPath.indexOf('uploads/');
-  let cleanPath: string;
-  if (uploadsIdx !== -1) {
-    cleanPath = rawPath.substring(uploadsIdx + 'uploads/'.length);
-  } else {
-    cleanPath = rawPath;
-  }
-
-  return `${BASE_URL}/uploads/${cleanPath}`;
-};
-
-// Check if an attachment is an image
-const isImageAttachment = (att: any): boolean => {
-  const mime = att.mime_type || att.type || '';
-  if (mime.startsWith('image/') || mime === 'image') return true;
-  // Check data URI prefix
-  if (att.data && typeof att.data === 'string' && att.data.startsWith('data:image/')) return true;
-  return false;
-};
+// Use shared helpers for attachment URL resolution
+const getAttachmentUrl = sharedGetAttachmentUrl;
+const isImageAttachment = sharedIsImageAttachment;
 
 // Navigation types
 type RootStackParamList = {
@@ -108,7 +80,34 @@ export default function SendProposalScreen() {
   const route = useRoute<SendProposalScreenRouteProp>();
   const { user } = useAuth();
   const [price, setPrice] = useState<string>('');
+  const [priceDisplay, setPriceDisplay] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
+
+  // Formatar valor como moeda brasileira (R$ 1.234,56)
+  const handlePriceChange = (text: string) => {
+    // Remover tudo que não é dígito
+    const digits = text.replace(/\D/g, '');
+    if (!digits) {
+      setPrice('');
+      setPriceDisplay('');
+      return;
+    }
+    // Guardar centavos como string de dígitos
+    setPrice(digits);
+    // Formatar para exibição
+    const numericValue = parseInt(digits, 10);
+    const formatted = (numericValue / 100).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    setPriceDisplay(`R$ ${formatted}`);
+  };
+
+  // Handler para prazo - apenas números
+  const handleDeadlineChange = (text: string) => {
+    const numbers = text.replace(/[^0-9]/g, '');
+    setDeadline(numbers);
+  };
   const [description, setDescription] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [demand, setDemand] = useState<Demand | null>(() => {
@@ -283,7 +282,7 @@ export default function SendProposalScreen() {
       return;
     }
 
-    const priceNumber = Number(price);
+    const priceNumber = parseInt(price, 10) / 100;
     if (isNaN(priceNumber) || priceNumber <= 0) {
       Alert.alert('Erro', 'Por favor, informe um valor válido para a proposta');
       return;
@@ -305,7 +304,7 @@ export default function SendProposalScreen() {
       if (alreadyProposed && myProposal) {
         // Update existing proposal
         const updatePayload: ApiProposalUpdatePayload = {
-          price: Number(price),
+          price: parseInt(price, 10) / 100,
           deadline: deadline,
           description: description,
         };
@@ -318,6 +317,7 @@ export default function SendProposalScreen() {
       if (response.success) {
         // Clear form fields
         setPrice('');
+        setPriceDisplay('');
         setDeadline('');
         setDescription('');
 
@@ -744,21 +744,22 @@ export default function SendProposalScreen() {
         {/* Proposal Form - Only show if not submitted yet */}
         {!alreadyProposed && (
           <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Valor da Proposta (R$)</Text>
+            <Text style={styles.formLabel}>Valor da Proposta</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 2800"
-              value={price}
-              onChangeText={(text) => setPrice(text.replace(/[^0-9]/g, ''))}
+              placeholder="R$ 0,00"
+              value={priceDisplay}
+              onChangeText={handlePriceChange}
               keyboardType="numeric"
             />
 
-            <Text style={styles.formLabel}>Prazo de Execução</Text>
+            <Text style={styles.formLabel}>Prazo de Execução (dias)</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 12 dias"
+              placeholder="Ex: 12"
               value={deadline}
-              onChangeText={setDeadline}
+              onChangeText={handleDeadlineChange}
+              keyboardType="numeric"
             />
 
             <Text style={styles.formLabel}>Descrição da Proposta</Text>
@@ -802,21 +803,22 @@ export default function SendProposalScreen() {
               </Text>
             </View>
 
-            <Text style={styles.formLabel}>Novo Valor da Proposta (R$)</Text>
+            <Text style={styles.formLabel}>Novo Valor da Proposta</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 2800"
-              value={price}
-              onChangeText={(text) => setPrice(text.replace(/[^0-9]/g, ''))}
+              placeholder="R$ 0,00"
+              value={priceDisplay}
+              onChangeText={handlePriceChange}
               keyboardType="numeric"
             />
 
-            <Text style={styles.formLabel}>Novo Prazo de Execução</Text>
+            <Text style={styles.formLabel}>Novo Prazo de Execução (dias)</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Ex: 12 dias"
+              placeholder="Ex: 12"
               value={deadline}
-              onChangeText={setDeadline}
+              onChangeText={handleDeadlineChange}
+              keyboardType="numeric"
             />
 
             <Text style={styles.formLabel}>Nova Descrição da Proposta</Text>

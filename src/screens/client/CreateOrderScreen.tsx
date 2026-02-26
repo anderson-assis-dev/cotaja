@@ -12,6 +12,7 @@ import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline }
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { compressImage, compressVideo } from '../../utils/fileCompressor';
+import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 
 // Tipos de anexos
 type AttachmentType = 'image' | 'video' | 'document';
@@ -79,10 +80,9 @@ export default function CreateOrderScreen() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-  const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [addressSearchResults, setAddressSearchResults] = useState<GeocodedAddress[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [removedAttachments, setRemovedAttachments] = useState<string[]>([]); // Paths dos anexos removidos
   const [isLoading, setIsLoading] = useState(false);
@@ -123,23 +123,14 @@ export default function CreateOrderScreen() {
       // Carregar anexos existentes
       if (orderData.attachments && Array.isArray(orderData.attachments)) {
         const existingAttachments: Attachment[] = orderData.attachments.map((att: ExistingAttachment) => {
-          // Support base64 data URIs (new format) and legacy file paths
-          let imageUrl: string;
-          if (att.data && typeof att.data === 'string' && att.data.startsWith('data:')) {
-            imageUrl = att.data;
-          } else if (att.path) {
-            const uploadsIndex = att.path.indexOf('uploads/');
-            const imagePath = uploadsIndex !== -1 ? att.path.substring(uploadsIndex) : att.path;
-            imageUrl = `${Config.SERVER_BASE_URL || 'http://localhost:3000'}/${imagePath}`;
-          } else {
-            imageUrl = '';
-          }
+          // Resolve URL using shared helper (supports file paths and legacy base64)
+          const imageUrl = getAttachmentUrl(att);
 
           // Determinar tipo de arquivo
           let fileType: AttachmentType = 'document';
-          if (att.mime_type.startsWith('image/') || att.type === 'image') {
+          if (isImageAttachment(att)) {
             fileType = 'image';
-          } else if (att.mime_type.startsWith('video/') || att.type === 'video') {
+          } else if (isVideoAttachment(att)) {
             fileType = 'video';
           }
 
@@ -176,24 +167,32 @@ export default function CreateOrderScreen() {
     setDeadline(formatted);
   };
 
+  // Handler para CEP com formatação e auto-preenchimento via ViaCEP
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
+
   const handleZipCodeChange = async (value: string) => {
     const numbers = value.replace(/[^0-9]/g, '');
-    const formatted = numbers.length > 5
-      ? `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`
-      : numbers;
-    setZipCode(formatted);
+    if (numbers.length <= 5) {
+      setZipCode(numbers);
+    } else {
+      setZipCode(`${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`);
+    }
+
+    // Quando completar 8 dígitos, buscar endereço automaticamente
     if (numbers.length === 8) {
       setIsLoadingCep(true);
       try {
-        const response = await fetch(`https://viacep.com.br/ws/${numbers}/json/`);
-        const data = await response.json();
-        if (!data.erro) {
-          setStreet(data.logradouro || '');
-          setNeighborhood(data.bairro || '');
-          setCity(data.localidade || '');
-          setAddressState(data.uf || '');
+        const response = await geocodingService.lookupCep(numbers);
+        if (response.success && response.data) {
+          const addr = response.data;
+          if (addr.street) setStreet(addr.street);
+          if (addr.neighborhood) setNeighborhood(addr.neighborhood);
+          if (addr.city) setCity(addr.city);
+          if (addr.state) setAddressState(addr.state);
+          console.log('✅ Endereço preenchido pelo CEP:', addr.formatted_address);
         }
       } catch (error) {
+        console.log('⚠️ CEP não encontrado ou erro na busca:', numbers);
       } finally {
         setIsLoadingCep(false);
       }
@@ -669,8 +668,19 @@ export default function CreateOrderScreen() {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.content, { paddingTop: insets.top + 60, marginTop: -60 }]}>
-            <Text style={styles.title}>{editMode ? 'Editar Pedido' : 'Criar Novo Pedido'}</Text>
+          <View style={[styles.content, { paddingTop: insets.top + 16, marginTop: 0 }]}>
+            {/* Header com botão voltar */}
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+                accessibilityLabel="Voltar"
+              >
+                <Icon name="arrow-back" size={24} color="#111827" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>{editMode ? 'Editar Pedido' : 'Criar Novo Pedido'}</Text>
+              <View style={{ width: 40 }} />
+            </View>
 
             <View style={styles.formCard}>
               <Text style={styles.label}>Título do Serviço</Text>
@@ -719,23 +729,6 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Endereço do Serviço</Text>
 
-              <Text style={styles.addressSubLabel}>CEP</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="00000-000"
-                value={zipCode}
-                onChangeText={handleZipCodeChange}
-                keyboardType="numeric"
-                maxLength={9}
-                editable={!isLoading && !isLoadingCep}
-              />
-              {isLoadingCep && (
-                <View style={styles.cepLoadingContainer}>
-                  <ActivityIndicator size="small" color="#4f46e5" />
-                  <Text style={styles.cepLoadingText}>Buscando endereço...</Text>
-                </View>
-              )}
-
               {/* Botão de Geolocalização */}
               <TouchableOpacity
                 style={[styles.locationButton, isLoadingLocation && styles.locationButtonDisabled]}
@@ -760,6 +753,25 @@ export default function CreateOrderScreen() {
                   </Text>
                 </View>
               )}
+
+              <Text style={styles.addressSubLabel}>CEP</Text>
+              <View style={styles.cepRow}>
+                <TextInput
+                  style={[styles.input, styles.cepInput]}
+                  placeholder="00000-000"
+                  value={zipCode}
+                  onChangeText={handleZipCodeChange}
+                  keyboardType="numeric"
+                  maxLength={9}
+                  editable={!isLoading && !isLoadingCep}
+                />
+                {isLoadingCep && (
+                  <View style={styles.cepLoading}>
+                    <ActivityIndicator size="small" color="#4f46e5" />
+                    <Text style={styles.cepLoadingText}>Buscando...</Text>
+                  </View>
+                )}
+              </View>
 
               <Text style={styles.addressSubLabel}>Rua / Logradouro</Text>
               <TextInput
@@ -1066,6 +1078,30 @@ const styles = StyleSheet.create({
   content: {
     padding: 24,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -1339,15 +1375,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
   },
-  cepLoadingContainer: {
+  cepRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-    marginTop: -8,
+    gap: 10,
+    marginBottom: 4,
+  },
+  cepInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  cepLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   cepLoadingText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#4f46e5',
   },
 });
