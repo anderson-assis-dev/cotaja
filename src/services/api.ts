@@ -802,6 +802,38 @@ export const orderActionService = {
   },
 };
 
+export const ratingService = {
+  async createProviderRating(providerId: string, data: { rating: number; comment?: string; attachments?: { uri: string; name: string; type: string }[] }): Promise<{ success: boolean; message: string; data: any }> {
+    const formData = new FormData();
+    formData.append('rating', String(data.rating));
+    if (data.comment) formData.append('comment', data.comment);
+    if (data.attachments && data.attachments.length > 0) {
+      for (let i = 0; i < data.attachments.length; i++) {
+        const att = data.attachments[i];
+        let uri = att.uri;
+        if (uri && !uri.startsWith('content://') && !uri.startsWith('file://')) {
+          uri = 'file://' + uri;
+        }
+        const file: any = { uri, type: att.type || 'application/octet-stream', name: att.name || `file_${i}` };
+        formData.append('attachments', file);
+      }
+    }
+    const token = await AsyncStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/providers/${providerId}/ratings`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const responseData = await response.json();
+    if (!response.ok) throw new Error(responseData.message || 'Erro ao enviar avaliação');
+    return responseData;
+  },
+  async getProviderRatings(providerId: string): Promise<{ success: boolean; message: string; data: { data: any[]; current_page: number; total: number } }> {
+    const response = await api.get(`/providers/${providerId}/ratings`);
+    return response.data;
+  },
+};
+
 // Tipos para Endereço Geocodificado
 export interface GeocodedAddress {
   street: string;

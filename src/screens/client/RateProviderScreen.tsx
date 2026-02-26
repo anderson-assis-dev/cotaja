@@ -1,54 +1,51 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-// Dados mockados para exemplo
-const mockService = {
-  id: '1',
-  title: 'Pintura de apartamento',
-  provider: {
-    name: 'João Silva',
-    avatar: require('../../../assets/splash-icon.png'),
-  },
-  date: '15/03/2024',
-};
+import { ratingService } from '../../services/api';
 
 export default function RateProviderScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const insets = useSafeAreaInsets();
-
   const { companyToRate } = (route.params as any) || {};
-
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [attachments, setAttachments] = useState<{ uri: string; name: string; type: string }[]>([]);
-
+  const [submitting, setSubmitting] = useState(false);
   if (!companyToRate) {
     return (
-        <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>Nenhuma empresa selecionada para avaliar.</Text>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.errorButton}>
-                <Text style={styles.errorButtonText}>Voltar</Text>
-            </TouchableOpacity>
-        </View>
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Nenhuma empresa selecionada para avaliar.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.errorButton}>
+          <Text style={styles.errorButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (rating === 0) {
       Alert.alert('Avaliação Incompleta', 'Por favor, selecione pelo menos uma estrela.');
       return;
     }
-    Alert.alert( 'Avaliação Enviada', 'Obrigado por seu feedback!',
-      [{ text: 'OK', onPress: () => navigation.goBack() }]
-    );
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const providerId = String(companyToRate.id);
+      const response = await ratingService.createProviderRating(providerId, { rating, comment, attachments });
+      if (response.success) {
+        Alert.alert('Avaliação Enviada', 'Obrigado por seu feedback!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+      } else {
+        Alert.alert('Erro', response.message || 'Não foi possível enviar sua avaliação');
+      }
+    } catch (e: any) {
+      Alert.alert('Erro', e?.message || 'Não foi possível enviar sua avaliação');
+    } finally {
+      setSubmitting(false);
+    }
   };
-
-  // --- Funções de Seleção de Imagem ---
   const handleCamera = async () => {
     const result = await launchCamera({ mediaType: 'photo', quality: 0.7 });
     if (result.assets && result.assets.length > 0) {
@@ -56,7 +53,6 @@ export default function RateProviderScreen() {
       setAttachments([...attachments, { uri: asset.uri!, name: asset.fileName!, type: asset.type! }]);
     }
   };
-
   const handleGallery = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.7, selectionLimit: 5 });
     if (result.assets && result.assets.length > 0) {
@@ -64,103 +60,109 @@ export default function RateProviderScreen() {
       setAttachments([...attachments, ...newAssets]);
     }
   };
-
   const removeAttachment = (index: number) => {
     const newAttachments = [...attachments];
     newAttachments.splice(index, 1);
     setAttachments(newAttachments);
   };
-
   return (
-    <ScrollView style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Avaliar Empresa</Text>
-
-        <View style={styles.ratingCard}>
-          <View style={styles.companyHeader}>
-            <Image source={companyToRate.image} style={styles.companyAvatar} />
-            <View>
-              <Text style={styles.companyName}>{companyToRate.name}</Text>
-              <Text style={styles.companyCategory}>{companyToRate.category}</Text>
+    <View style={styles.outer}>
+      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <Text style={styles.headerTitle}>Avaliar Empresa</Text>
+          <Text style={styles.headerSubtitle}>Envie sua nota e experiência</Text>
+        </View>
+        <View style={styles.content}>
+          <View style={styles.ratingCard}>
+            <View style={styles.companyHeader}>
+              <Image source={companyToRate.image} style={styles.companyAvatar} />
+              <View>
+                <Text style={styles.companyName}>{companyToRate.name}</Text>
+                <Text style={styles.companyCategory}>{companyToRate.category}</Text>
+              </View>
             </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Sua Nota</Text>
-          <View style={styles.starsContainer}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starButton}>
-                <Icon name="star" size={40} color={star <= rating ? '#f59e0b' : '#d1d5db'} />
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.sectionTitle}>Sua Experiência</Text>
-          <TextInput
-            style={styles.commentInput}
-            placeholder="Descreva como foi o serviço..."
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            textAlignVertical="top"
-          />
-
-          <Text style={styles.sectionTitle}>Anexar Fotos</Text>
-          <View style={styles.attachmentButtons}>
-            <TouchableOpacity onPress={handleCamera} style={styles.attachmentButton}>
-              <Icon name="photo-camera" size={30} color="#4f46e5" />
-              <Text style={styles.attachmentButtonText}>Câmera</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleGallery} style={styles.attachmentButton}>
-              <Icon name="photo-library" size={30} color="#4f46e5" />
-              <Text style={styles.attachmentButtonText}>Galeria</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Lista de Anexos */}
-          {attachments.length > 0 && (
-            <View style={styles.attachmentsList}>
-              {attachments.map((file, index) => (
-                <View key={index} style={styles.attachmentItem}>
-                  <Image source={{ uri: file.uri }} style={styles.attachmentThumbnail} />
-                  <Text style={styles.attachmentName} numberOfLines={1}>{file.name}</Text>
-                  <TouchableOpacity onPress={() => removeAttachment(index)} style={styles.removeButton}>
-                    <Icon name="close" size={20} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
+            <Text style={styles.sectionTitle}>Sua Nota</Text>
+            <View style={styles.starsContainer}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starButton} disabled={submitting}>
+                  <Icon name="star" size={40} color={star <= rating ? '#f59e0b' : '#d1d5db'} />
+                </TouchableOpacity>
               ))}
             </View>
-          )}
-
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Enviar Avaliação</Text>
+            <Text style={styles.sectionTitle}>Sua Experiência</Text>
+            <TextInput style={styles.commentInput} placeholder="Descreva como foi o serviço..." value={comment} onChangeText={setComment} multiline textAlignVertical="top" editable={!submitting} />
+            <Text style={styles.sectionTitle}>Anexar Fotos</Text>
+            <View style={styles.attachmentButtons}>
+              <TouchableOpacity onPress={handleCamera} style={styles.attachmentButton} disabled={submitting}>
+                <Icon name="photo-camera" size={30} color="#4f46e5" />
+                <Text style={styles.attachmentButtonText}>Câmera</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleGallery} style={styles.attachmentButton} disabled={submitting}>
+                <Icon name="photo-library" size={30} color="#4f46e5" />
+                <Text style={styles.attachmentButtonText}>Galeria</Text>
+              </TouchableOpacity>
+            </View>
+            {attachments.length > 0 && (
+              <View style={styles.attachmentsList}>
+                {attachments.map((file, index) => (
+                  <View key={`${file.uri}-${index}`} style={styles.attachmentItem}>
+                    <Image source={{ uri: file.uri }} style={styles.attachmentThumbnail} />
+                    <Text style={styles.attachmentName} numberOfLines={1}>{file.name}</Text>
+                    <TouchableOpacity onPress={() => removeAttachment(index)} style={styles.removeButton} disabled={submitting}>
+                      <Icon name="close" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+            <TouchableOpacity style={[styles.submitButton, submitting && { opacity: 0.7 }]} onPress={handleSubmit} disabled={submitting}>
+              {submitting ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>Enviar Avaliação</Text>}
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity onPress={() => navigation.goBack()} disabled={submitting}>
+            <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
+          <View style={{ height: insets.bottom + 16 }} />
         </View>
-
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.cancelText}>Cancelar</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outer: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#4f46e5',
+  },
+  scroll: {
+    flex: 1,
+  },
+  header: {
+    backgroundColor: '#4f46e5',
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
   },
   content: {
-    padding: 24,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    color: '#374151',
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+    minHeight: 500,
   },
   ratingCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
