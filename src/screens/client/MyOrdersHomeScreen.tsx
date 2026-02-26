@@ -777,13 +777,6 @@ export default function MyOrdersHomeScreen() {
                   <Text style={{ fontSize: 13, color: '#92400e', marginTop: 4, textAlign: 'center' }}>
                     Este pedido está invisível para prestadores.
                   </Text>
-                  <TouchableOpacity
-                    style={{ marginTop: 16, backgroundColor: '#22c55e', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                    onPress={() => handleToggleStopOrder(selectedOrder.id)}
-                  >
-                    <Icon name="play-circle-filled" size={24} color="#fff" />
-                    <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Ativar Novamente</Text>
-                  </TouchableOpacity>
                 </View>
               ) : (
                 <>
@@ -876,24 +869,24 @@ export default function MyOrdersHomeScreen() {
                     </View>
                   )}
 
-                  {/* Ícone para cliente pausar/ativar pedido */}
-                  <TouchableOpacity
-                    style={styles.closeOrderButton}
-                    onPress={() => handleToggleStopOrder(selectedOrder.id)}
-                    accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Ativar pedido' : 'Pausar pedido'}
-                  >
-                    <View style={styles.closeOrderIcon}>
-                      <Icon
-                        name={selectedOrder.status === 'Pausado' ? 'play-circle-filled' : 'pause-circle-filled'}
-                        size={28}
-                        color={selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b'}
-                      />
-                    </View>
-                    <Text style={{ fontSize: 11, color: selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b', marginTop: 2, fontWeight: '600' }}>
-                      {selectedOrder.status === 'Pausado' ? 'Ativar Novamente' : 'Pausar'}
-                    </Text>
-                  </TouchableOpacity>
                 </>
+              )}
+
+              {/* Ícone para cliente pausar/ativar pedido */}
+              {(selectedOrder.status === 'Aguardando propostas' || selectedOrder.status === 'Pausado') && (
+                <TouchableOpacity
+                  style={styles.closeOrderButton}
+                  onPress={() => handleToggleStopOrder(selectedOrder.id)}
+                  accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Ativar pedido' : 'Pausar pedido'}
+                >
+                  <View style={[styles.closeOrderIcon, selectedOrder.status === 'Pausado' && { backgroundColor: '#dcfce7' }]}>
+                    <Icon
+                      name={selectedOrder.status === 'Pausado' ? 'play-circle-filled' : 'pause-circle-filled'}
+                      size={28}
+                      color={selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b'}
+                    />
+                  </View>
+                </TouchableOpacity>
               )}
             </ScrollView>
           )}
