@@ -545,7 +545,12 @@ export default function AuctionScreen() {
       >
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.title}>{getPageTitle()}</Text>
+        <View style={styles.headerTop}>
+          <TouchableOpacity style={styles.backButtonHeader} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={22} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>{getPageTitle()}</Text>
+        </View>
         <Text style={styles.subtitle}>{getPageSubtitle()}</Text>
       </View>
 
@@ -648,7 +653,7 @@ export default function AuctionScreen() {
         {filteredAuctions.map((auction) => (
           <TouchableOpacity
             key={auction.id}
-            style={styles.auctionCard}
+            style={[styles.auctionCard, { borderLeftColor: auction.hasMyProposal ? '#f59e0b' : '#4f46e5' }]}
             onPress={() => handleAuctionPress(auction)}
           >
             <View style={styles.auctionHeader}>
@@ -760,14 +765,6 @@ export default function AuctionScreen() {
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.backButtonBottom}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonBottomText}>
-            Voltar
-          </Text>
-        </TouchableOpacity>
       </View>
       </ScrollView>
 
@@ -790,6 +787,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 28,
     backgroundColor: '#4f46e5',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
+  },
+  backButtonHeader: {
+    padding: 2,
   },
   content: {
     backgroundColor: '#f3f4f6',
@@ -824,10 +830,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 6,
+    flex: 1,
   },
   subtitle: {
     fontSize: 14,
@@ -956,6 +962,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderLeftWidth: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
