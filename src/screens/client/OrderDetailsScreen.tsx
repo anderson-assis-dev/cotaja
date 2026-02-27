@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -13,7 +13,7 @@ import { formatPrice } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import { ImageViewer } from '../../components/ImageViewer';
 import { FileViewer } from '../../components/FileViewer';
-import { getAttachmentUrl, isImageAttachment, isVideoAttachment, isDocumentAttachment } from '../../utils/attachmentHelpers';
+import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 import { OrderListSkeleton } from '../../components/Skeleton';
 
 // Tipos TypeScript
@@ -609,55 +609,106 @@ export default function OrderDetailsScreen() {
         presentationStyle="pageSheet"
       >
         <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
+          <View style={[styles.modalHeader,{paddingTop:insets.top+16}]}>
             <Text style={styles.modalTitle}>Detalhes do Pedido</Text>
             <TouchableOpacity onPress={() => setShowDetails(false)}>
-              <Icon name="close" size={24} color="#6b7280" />
+              <Icon name="close" size={24} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
           {selectedOrder && (
             <ScrollView
-              style={styles.modalContent}
+              style={styles.modalScroll}
+              contentContainerStyle={[styles.modalContent,{paddingBottom:insets.bottom+24}]}
             >
-              {/* Informações do Pedido */}
-              <View style={styles.orderInfoCard}>
-                <View style={styles.orderInfoHeader}>
-                  <Text style={styles.orderInfoTitle}>{selectedOrder.title}</Text>
-                  <View style={styles.orderInfoIcons}>
-                    {selectedOrder.hasActiveAuction && (
-                      <View style={styles.modalAuctionIcon}>
-                        <Icon name="gavel" size={20} color="#f97316" />
+              <View style={styles.demandCard}>
+                {(() => {
+                  const images=(selectedOrder.attachments||[]).filter(isImageAttachment);
+                  if(images.length===0)return null;
+                  const heroUrl=getAttachmentUrl(images[0]);
+                  return (
+                    <TouchableOpacity activeOpacity={0.9} onPress={() => {setSelectedImageIndex(0);setImageViewerVisible(true);}} style={styles.heroImageContainer}>
+                      <Image source={{uri:heroUrl}} style={styles.heroImage} resizeMode="cover" />
+                      {images.length>1&&(
+                        <View style={styles.heroImageCount}>
+                          <Icon name="photo-library" size={14} color="#fff" />
+                          <Text style={styles.heroImageCountText}>{images.length}</Text>
+                        </View>
+                      )}
+                      <View style={styles.heroZoomHint}>
+                        <Icon name="zoom-in" size={16} color="#fff" />
                       </View>
-                    )}
-                    {selectedOrder.isNewDemand && (
-                      <View style={styles.modalNewDemandIcon}>
-                        <Icon name="new-releases" size={20} color="#22c55e" />
-                      </View>
-                    )}
+                    </TouchableOpacity>
+                  );
+                })()}
+                {(() => {
+                  const images=(selectedOrder.attachments||[]).filter(isImageAttachment);
+                  if(images.length<=1)return null;
+                  return (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
+                      {images.map((image:any,index:number)=>{
+                        const imageUrl=getAttachmentUrl(image);
+                        return (
+                          <TouchableOpacity key={index} style={[styles.thumbItem,index===0&&styles.thumbItemActive]} onPress={() => {setSelectedImageIndex(index);setImageViewerVisible(true);}} activeOpacity={0.8}>
+                            <Image source={{uri:imageUrl}} style={styles.thumbImage} resizeMode="cover" />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  );
+                })()}
+                <View style={styles.demandTitleArea}>
+                  <View style={styles.demandTitleRow}>
+                    <Text style={styles.demandTitle}>{selectedOrder.title}</Text>
+                    <View style={styles.demandTitleIcons}>
+                      {selectedOrder.hasActiveAuction&&(<View style={styles.modalAuctionIcon}><Icon name="gavel" size={18} color="#f97316" /></View>)}
+                      {selectedOrder.isNewDemand&&(<View style={styles.modalNewDemandIcon}><Icon name="new-releases" size={18} color="#22c55e" /></View>)}
+                    </View>
+                  </View>
+                  <View style={styles.badgesRow}>
+                    <View style={styles.demandCategoryBadge}>
+                      <Text style={styles.demandCategoryText}>{selectedOrder.category}</Text>
+                    </View>
+                    <View style={[styles.demandCategoryBadge,styles.demandBudgetBadge]}>
+                      <Text style={[styles.demandCategoryText,styles.demandBudgetBadgeText]}>{selectedOrder.budget}</Text>
+                    </View>
+                    <View style={[styles.demandCategoryBadge,styles.demandDeadlineBadge]}>
+                      <Icon name="schedule" size={14} color="#c2410c" />
+                      <Text style={[styles.demandCategoryText,styles.demandDeadlineBadgeText]}>{selectedOrder.deadline}</Text>
+                    </View>
                   </View>
                 </View>
-                <View style={styles.orderInfoDetails}>
-                  <View style={styles.modalCategoryBadge}>
-                    <Text style={styles.modalCategoryText}>{selectedOrder.category}</Text>
+                <View style={styles.budgetStrip}>
+                  <View style={styles.budgetStripLeft}>
+                    <Icon name="location-on" size={20} color="#4f46e5" />
+                    <Text style={styles.budgetStripLabel}>Endereço</Text>
                   </View>
-                  <Text style={styles.modalBudgetText}>
-                    Orçamento: {selectedOrder.budget}
-                  </Text>
+                  <Text style={styles.budgetStripValue} numberOfLines={3}>{selectedOrder.location}</Text>
                 </View>
-                <Text style={styles.orderDescription}>{selectedOrder.description}</Text>
-
-                <View style={styles.orderDetailRow}>
-                  <Icon name="schedule" size={16} color="#6b7280" />
-                  <Text style={styles.orderDetailText}>Prazo: {selectedOrder.deadline}</Text>
+                <View style={styles.sectionBlock}>
+                  <Text style={styles.sectionLabel}>Descrição do Serviço</Text>
+                  <Text style={styles.sectionText}>{selectedOrder.description}</Text>
                 </View>
-
-                <View style={styles.orderInfoFooter}>
-                  <Icon name="location-on" size={16} color="#6b7280" />
-                  <Text style={styles.modalLocationText}>{selectedOrder.location}</Text>
-                </View>
-
-                {/* Botões de Ação do Pedido */}
+                {(() => {
+                  const docs=(selectedOrder.attachments||[]).filter((att:any)=>!isImageAttachment(att));
+                  if(docs.length===0)return null;
+                  return (
+                    <View style={styles.docsSection}>
+                      <Text style={styles.sectionLabel}>Anexos</Text>
+                      {docs.map((doc:any,index:number)=>{
+                        const url=getAttachmentUrl(doc);
+                        const isVideo=isVideoAttachment(doc);
+                        return (
+                          <TouchableOpacity key={index} style={styles.docItem} onPress={() => {if(url){setFileViewerUrl(url);setFileViewerTitle(doc.original_name||doc.filename||'Arquivo');setFileViewerMime(doc.mime_type||'application/octet-stream');setFileViewerVisible(true);}}}>
+                            <Icon name={isVideo?'videocam':'description'} size={18} color="#4f46e5" />
+                            <Text style={styles.docName} numberOfLines={1}>{doc.original_name||doc.filename||'Arquivo'}</Text>
+                            <Icon name="open-in-new" size={18} color="#6b7280" />
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
                 <View style={styles.orderActionsContainer}>
                   <TouchableOpacity
                     style={[
@@ -677,158 +728,17 @@ export default function OrderDetailsScreen() {
                       });
                     }}
                   >
-                    <Icon
-                      name="edit"
-                      size={20}
-                      color={(selectedOrder.proposals && selectedOrder.proposals.length > 0) ? "#9ca3af" : "#4f46e5"}
-                    />
+                    <Icon name="edit" size={20} color={(selectedOrder.proposals && selectedOrder.proposals.length > 0) ? "#9ca3af" : "#4f46e5"} />
                     <Text style={[
                       styles.editOrderButtonText,
                       (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonTextDisabled
                     ]}>Editar</Text>
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteOrderButton}
-                    onPress={() => handleDeleteOrder(selectedOrder.id)}
-                  >
+                  <TouchableOpacity style={styles.deleteOrderButton} onPress={() => handleDeleteOrder(selectedOrder.id)}>
                     <Icon name="delete" size={20} color="#ef4444" />
                     <Text style={styles.deleteOrderButtonText}>Excluir</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
-
-              {/* Anexos do Pedido */}
-              <View style={styles.attachmentsSection}>
-                <Text style={styles.attachmentsSectionTitle}>
-                  <Icon name="attach-file" size={20} color="#4f46e5" /> Anexos ({selectedOrder.attachments?.length || 0})
-                </Text>
-
-                {selectedOrder.attachments && selectedOrder.attachments.length > 0 ? (
-                  <View style={styles.attachmentsContainer}>
-                    {/* Imagens */}
-                    {selectedOrder.attachments
-                      .filter(isImageAttachment)
-                      .length > 0 && (
-                        <>
-                          <Text style={styles.attachmentTypeLabel}>
-                            <Icon name="image" size={16} color="#6b7280" /> Imagens
-                          </Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagesScroll}>
-                            {selectedOrder.attachments
-                              .filter(isImageAttachment)
-                              .map((att, index) => {
-                                const imageUrl = getAttachmentUrl(att);
-
-                                return (
-                                  <TouchableOpacity
-                                    key={index}
-                                    style={styles.imageAttachment}
-                                    onPress={() => {
-                                      setSelectedImageIndex(index);
-                                      setImageViewerVisible(true);
-                                    }}
-                                  >
-                                    <Image
-                                      source={{ uri: imageUrl }}
-                                      style={styles.attachmentImage}
-                                      resizeMode="cover"
-                                    />
-                                    <View style={styles.zoomOverlay}>
-                                      <Icon name="zoom-in" size={20} color="#ffffff" />
-                                    </View>
-                                    <Text style={styles.attachmentName} numberOfLines={1}>
-                                      {att.original_name || att.filename}
-                                    </Text>
-                                    <Text style={styles.attachmentSize}>
-                                      {(att.size / 1024).toFixed(0)} KB
-                                    </Text>
-                                  </TouchableOpacity>
-                                );
-                              })}
-                          </ScrollView>
-                        </>
-                      )}
-
-                    {/* Vídeos */}
-                    {selectedOrder.attachments
-                      .filter(isVideoAttachment)
-                      .length > 0 && (
-                        <>
-                          <Text style={styles.attachmentTypeLabel}>
-                            <Icon name="videocam" size={16} color="#6b7280" /> Vídeos
-                          </Text>
-                          {selectedOrder.attachments
-                            .filter(isVideoAttachment)
-                            .map((att, index) => (
-                              <TouchableOpacity key={index} style={styles.videoAttachment} onPress={() => {
-                                const url = getAttachmentUrl(att);
-                                if (url) {
-                                  setFileViewerUrl(url);
-                                  setFileViewerTitle(att.original_name || att.filename || 'Vídeo');
-                                  setFileViewerMime(att.mime_type || 'video/mp4');
-                                  setFileViewerVisible(true);
-                                }
-                              }}>
-                                <View style={styles.videoThumbnailContainer}>
-                                  <Icon name="play-circle-filled" size={48} color="#4f46e5" />
-                                </View>
-                                <View style={styles.videoInfo}>
-                                  <Text style={styles.videoName} numberOfLines={1}>
-                                    {att.original_name || att.filename}
-                                  </Text>
-                                  <Text style={styles.videoSize}>
-                                    {(att.size / (1024 * 1024)).toFixed(2)} MB
-                                  </Text>
-                                </View>
-                                <Icon name="play-arrow" size={20} color="#4f46e5" />
-                              </TouchableOpacity>
-                            ))}
-                        </>
-                      )}
-
-                    {/* Documentos */}
-                    {selectedOrder.attachments
-                      .filter(isDocumentAttachment)
-                      .length > 0 && (
-                        <>
-                          <Text style={styles.attachmentTypeLabel}>
-                            <Icon name="insert-drive-file" size={16} color="#6b7280" /> Documentos
-                          </Text>
-                          {selectedOrder.attachments
-                            .filter(isDocumentAttachment)
-                            .map((att, index) => (
-                              <TouchableOpacity key={index} style={styles.documentAttachment} onPress={() => {
-                                const url = getAttachmentUrl(att);
-                                if (url) {
-                                  setFileViewerUrl(url);
-                                  setFileViewerTitle(att.original_name || att.filename || 'Documento');
-                                  setFileViewerMime(att.mime_type || 'application/octet-stream');
-                                  setFileViewerVisible(true);
-                                }
-                              }}>
-                                <Icon name="insert-drive-file" size={32} color="#6b7280" />
-                                <View style={styles.documentInfo}>
-                                  <Text style={styles.documentName} numberOfLines={1}>
-                                    {att.original_name || att.filename}
-                                  </Text>
-                                  <Text style={styles.documentSize}>
-                                    {(att.size / 1024).toFixed(0)} KB • {att.mime_type}
-                                  </Text>
-                                </View>
-                                <Icon name="visibility" size={24} color="#4f46e5" />
-                              </TouchableOpacity>
-                            ))}
-                        </>
-                      )}
-                  </View>
-                ) : (
-                  <View style={styles.attachmentsContainer}>
-                    <Text style={styles.attachmentsPlaceholder}>
-                      Nenhum anexo disponível para este pedido
-                    </Text>
-                  </View>
-                )}
               </View>
 
               {/* Seção de Propostas ou Gerenciamento do Pedido */}
@@ -1288,23 +1198,202 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#4f46e5',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 24,
+    paddingBottom: 18,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  modalScroll:{
+    flex:1,
   },
   modalContent: {
-    flex: 1,
-    padding: 24,
+    backgroundColor:'#f3f4f6',
+    borderTopLeftRadius:24,
+    borderTopRightRadius:24,
+    padding:20,
+    minHeight:600,
+  },
+  demandCard:{
+    backgroundColor:'white',
+    borderRadius:16,
+    overflow:'hidden',
+    shadowColor:'#000',
+    shadowOffset:{width:0,height:2},
+    shadowOpacity:0.06,
+    shadowRadius:6,
+    elevation:3,
+    marginBottom:16,
+  },
+  heroImageContainer:{
+    height:190,
+    backgroundColor:'#e5e7eb',
+  },
+  heroImage:{
+    width:'100%',
+    height:'100%',
+  },
+  heroImageCount:{
+    position:'absolute',
+    top:12,
+    left:12,
+    backgroundColor:'rgba(17,24,39,0.75)',
+    borderRadius:999,
+    paddingHorizontal:10,
+    paddingVertical:6,
+    flexDirection:'row',
+    alignItems:'center',
+  },
+  heroImageCountText:{
+    color:'#fff',
+    fontWeight:'700',
+    marginLeft:6,
+    fontSize:12,
+  },
+  heroZoomHint:{
+    position:'absolute',
+    bottom:12,
+    right:12,
+    backgroundColor:'rgba(17,24,39,0.75)',
+    borderRadius:999,
+    padding:8,
+  },
+  thumbRow:{
+    paddingHorizontal:12,
+    paddingVertical:12,
+    gap:10,
+  },
+  thumbItem:{
+    width:64,
+    height:48,
+    borderRadius:10,
+    overflow:'hidden',
+    borderWidth:2,
+    borderColor:'transparent',
+  },
+  thumbItemActive:{
+    borderColor:'#4f46e5',
+  },
+  thumbImage:{
+    width:'100%',
+    height:'100%',
+  },
+  demandTitleArea:{
+    paddingHorizontal:16,
+    paddingBottom:16,
+  },
+  demandTitleRow:{
+    flexDirection:'row',
+    alignItems:'flex-start',
+    justifyContent:'space-between',
+    marginTop:16,
+  },
+  demandTitle:{
+    fontSize:20,
+    fontWeight:'800',
+    color:'#111827',
+    flex:1,
+    marginRight:10,
+  },
+  demandTitleIcons:{
+    flexDirection:'row',
+    alignItems:'center',
+  },
+  badgesRow:{
+    flexDirection:'row',
+    flexWrap:'wrap',
+    marginTop:10,
+    gap:8,
+  },
+  demandCategoryBadge:{
+    backgroundColor:'#eef2ff',
+    borderRadius:999,
+    paddingHorizontal:12,
+    paddingVertical:6,
+  },
+  demandCategoryText:{
+    color:'#4f46e5',
+    fontWeight:'700',
+    fontSize:12,
+  },
+  demandBudgetBadge:{
+    backgroundColor:'#ecfdf5',
+  },
+  demandBudgetBadgeText:{
+    color:'#065f46',
+  },
+  demandDeadlineBadge:{
+    backgroundColor:'#ffedd5',
+    flexDirection:'row',
+    alignItems:'center',
+    gap:6,
+  },
+  demandDeadlineBadgeText:{
+    color:'#c2410c',
+  },
+  budgetStrip:{
+    backgroundColor:'#f9fafb',
+    borderTopWidth:1,
+    borderTopColor:'#f3f4f6',
+    paddingHorizontal:16,
+    paddingVertical:12,
+    flexDirection:'row',
+    justifyContent:'space-between',
+    gap:12,
+  },
+  budgetStripLeft:{
+    flexDirection:'row',
+    alignItems:'center',
+    gap:6,
+  },
+  budgetStripLabel:{
+    color:'#374151',
+    fontWeight:'700',
+  },
+  budgetStripValue:{
+    color:'#6b7280',
+    flex:1,
+    textAlign:'right',
+  },
+  sectionBlock:{
+    paddingHorizontal:16,
+    paddingTop:14,
+  },
+  sectionLabel:{
+    fontSize:14,
+    fontWeight:'800',
+    color:'#374151',
+    marginBottom:8,
+  },
+  sectionText:{
+    color:'#6b7280',
+    lineHeight:20,
+  },
+  docsSection:{
+    paddingHorizontal:16,
+    paddingTop:14,
+  },
+  docItem:{
+    backgroundColor:'#f9fafb',
+    borderRadius:12,
+    padding:12,
+    flexDirection:'row',
+    alignItems:'center',
+    gap:10,
+    marginBottom:10,
+  },
+  docName:{
+    flex:1,
+    color:'#374151',
+    fontWeight:'700',
   },
   orderInfoCard: {
     backgroundColor: '#f9fafb',
