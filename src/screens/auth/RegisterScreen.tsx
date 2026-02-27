@@ -57,176 +57,89 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
       <ScrollView
-        style={[styles.container, { paddingTop: insets.top }]}
-        contentContainerStyle={{ flexGrow: 1 }}
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent,{paddingBottom:insets.bottom+24}]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-
-        <View style={styles.logoContainer}>
-          <Image source={require('../../../assets/logo.png')} style={[styles.logo, { tintColor: 'white' }]} resizeMode="contain" />
-        </View>
-
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Nome Completo</Text>
-          <TextInput
-            ref={nomeInputRef}
-            style={styles.input}
-            placeholder="Digite seu nome completo"
-            value={nome}
-            onChangeText={setNome}
-            editable={!isLoading}
-            returnKeyType="next"
-            onSubmitEditing={() => emailInputRef.current?.focus()}
-          />
-
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            ref={emailInputRef}
-            style={styles.input}
-            placeholder="Digite seu email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isLoading}
-            returnKeyType="next"
-            onSubmitEditing={() => phoneInputRef.current?.getElement()?.focus()}
-          />
-
-          <Text style={styles.label}>Tipo de Perfil</Text>
-          <View style={styles.profileSelection}>
-            <TouchableOpacity
-              style={[
-                styles.profileOption,
-                profileType === 'client' && styles.profileOptionSelected
-              ]}
-              onPress={() => setProfileType('client')}
-              disabled={isLoading}
-            >
-              <View style={styles.profileOptionContent}>
-                <Icon
-                  name="person"
-                  size={24}
-                  color={profileType === 'client' ? '#4f46e5' : '#6b7280'}
-                />
-                <Text style={[
-                  styles.profileOptionText,
-                  profileType === 'client' && styles.profileOptionTextSelected
-                ]}>
-                  Cliente
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.profileOption,
-                profileType === 'provider' && styles.profileOptionSelected
-              ]}
-              onPress={() => setProfileType('provider')}
-              disabled={isLoading}
-            >
-              <View style={styles.profileOptionContent}>
-                <Icon
-                  name="work"
-                  size={24}
-                  color={profileType === 'provider' ? '#16a34a' : '#6b7280'}
-                />
-                <Text style={[
-                  styles.profileOptionText,
-                  profileType === 'provider' && styles.profileOptionTextSelected
-                ]}>
-                  Prestador
-                </Text>
-              </View>
-            </TouchableOpacity>
+        <View style={styles.outer}>
+          <View style={[styles.header,{paddingTop:insets.top+20}]}>
+            <Image source={require('../../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            <Text style={styles.headerTitle}>Criar conta</Text>
+            <Text style={styles.headerSubtitle}>É rápido e leva menos de 1 minuto</Text>
           </View>
-
-          <Text style={styles.label}>Telefone</Text>
-          <TextInputMask
-            ref={phoneInputRef}
-            type={'cel-phone'}
-            options={{
-              maskType: 'BRL',
-              withDDD: true,
-              dddMask: '(99) '
-            }}
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="(99) 99999-9999"
-            style={styles.input}
-            keyboardType="phone-pad"
-            editable={!isLoading}
-            returnKeyType="next"
-            onSubmitEditing={() => senhaInputRef.current?.focus()}
-          />
-
-          <Text style={styles.label}>Senha</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              ref={senhaInputRef}
-              style={styles.passwordInput}
-              placeholder="Digite sua senha"
-              value={senha}
-              onChangeText={setSenha}
-              secureTextEntry={!showSenha}
-              editable={!isLoading}
-              returnKeyType="next"
-              onSubmitEditing={() => confirmarSenhaInputRef.current?.focus()}
-            />
-            <TouchableOpacity onPress={() => setShowSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
-              <Icon name={showSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Confirmar Senha</Text>
-          <View style={[styles.passwordContainer, styles.lastInput]}>
-            <TextInput
-              ref={confirmarSenhaInputRef}
-              style={styles.passwordInput}
-              placeholder="Confirme sua senha"
-              value={confirmarSenha}
-              onChangeText={setConfirmarSenha}
-              secureTextEntry={!showConfirmarSenha}
-              editable={!isLoading}
-              returnKeyType="done"
-              onSubmitEditing={handleRegister}
-            />
-            <TouchableOpacity onPress={() => setShowConfirmarSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
-              <Icon name={showConfirmarSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, isLoading ? styles.buttonDisabled : styles.buttonEnabled]}
-            onPress={handleRegister}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color="white" size="small" />
-                <Text style={styles.buttonText}>Cadastrando...</Text>
+          <View style={styles.content}>
+            <View style={styles.card}>
+              <Text style={styles.label}>Nome completo</Text>
+              <View style={styles.inputRow}>
+                <Icon name="person-outline" size={20} color="#6b7280" />
+                <TextInput ref={nomeInputRef} style={styles.input} placeholder="Digite seu nome completo" placeholderTextColor="#9ca3af" value={nome} onChangeText={setNome} editable={!isLoading} returnKeyType="next" onSubmitEditing={() => emailInputRef.current?.focus()} />
               </View>
-            ) : (
-              <Text style={styles.buttonText}>Cadastrar</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.loginLinkContainer}>
-            <Text style={styles.loginText}>Já tem uma conta? </Text>
-            <TouchableOpacity onPress={() => navigation.goBack()} disabled={isLoading}>
-              <Text style={styles.loginLink}>Faça login</Text>
-            </TouchableOpacity>
+              <Text style={styles.label}>Email</Text>
+              <View style={styles.inputRow}>
+                <Icon name="mail-outline" size={20} color="#6b7280" />
+                <TextInput ref={emailInputRef} style={styles.input} placeholder="Digite seu email" placeholderTextColor="#9ca3af" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!isLoading} returnKeyType="next" onSubmitEditing={() => phoneInputRef.current?.getElement()?.focus()} />
+              </View>
+              <Text style={styles.label}>Tipo de perfil</Text>
+              <View style={styles.profileSelection}>
+                <TouchableOpacity style={[styles.profileOption,profileType==='client'&&styles.profileOptionSelected]} onPress={() => setProfileType('client')} disabled={isLoading}>
+                  <View style={styles.profileOptionContent}>
+                    <Icon name="person" size={22} color={profileType==='client'?'#4f46e5':'#6b7280'} />
+                    <Text style={[styles.profileOptionText,profileType==='client'&&styles.profileOptionTextSelected]}>Cliente</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.profileOption,profileType==='provider'&&styles.profileOptionSelected]} onPress={() => setProfileType('provider')} disabled={isLoading}>
+                  <View style={styles.profileOptionContent}>
+                    <Icon name="work" size={22} color={profileType==='provider'?'#4f46e5':'#6b7280'} />
+                    <Text style={[styles.profileOptionText,profileType==='provider'&&styles.profileOptionTextSelected]}>Prestador</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.label}>Telefone</Text>
+              <View style={styles.inputRow}>
+                <Icon name="phone" size={20} color="#6b7280" />
+                <TextInputMask ref={phoneInputRef} type={'cel-phone'} options={{maskType:'BRL',withDDD:true,dddMask:'(99) '}} value={phone} onChangeText={setPhone} placeholder="(99) 99999-9999" placeholderTextColor="#9ca3af" style={styles.input} keyboardType="phone-pad" editable={!isLoading} returnKeyType="next" onSubmitEditing={() => senhaInputRef.current?.focus()} />
+              </View>
+              <Text style={styles.label}>Senha</Text>
+              <View style={styles.inputRow}>
+                <Icon name="lock-outline" size={20} color="#6b7280" />
+                <TextInput ref={senhaInputRef} style={styles.input} placeholder="Digite sua senha" placeholderTextColor="#9ca3af" value={senha} onChangeText={setSenha} secureTextEntry={!showSenha} editable={!isLoading} returnKeyType="next" onSubmitEditing={() => confirmarSenhaInputRef.current?.focus()} />
+                <TouchableOpacity onPress={() => setShowSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
+                  <Icon name={showSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.label}>Confirmar senha</Text>
+              <View style={styles.inputRow}>
+                <Icon name="lock-outline" size={20} color="#6b7280" />
+                <TextInput ref={confirmarSenhaInputRef} style={styles.input} placeholder="Confirme sua senha" placeholderTextColor="#9ca3af" value={confirmarSenha} onChangeText={setConfirmarSenha} secureTextEntry={!showConfirmarSenha} editable={!isLoading} returnKeyType="done" onSubmitEditing={handleRegister} />
+                <TouchableOpacity onPress={() => setShowConfirmarSenha(v => !v)} style={styles.eyeButton} disabled={isLoading}>
+                  <Icon name={showConfirmarSenha ? 'visibility' : 'visibility-off'} size={22} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity style={[styles.primaryButton,isLoading&&styles.primaryButtonDisabled]} onPress={handleRegister} disabled={isLoading}>
+                {isLoading?(
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator color="#ffffff" size="small" />
+                    <Text style={styles.primaryButtonText}>Cadastrando...</Text>
+                  </View>
+                ):(
+                  <Text style={styles.primaryButtonText}>Cadastrar</Text>
+                )}
+              </TouchableOpacity>
+              <View style={styles.loginLinkContainer}>
+                <Text style={styles.loginText}>Já tem uma conta? </Text>
+                <TouchableOpacity onPress={() => navigation.goBack()} disabled={isLoading}>
+                  <Text style={styles.loginLink}>Faça login</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         </View>
-      </View>
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -235,96 +148,100 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 gradient start
-  },
-  content: {
-    padding: 24,
-  },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logo: {
-    width: 400,
-    height: 128,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: -2,
-      height: 4,
-    },
-    shadowOpacity: 0.7,
-    shadowRadius: 4,
-    elevation: 5,
-    right: -28
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  label: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    color: '#111827',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 12,
-    color: '#111827',
-  },
-  eyeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-  lastInput: {
-    marginBottom: 24,
-  },
-  button: {
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
-  },
-  buttonEnabled: {
     backgroundColor: '#4f46e5',
   },
-  buttonDisabled: {
-    backgroundColor: '#9ca3af',
+  scroll:{
+    flex:1,
   },
-  buttonText: {
-    textAlign: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
+  scrollContent:{
+    flexGrow:1,
+  },
+  logo: {
+    width: 190,
+    height: 64,
+    tintColor:'#ffffff',
+  },
+  outer:{
+    flex:1,
+  },
+  header:{
+    paddingHorizontal:24,
+    paddingBottom:26,
+    alignItems:'center',
+  },
+  headerTitle:{
+    fontSize:24,
+    fontWeight:'900',
+    color:'#ffffff',
+    marginTop:10,
+    letterSpacing:-0.5,
+    textAlign:'center',
+    width:'100%',
+  },
+  headerSubtitle:{
+    color:'rgba(255,255,255,0.85)',
+    fontSize:14,
+    marginTop:4,
+    textAlign:'center',
+    width:'100%',
+  },
+  content:{
+    flex:1,
+    backgroundColor:'#f3f4f6',
+    borderTopLeftRadius:24,
+    borderTopRightRadius:24,
+    padding:20,
+  },
+  card:{
+    backgroundColor:'#ffffff',
+    borderRadius:16,
+    padding:18,
+    shadowColor:'#000',
+    shadowOffset:{width:0,height:2},
+    shadowOpacity:0.08,
+    shadowRadius:6,
+    elevation:3,
+  },
+  label: {
+    fontSize:14,
+    fontWeight:'700',
+    color:'#374151',
+    marginBottom:8,
+  },
+  inputRow:{
+    flexDirection:'row',
+    alignItems:'center',
+    backgroundColor:'#ffffff',
+    borderWidth:1,
+    borderColor:'#e5e7eb',
+    borderRadius:12,
+    paddingHorizontal:12,
+    paddingVertical:10,
+    marginBottom:14,
+  },
+  input:{
+    flex:1,
+    marginLeft:10,
+    fontSize:16,
+    color:'#111827',
+    paddingVertical:0,
+  },
+  eyeButton: {
+    paddingLeft:10,
+  },
+  primaryButton:{
+    borderRadius:12,
+    paddingVertical:14,
+    backgroundColor:'#4f46e5',
+  },
+  primaryButtonDisabled:{
+    backgroundColor:'#9ca3af',
+  },
+  primaryButtonText:{
+    textAlign:'center',
+    color:'#ffffff',
+    fontWeight:'800',
+    fontSize:16,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -335,6 +252,7 @@ const styles = StyleSheet.create({
   loginLinkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop:16,
   },
   loginText: {
     color: '#6b7280',
@@ -352,22 +270,22 @@ const styles = StyleSheet.create({
     flex: 1,
     borderWidth: 2,
     borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 16,
-    backgroundColor: 'white',
+    borderRadius: 12,
+    paddingVertical: 14,
+    backgroundColor:'#ffffff',
   },
   profileOptionSelected: {
     borderColor: '#4f46e5',
-    backgroundColor: '#f3f4f6',
+    backgroundColor:'#eef2ff',
   },
   profileOptionContent: {
     alignItems: 'center',
     gap: 8,
   },
   profileOptionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontSize: 14,
+    fontWeight: '800',
+    color:'#6b7280',
   },
   profileOptionTextSelected: {
     color: '#4f46e5',
