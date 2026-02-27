@@ -7,6 +7,7 @@ import { Clock, FileText } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { OrderCardSkeleton } from '../../components/Skeleton';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
 
@@ -109,6 +110,8 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Fundo azul fixo apenas no topo (50% da tela) */}
+      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -182,9 +185,9 @@ export default function HomeScreen() {
 
           <Text style={styles.upcomingTitle}>Últimas Propostas Recebidas</Text>
           {loadingOrders ? (
-            <View style={styles.upcomingCard}>
-              <ActivityIndicator size="small" color="#4f46e5" />
-              <Text style={[styles.noServicesText, { marginTop: 8 }]}>Carregando...</Text>
+            <View>
+              <OrderCardSkeleton />
+              <OrderCardSkeleton />
             </View>
           ) : (() => {
             // Filtrar apenas pedidos do usuário logado (segurança extra)
@@ -279,7 +282,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Status Bar Overlay */}
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );
 }
@@ -287,6 +290,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {

@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { orderService, Order } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { OrderCardSkeleton } from '../../components/Skeleton';
 import { formatPrice } from '../../utils/formatters';
 
 const services = [
@@ -90,6 +91,8 @@ export default function ProviderHomeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Fundo azul fixo apenas no topo (50% da tela) */}
+      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -129,13 +132,6 @@ export default function ProviderHomeScreen() {
               <Text style={styles.statLabel}>Ativos</Text>
               <Text style={styles.statValue}>{user?.active_services || 0}</Text>
             </View>
-          </View>
-
-          <View style={styles.earningsCard}>
-            <Text style={styles.earningsLabel}>Saldo Atual</Text>
-            <Text style={styles.earningsValue}>
-              R$ {user?.balance ? formatPrice(user.balance) : '0,00'}
-            </Text>
           </View>
         </View>
 
@@ -182,8 +178,9 @@ export default function ProviderHomeScreen() {
         </View>
 
         {loadingOrders ? (
-          <View style={styles.upcomingCard}>
-            <ActivityIndicator size="small" color="#4f46e5" />
+          <View>
+            <OrderCardSkeleton />
+            <OrderCardSkeleton />
           </View>
         ) : activeOrders.length === 0 ? (
           <View style={styles.upcomingCard}>
@@ -274,6 +271,14 @@ export default function ProviderHomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {
@@ -319,7 +324,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
   },
   statItem: {
     alignItems: 'center',

@@ -14,6 +14,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { ImageViewer } from '../../components/ImageViewer';
 import { FileViewer } from '../../components/FileViewer';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment, isDocumentAttachment } from '../../utils/attachmentHelpers';
+import { OrderListSkeleton } from '../../components/Skeleton';
 
 // Tipos TypeScript
 interface Proposal {
@@ -434,9 +435,15 @@ export default function OrderDetailsScreen() {
   // Loading state
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={styles.loadingText}>Carregando pedidos...</Text>
+      <View style={styles.container}>
+        <View style={styles.headerBackground} />
+        <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
+          <Text style={styles.headerTitle}>{getPageTitle()}</Text>
+          <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
+        </View>
+        <View style={styles.content}>
+          <OrderListSkeleton />
+        </View>
       </View>
     );
   }
@@ -481,6 +488,7 @@ export default function OrderDetailsScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
@@ -591,6 +599,7 @@ export default function OrderDetailsScreen() {
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
         backgroundColor="#4f46e5"
+        forceLight
       />
 
       {/* Modal de Detalhes */}
@@ -1016,6 +1025,14 @@ export default function OrderDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {

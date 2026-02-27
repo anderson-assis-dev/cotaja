@@ -5,6 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { OrderCardSkeleton } from '../../components/Skeleton';
 import { ratingService, serviceService } from '../../services/api';
 import { getAttachmentName, getAttachmentUrl } from '../../utils/attachmentHelpers';
 
@@ -187,9 +188,9 @@ export default function SearchScreen() {
   };
   const renderCompanies=()=>{
     if(loadingCompanies)return(
-      <View style={styles.loadingBox}>
-        <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={styles.loadingText}>Carregando empresas...</Text>
+      <View>
+        <OrderCardSkeleton />
+        <OrderCardSkeleton />
       </View>
     );
     if(filteredCompanies.length>0)return filteredCompanies.map((company)=>(
@@ -249,6 +250,7 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerBackground} />
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
         <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>Encontrar Empresas</Text>
@@ -378,7 +380,7 @@ export default function SearchScreen() {
         </View>
       </Modal>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" forceLight />
     </View>
   );
 }
@@ -386,6 +388,14 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {

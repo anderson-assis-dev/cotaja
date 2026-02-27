@@ -67,6 +67,7 @@ export default function RateProviderScreen() {
   };
   return (
     <View style={styles.outer}>
+      <View style={styles.headerBackground} />
       <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>Avaliar Empresa</Text>
@@ -132,6 +133,14 @@ export default function RateProviderScreen() {
 const styles = StyleSheet.create({
   outer: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scroll: {
@@ -291,4 +300,4 @@ const styles = StyleSheet.create({
   errorButtonText: {
     color: '#4f46e5',
   },
-}); 
+});

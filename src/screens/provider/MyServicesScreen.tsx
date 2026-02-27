@@ -413,6 +413,7 @@ export default function MyServicesScreen() {
 
   return (
     <View style={styles.container}>
+    <View style={styles.headerBackground} />
     <ScrollView
       style={styles.scrollView}
       onScroll={handleScroll}
@@ -827,7 +828,7 @@ export default function MyServicesScreen() {
     </Modal>
 
     {/* Status Bar Overlay */}
-    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
+    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );
 }
@@ -837,6 +838,14 @@ const screenWidth = Dimensions.get('window').width;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {

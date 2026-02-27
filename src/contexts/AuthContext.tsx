@@ -4,6 +4,7 @@ import { authService, User } from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../services/pushNotificationService';
 import biometricService from '../services/biometricService';
+import { globalToastRef } from './ToastContext';
 
 interface AuthContextType {
   user: User | null;
@@ -137,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     await AsyncStorage.setItem('biometric_email', email);
                     await AsyncStorage.setItem('biometric_password', password);
                     await AsyncStorage.setItem('biometryactivated', 'true');
-                    Alert.alert('Sucesso', `${biometricName} foi ativado!`);
+                    globalToastRef.current?.showSuccess(`${biometricName} foi ativado!`);
                   } catch (err) {
                     console.error('❌ Error saving biometric data:', err);
                   }
@@ -406,7 +407,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // First check if biometric authentication is available
       const biometricSupported = await biometricService.isBiometricSupported();
       if (!biometricSupported) {
-        Alert.alert('Erro', 'Biometria não está disponível neste dispositivo');
+        globalToastRef.current?.showError('Biometria não está disponível neste dispositivo');
         return false;
       }
 
@@ -417,13 +418,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         savedPassword = await AsyncStorage.getItem('biometric_password');
         biometryActivated = await AsyncStorage.getItem('biometryactivated');
       } catch (storageError) {
-        Alert.alert('Erro', 'Erro ao acessar dados salvos. Tente novamente.');
+        globalToastRef.current?.showError('Erro ao acessar dados salvos. Tente novamente.');
         return false;
       }
 
 
       if (!savedEmail || !savedPassword || biometryActivated !== 'true') {
-        Alert.alert('Erro', 'Credenciais biométricas não encontradas ou biometria não está ativada');
+        globalToastRef.current?.showError('Credenciais biométricas não encontradas ou biometria não está ativada');
         return false;
       }
 

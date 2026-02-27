@@ -3,7 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../contexts/AuthContext';
-import { ActivityIndicator, View, StyleSheet, StatusBar, Alert } from 'react-native';
+import { View, StyleSheet, StatusBar, Alert } from 'react-native';
+import { HomeScreenSkeleton, ProviderHomeScreenSkeleton } from '../components/Skeleton';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { navigationRef } from './navigationRef';
@@ -358,6 +359,7 @@ export default function AppNavigator() {
   const { user, isLoading } = useAuth();
   const [currentRouteName, setCurrentRouteName] = useState<string>('');
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
+  const [cachedProfileType, setCachedProfileType] = useState<string | null>(null);
 
   const checkOnboardingStatus = async () => {
     try {
@@ -377,6 +379,12 @@ export default function AppNavigator() {
 
   useEffect(() => {
     checkOnboardingStatus();
+    // Ler tipo de perfil do cache para mostrar skeleton correto
+    AsyncStorage.getItem('user').then(saved => {
+      if (saved) {
+        try { setCachedProfileType(JSON.parse(saved).profile_type); } catch {}
+      }
+    });
   }, []);
 
   // Recheck onboarding status when user changes
@@ -401,19 +409,19 @@ export default function AppNavigator() {
     }
   };
 
-  // Perfil e telas de auth têm fundo escuro → light-content
-  // Todas as outras tabs (Home, Meus Pedidos, Buscar, etc.) têm fundo claro → dark-content
-  const lightContentScreens = [
-    'ProfileTab', 'ProfileScreen',
-    'Splash', 'Initial', 'Login', 'Register', 'ForgotPassword', 'Onboarding', 'ProfileSelection',
+  // Telas com fundo claro → dark-content (texto escuro)
+  // Todas as outras (header azul, auth, perfil) → light-content (texto branco)
+  const darkContentScreens = [
+    'AvailableDemands', 'ProviderSearch', 'SendProposal',
   ];
-  const isDarkStatus = !lightContentScreens.includes(currentRouteName);
+  const isDarkStatus = darkContentScreens.includes(currentRouteName);
 
   if (isLoading || onboardingCompleted === null) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="white" />
-      </View>
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#4f46e5" translucent={false} />
+        {cachedProfileType === 'provider' ? <ProviderHomeScreenSkeleton /> : <HomeScreenSkeleton />}
+      </>
     );
   }
 
