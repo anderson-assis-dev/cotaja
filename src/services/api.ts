@@ -836,6 +836,13 @@ export const ratingService = {
   },
 };
 
+export const providerService={
+  async requestQuote(providerId:string):Promise<{success:boolean;message:string;data:any}>{
+    const response=await api.post(`/providers/${providerId}/request-quote`);
+    return response.data;
+  }
+};
+
 // Tipos para Endereço Geocodificado
 export interface GeocodedAddress {
   street: string;

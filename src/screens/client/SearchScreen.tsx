@@ -6,7 +6,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { OrderCardSkeleton } from '../../components/Skeleton';
-import { ratingService, serviceService } from '../../services/api';
+import { providerService, ratingService, serviceService } from '../../services/api';
 import { getAttachmentName, getAttachmentUrl } from '../../utils/attachmentHelpers';
 
 const mockCategories = [
@@ -66,6 +66,7 @@ export default function SearchScreen() {
   const [attachmentsModalItems,setAttachmentsModalItems]=useState<any[]>([]);
   const [attachmentsModalTitle,setAttachmentsModalTitle]=useState('');
   const [previewImageUrl,setPreviewImageUrl]=useState<string|null>(null);
+  const [requestingQuote,setRequestingQuote]=useState(false);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
   const isRatingMode = (route.params as any)?.isRatingMode || false;
@@ -185,6 +186,24 @@ export default function SearchScreen() {
       screen: 'RateProvider',
       params: { companyToRate: company }
     });
+  };
+  const handleRequestQuote=async()=>{
+    if(!selectedCompany||requestingQuote)return;
+    try{
+      setRequestingQuote(true);
+      const res=await providerService.requestQuote(selectedCompany.id);
+      Alert.alert('Sucesso',res?.message||'Solicitação enviada com sucesso');
+      handleCloseModal();
+    }catch(e:any){
+      const msg=e?.response?.data?.message||e?.message||'Não foi possível solicitar orçamento';
+      if(String(msg).toLowerCase().includes('cadastrar um pedido')){
+        Alert.alert('Atenção',msg,[{text:'Cadastrar pedido',onPress:()=>navigation.navigate('Home',{screen:'CreateOrder',params:{...(route.params as any)}})},{text:'OK'}]);
+      }else{
+        Alert.alert('Erro',msg);
+      }
+    }finally{
+      setRequestingQuote(false);
+    }
   };
   const renderCompanies=()=>{
     if(loadingCompanies)return(
@@ -326,9 +345,17 @@ export default function SearchScreen() {
                 ) : (
                   <TouchableOpacity
                     style={styles.quoteButton}
-                    onPress={() => { handleCloseModal(); }}
+                    onPress={handleRequestQuote}
+                    disabled={requestingQuote}
                   >
-                    <Text style={styles.actionButtonText}>Solicitar Orçamento</Text>
+                    {requestingQuote?(
+                      <View style={styles.quoteLoadingRow}>
+                        <ActivityIndicator size="small" color="#ffffff" />
+                        <Text style={styles.actionButtonText}>Enviando...</Text>
+                      </View>
+                    ):(
+                      <Text style={styles.actionButtonText}>Solicitar Orçamento</Text>
+                    )}
                   </TouchableOpacity>
                 )}
               </>
@@ -648,6 +675,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginTop: 16,
+  },
+  quoteLoadingRow:{
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'center',
+    gap:10,
   },
   actionButtonText: {
     textAlign: 'center',
