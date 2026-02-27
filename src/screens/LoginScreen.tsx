@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,7 @@ import { useToast } from '../contexts/ToastContext';
 import biometricService from '../services/biometricService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScanFace, Fingerprint } from 'lucide-react-native'
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -15,6 +16,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [showSenha,setShowSenha]=useState(false);
   const [biometricActivated, setBiometricActivated] = useState(false);
   const [biometricType, setBiometricType] = useState<'Fingerprint' | 'FaceID' | null>(null);
 
@@ -54,11 +56,7 @@ export default function LoginScreen() {
   }, [navigation]);
 
   const handleBiometricLogin = async () => {
-    try {
-      await loginWithBiometric();
-    } catch (error: any) {
-      showError('Falha na autenticação biométrica. Tente usar email e senha.');
-    }
+    await loginWithBiometric();
   };
 
   const handleLogin = async () => {
@@ -90,9 +88,9 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      keyboardVerticalOffset={0}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -101,96 +99,63 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.content}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={[styles.logo, { tintColor: 'white' }]}
-              resizeMode="contain"
-            />
-
-          <View style={styles.formContainer}>
-            <Text style={styles.title}>Bem-vindo de volta!</Text>
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Digite seu email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-              autoComplete="email"
-            />
-
-            <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Digite sua senha"
-              value={senha}
-              onChangeText={setSenha}
-              secureTextEntry
-              editable={!isLoading}
-              autoComplete="password"
-            />
-
-            <TouchableOpacity
-              onPress={handleForgotPassword}
-              style={styles.forgotPasswordButton}
-              disabled={isLoading}
-            >
-              <Text style={styles.forgotPasswordText}>Esqueceu sua senha?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.loginButton, isLoading ? styles.loginButtonDisabled : styles.loginButtonEnabled]}
-              onPress={handleLogin}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator color="white" size="small" />
-                  <Text style={styles.loginButtonText}>Entrando...</Text>
-                </View>
-              ) : (
-                <Text style={styles.loginButtonText}>Entrar</Text>
-              )}
-            </TouchableOpacity>
-
-            {biometricActivated && (
-              <>
-                <View style={styles.dividerContainer}>
-                  <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>ou</Text>
-                  <View style={styles.dividerLine} />
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.biometricButton, isLoading && styles.biometricButtonDisabled]}
-                  onPress={handleBiometricLogin}
-                  disabled={isLoading}
-                >
-                  {biometricType === 'FaceID' ?
-                    <View style={styles.biometricButtonView}>
-                      <ScanFace size={40} color={'#4f46e5'} />
-                      <Text style={styles.biometricButtonText}>Entrar com Face ID</Text>
-                    </View> :
-                  biometricType !== null ?
-                  <View style={styles.biometricButtonView}>
-                    <Fingerprint size={40} color={'#4f46e5'} />
-                    <Text style={styles.biometricButtonText}>Entrar com Touch ID</Text>
-                  </View> : null}
-                </TouchableOpacity>
-              </>
-            )}
-
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Não tem uma conta? </Text>
-              <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
-                <Text style={styles.registerLink}>Cadastre-se</Text>
-              </TouchableOpacity>
+          <View style={styles.outer}>
+            <View style={[styles.header,{paddingTop:insets.top+20}]}>
+              <Text style={styles.headerTitle}>Cotajá</Text>
+              <Text style={styles.headerSubtitle}>Marketplace de Serviços</Text>
             </View>
-          </View>
+            <View style={styles.content}>
+              <View style={styles.card}>
+                <Text style={styles.title}>Bem-vindo de volta</Text>
+                <Text style={styles.subtitle}>Entre com seu email e senha</Text>
+                <Text style={styles.label}>Email</Text>
+                <View style={styles.inputRow}>
+                  <Icon name="mail-outline" size={20} color="#6b7280" />
+                  <TextInput style={styles.input} placeholder="Digite seu email" placeholderTextColor="#9ca3af" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" editable={!isLoading} autoComplete="email" />
+                </View>
+                <Text style={styles.label}>Senha</Text>
+                <View style={styles.inputRow}>
+                  <Icon name="lock-outline" size={20} color="#6b7280" />
+                  <TextInput style={styles.input} placeholder="Digite sua senha" placeholderTextColor="#9ca3af" value={senha} onChangeText={setSenha} secureTextEntry={!showSenha} editable={!isLoading} autoComplete="password" />
+                  <TouchableOpacity onPress={()=>setShowSenha(v=>!v)} disabled={isLoading} style={styles.eyeButton}>
+                    <Icon name={showSenha?'visibility':'visibility-off'} size={22} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotPasswordButton} disabled={isLoading}>
+                  <Text style={styles.forgotPasswordText}>Esqueceu sua senha?</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.primaryButton,isLoading&&styles.primaryButtonDisabled]} onPress={handleLogin} disabled={isLoading}>
+                  {isLoading?(
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator color="#ffffff" size="small" />
+                      <Text style={styles.primaryButtonText}>Entrando...</Text>
+                    </View>
+                  ):(
+                    <Text style={styles.primaryButtonText}>Entrar</Text>
+                  )}
+                </TouchableOpacity>
+                {biometricActivated&&biometricType!==null?(
+                  <>
+                    <View style={styles.dividerContainer}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>ou</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+                    <TouchableOpacity style={[styles.secondaryButton,isLoading&&styles.secondaryButtonDisabled]} onPress={handleBiometricLogin} disabled={isLoading}>
+                      {biometricType==='FaceID'?<ScanFace size={20} color="#4f46e5" />:<Fingerprint size={20} color="#4f46e5" />}
+                      <Text style={styles.secondaryButtonText}>{biometricType==='FaceID'?'Entrar com Face ID':'Entrar com Touch ID'}</Text>
+                    </TouchableOpacity>
+                  </>
+                ):null}
+                <View style={styles.registerContainer}>
+                  <Text style={styles.registerText}>Não tem uma conta? </Text>
+                  <TouchableOpacity onPress={handleRegister} disabled={isLoading}>
+                    <Text style={styles.registerLink}>Cadastre-se</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={{height:insets.bottom+24}} />
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </ScrollView>
@@ -201,85 +166,110 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500
+    backgroundColor: '#4f46e5',
   },
   scrollContent: {
     flexGrow: 1,
   },
-  content: {
+  outer:{
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
   },
-  logo: {
-    width: 400,
-    height: 128,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: -2,
-      height: 4,
-    },
-    shadowOpacity: 0.7,
-    shadowRadius: 4,
-    elevation: 5,
-    right: -28
+  header:{
+    paddingHorizontal:24,
+    paddingBottom:26,
+    alignItems:'center',
   },
-  formContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    width: '100%',
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
+  headerTitle:{
+    fontSize:34,
+    fontWeight:'900',
+    color:'#ffffff',
+    marginTop:10,
+    letterSpacing:-0.5,
+    textAlign:'center',
+    width:'100%',
+  },
+  headerSubtitle:{
+    color:'rgba(255,255,255,0.85)',
+    fontSize:14,
+    marginTop:4,
+    textAlign:'center',
+    width:'100%',
+  },
+  content:{
+    flex:1,
+    backgroundColor:'#f3f4f6',
+    borderTopLeftRadius:24,
+    borderTopRightRadius:24,
+    padding:20,
+  },
+  card:{
+    backgroundColor:'#ffffff',
+    borderRadius:16,
+    padding:18,
+    shadowColor:'#000',
+    shadowOffset:{width:0,height:2},
+    shadowOpacity:0.08,
+    shadowRadius:6,
+    elevation:3,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 24,
+    fontSize:22,
+    fontWeight:'800',
+    color:'#111827',
+  },
+  subtitle:{
+    color:'#6b7280',
+    marginTop:6,
+    marginBottom:18,
   },
   label: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize:14,
+    fontWeight:'700',
+    color:'#374151',
+    marginBottom:8,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+  inputRow:{
+    flexDirection:'row',
+    alignItems:'center',
+    backgroundColor:'#ffffff',
+    borderWidth:1,
+    borderColor:'#e5e7eb',
+    borderRadius:12,
+    paddingHorizontal:12,
+    paddingVertical:10,
+    marginBottom:14,
+  },
+  input:{
+    flex:1,
+    marginLeft:10,
+    fontSize:16,
+    color:'#111827',
+    paddingVertical:0,
+  },
+  eyeButton:{
+    paddingLeft:10,
   },
   forgotPasswordButton: {
-    marginBottom: 24,
+    marginBottom:18,
   },
   forgotPasswordText: {
-    color: '#4f46e5',
-    textAlign: 'right',
+    color:'#4f46e5',
+    textAlign:'right',
+    fontWeight:'700',
   },
-  loginButton: {
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 16,
+  primaryButton:{
+    borderRadius:12,
+    paddingVertical:14,
+    backgroundColor:'#4f46e5',
   },
-  loginButtonEnabled: {
-    backgroundColor: '#4f46e5',
+  primaryButtonDisabled:{
+    backgroundColor:'#9ca3af',
   },
-  loginButtonDisabled: {
-    backgroundColor: '#9ca3af',
-  },
-  loginButtonText: {
-    textAlign: 'center',
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
+  primaryButtonText:{
+    textAlign:'center',
+    color:'#ffffff',
+    fontWeight:'800',
+    fontSize:16,
   },
   loadingContainer: {
     flexDirection: 'row',
@@ -290,6 +280,7 @@ const styles = StyleSheet.create({
   registerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop:16,
   },
   registerText: {
     color: '#6b7280',
@@ -313,28 +304,23 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontSize: 14,
   },
-  biometricButton: {
-    borderRadius: 8,
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
+  secondaryButton:{
+    borderRadius:12,
+    borderWidth:1,
+    borderColor:'#e5e7eb',
+    backgroundColor:'#ffffff',
+    paddingVertical:12,
+    paddingHorizontal:12,
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'center',
+    gap:10,
   },
-  biometricButtonView: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'column',
-    marginBottom: 15
+  secondaryButtonDisabled:{
+    opacity:0.6,
   },
-  biometricButtonDisabled: {
-    backgroundColor: '#9ca3af',
-    borderColor: '#6b7280',
-  },
-  biometricButtonText: {
-    textAlign: 'center',
-    color: '#4f46e5',
-    fontWeight: 'bold',
-    fontSize: 10,
+  secondaryButtonText:{
+    color:'#4f46e5',
+    fontWeight:'800',
   },
 });
