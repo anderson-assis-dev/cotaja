@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, RefreshControl } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useCallback } from 'react';
@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { OrderCardSkeleton } from '../../components/Skeleton';
-import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
+import { orderService, Order as ApiOrder } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
 
 const services = [
@@ -24,14 +24,14 @@ const services = [
     title: 'Meus Pedidos',
     description: 'Acompanhe seus pedidos',
     iconName: 'list-alt',
-    screen: 'OrderDetails', // Ajuste: navega para OrderDetailsScreen
+    screen: 'MyOrdersTab',
   },
   {
     id: '3',
     title: 'Leilão em Andamento',
     description: 'Veja propostas recebidas',
     iconName: 'gavel',
-    screen: 'OrderDetails', // Ajuste: navega para OrderDetailsScreen
+    screen: 'MyOrdersTab',
   },
   {
     id: '4',
@@ -142,17 +142,14 @@ export default function HomeScreen() {
               style={styles.serviceCard}
               onPress={() => {
                 if (service.title === 'Leilão em Andamento') {
-                  navigation.navigate('HomeMyOrders', {
-                    userType: userType,
-                    clientId: clientId,
-                    clientInfo: clientInfo,
-                    fromLeiloes: true,
+                  navigation.navigate('MyOrdersTab', {
+                    screen: 'MyOrders',
+                    params: { userType: userType, clientId: clientId, clientInfo: clientInfo, fromLeiloes: true }
                   });
                 } else if (service.title === 'Meus Pedidos') {
-                  navigation.navigate('HomeMyOrders', {
-                    userType: userType,
-                    clientId: clientId,
-                    clientInfo: clientInfo,
+                  navigation.navigate('MyOrdersTab', {
+                    screen: 'MyOrders',
+                    params: { userType: userType, clientId: clientId, clientInfo: clientInfo }
                   });
                 } else if (service.screen === 'RateProvider') {
                   navigation.navigate('SearchTab', {
@@ -226,10 +223,9 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={proposal.id || idx}
                 style={styles.proposalCard}
-                onPress={() => navigation.navigate('HomeMyOrders', {
-                  userType: userType,
-                  clientId: clientId,
-                  clientInfo: clientInfo,
+                onPress={() => navigation.navigate('MyOrdersTab', {
+                  screen: 'MyOrders',
+                  params: { userType: userType, clientId: clientId, clientInfo: clientInfo }
                 })}
               >
                 <View style={styles.proposalCardHeader}>
