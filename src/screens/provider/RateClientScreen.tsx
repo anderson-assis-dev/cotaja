@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Star } from 'lucide-react-native';
+import { useToast } from '../../contexts/ToastContext';
 
 type RootStackParamList = {
   MyServices: undefined;
@@ -35,25 +36,18 @@ const mockService: MockService = {
 
 export default function RateClientScreen() {
   const navigation = useNavigation<RateClientScreenNavigationProp>();
+  const { showSuccess, showError } = useToast();
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState<string>('');
 
   const handleSubmit = () => {
     if (rating === 0) {
-      Alert.alert('Erro', 'Por favor, selecione uma avaliação');
+      showError('Por favor, selecione uma avaliação');
       return;
     }
 
-    Alert.alert(
-      'Sucesso',
-      'Avaliação enviada com sucesso!',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('MyServices'),
-        },
-      ]
-    );
+    showSuccess('Avaliação enviada com sucesso!');
+    navigation.navigate('MyServices');
   };
 
   const insets = useSafeAreaInsets();

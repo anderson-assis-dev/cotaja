@@ -302,7 +302,7 @@ export default function OrderDetailsScreen() {
                 [orderId]: [...(prev[orderId] || []), proposalId],
               }));
             } catch (error: any) {
-              Alert.alert('Erro', error.message || 'Erro ao recusar proposta');
+              showError(error.message || 'Erro ao recusar proposta');
             }
           }
         }

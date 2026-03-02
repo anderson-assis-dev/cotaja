@@ -106,7 +106,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      
+
       <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
@@ -148,12 +148,7 @@ export default function HomeScreen() {
                     params: { userType: userType, clientId: clientId, clientInfo: clientInfo }
                   });
                 } else if (service.screen === 'RateProvider') {
-                  navigation.navigate('SearchTab', {
-                    isRatingMode: true,
-                    userType: userType,
-                    clientId: clientId,
-                    clientInfo: clientInfo
-                  });
+                  navigation.navigate('RateProviderList');
                 } else {
                   navigation.navigate(service.screen, {
                     userType: userType,
@@ -270,7 +265,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      
+
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );

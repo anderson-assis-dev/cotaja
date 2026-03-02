@@ -11,8 +11,10 @@ import { orderService, geocodingService, GeocodedAddress } from '../../services/
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { useToast } from '../../contexts/ToastContext';
 import { compressImage, compressVideo } from '../../utils/fileCompressor';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
+import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
 
 type AttachmentType = 'image' | 'video' | 'document';
 
@@ -42,20 +44,13 @@ const LIMITS = {
   document: 2,
 };
 
-const categories = [
-  'Limpeza',
-  'Manutenção',
-  'Construção',
-  'Elétrica',
-  'Hidráulica',
-  'Pintura',
-  'Outros',
-];
+const categories = SERVICE_CATEGORIES;
 
 export default function CreateOrderScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const params = route.params as any;
+  const { showSuccess, showError } = useToast();
 
   const editMode = params?.editMode || false;
   const orderId = params?.orderId;
@@ -64,6 +59,7 @@ export default function CreateOrderScreen() {
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -243,7 +239,7 @@ export default function CreateOrderScreen() {
           },
         );
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permissão negada', 'Não foi possível obter sua localização.');
+          showError('Não foi possível obter sua localização.');
           setIsLoadingLocation(false);
           return;
         }
@@ -270,7 +266,7 @@ export default function CreateOrderScreen() {
             }
           } catch (error) {
             console.error('Erro no reverse geocode:', error);
-            Alert.alert('Aviso', 'Localização obtida, mas não foi possível converter em endereço. Preencha manualmente.');
+            showError('Localização obtida, mas não foi possível converter em endereço. Preencha manualmente.');
           }
 
           setIsLoadingLocation(false);
@@ -281,7 +277,7 @@ export default function CreateOrderScreen() {
           if (error.code === 1) message = 'Permissão de localização negada.';
           if (error.code === 2) message = 'Localização indisponível. Verifique se o GPS está ativado.';
           if (error.code === 3) message = 'Tempo esgotado ao tentar obter localização.';
-          Alert.alert('Erro', message);
+          showError(message);
           setIsLoadingLocation(false);
         },
         {
@@ -292,7 +288,7 @@ export default function CreateOrderScreen() {
       );
     } catch (error) {
       console.error('Erro geral de localização:', error);
-      Alert.alert('Erro', 'Não foi possível acessar a localização.');
+      showError('Não foi possível acessar a localização.');
       setIsLoadingLocation(false);
     }
   };
@@ -480,23 +476,19 @@ export default function CreateOrderScreen() {
     console.log('Valores:', { title, category, description, budget, deadline, fullAddress });
 
     if (editMode && hasProposals) {
-      Alert.alert(
-        'Não é possível editar',
-        'Este pedido já recebeu propostas e não pode mais ser editado. Você pode apenas excluir o pedido.',
-        [{ text: 'OK' }]
-      );
+      showError('Este pedido já recebeu propostas e não pode mais ser editado. Você pode apenas excluir o pedido.');
       return;
     }
 
     if (!title || !category || !description || !budget || !deadline || !street || !city || !addressState) {
       console.log('❌ Erro: Por favor, preencha todos os campos obrigatórios');
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios (título, categoria, descrição, orçamento, prazo, rua, cidade e estado).');
+      showError('Por favor, preencha todos os campos obrigatórios (título, categoria, descrição, orçamento, prazo, rua, cidade e estado).');
       return;
     }
 
     if (!editMode && attachments.length === 0) {
       console.log('❌ Erro: Adicione pelo menos 1 imagem, vídeo ou documento');
-      Alert.alert('Erro', 'Adicione pelo menos 1 imagem, vídeo ou documento ao pedido');
+      showError('Adicione pelo menos 1 imagem, vídeo ou documento ao pedido');
       return;
     }
 
@@ -504,7 +496,7 @@ export default function CreateOrderScreen() {
     console.log('💰 Budget value:', budgetValue);
     if (budgetValue <= 0) {
       console.log('❌ Erro: Por favor, insira um orçamento válido');
-      Alert.alert('Erro', 'Por favor, insira um orçamento válido');
+      showError('Por favor, insira um orçamento válido');
       return;
     }
 
@@ -512,7 +504,7 @@ export default function CreateOrderScreen() {
     console.log('📅 Deadline days:', deadlineDays);
     if (!validateDeadline(deadline)) {
       console.log('❌ Erro: Por favor, insira um prazo válido (1 a 365 dias)');
-      Alert.alert('Erro', 'Por favor, insira um prazo válido (1 a 365 dias)');
+      showError('Por favor, insira um prazo válido (1 a 365 dias)');
       return;
     }
 
@@ -576,24 +568,14 @@ export default function CreateOrderScreen() {
               console.log('📨 Resposta recebida:', response);
 
               if (response.success) {
-                Alert.alert(
-                  'Sucesso',
-                  editMode
-                    ? 'Pedido atualizado com sucesso!'
-                    : 'Pedido criado com sucesso! Em breve você receberá propostas de prestadores.',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        if (editMode) {
-                          navigation.navigate('OrderDetails');
-                        } else {
-                          navigation.goBack();
-                        }
-                      },
-                    },
-                  ]
-                );
+                showSuccess(editMode
+                  ? 'Pedido atualizado com sucesso!'
+                  : 'Pedido criado com sucesso! Em breve você receberá propostas de prestadores.');
+                if (editMode) {
+                  navigation.navigate('OrderDetails');
+                } else {
+                  navigation.goBack();
+                }
               } else {
                 console.log(editMode ? 'Erro ao atualizar pedido:' : 'Erro ao criar pedido:', response.message);
               }
@@ -603,7 +585,7 @@ export default function CreateOrderScreen() {
               console.error('❌ Error.message:', error.message);
               console.error('❌ Error.response:', error.response);
               console.error('❌ Error.code:', error.code);
-              Alert.alert('Erro', error.response?.data?.message || error.message || `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Tente novamente.`);
+              showError(error.response?.data?.message || error.message || `Erro ao ${editMode ? 'atualizar' : 'criar'} pedido. Tente novamente.`);
             } finally {
               console.log('🔴 setIsLoading(false)');
               setIsLoading(false);
@@ -629,7 +611,7 @@ export default function CreateOrderScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.content, { paddingTop: insets.top + 16, marginTop: 0 }]}>
-            
+
             <View style={styles.headerRow}>
               <TouchableOpacity
                 style={styles.backButton}
@@ -653,28 +635,47 @@ export default function CreateOrderScreen() {
               />
 
               <Text style={styles.label}>Categoria</Text>
-              <View style={styles.categoriesContainer}>
-                {categories.map((cat) => (
+              {category !== '' && (
+                <View style={styles.categoriesContainer}>
                   <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.categoryButton,
-                      category === cat ? styles.categoryButtonSelected : styles.categoryButtonUnselected
-                    ]}
-                    onPress={() => setCategory(cat)}
+                    style={[styles.categoryButton, styles.categoryButtonSelected]}
+                    onPress={() => setCategory('')}
                     disabled={isLoading}
                   >
-                    <Text
-                      style={[
-                        styles.categoryButtonText,
-                        category === cat ? styles.categoryButtonTextSelected : styles.categoryButtonTextUnselected
-                      ]}
-                    >
-                      {cat}
-                    </Text>
+                    <Text style={[styles.categoryButtonText, styles.categoryButtonTextSelected]}>{category} ✕</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+                </View>
+              )}
+              {category === '' && (
+                <>
+                  <View style={styles.categorySearchRow}>
+                    <Icon name="search" size={20} color="#9ca3af" />
+                    <TextInput
+                      style={styles.categorySearchInput}
+                      placeholder="Digite para buscar categorias..."
+                      placeholderTextColor="#9ca3af"
+                      value={categorySearch}
+                      onChangeText={setCategorySearch}
+                      editable={!isLoading}
+                    />
+                  </View>
+                  <View style={styles.categoriesContainer}>
+                    {filterCategories(categorySearch).slice(0, categorySearch ? 50 : 12).map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[styles.categoryButton, styles.categoryButtonUnselected]}
+                        onPress={() => { setCategory(cat.name); setCategorySearch(''); }}
+                        disabled={isLoading}
+                      >
+                        <Text style={[styles.categoryButtonText, styles.categoryButtonTextUnselected]}>{cat.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {!categorySearch && categories.length > 12 && (
+                      <Text style={styles.categoryHintText}>Digite para ver mais categorias...</Text>
+                    )}
+                  </View>
+                </>
+              )}
 
               <Text style={styles.label}>Descrição</Text>
               <TextInput
@@ -689,7 +690,7 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Endereço do Serviço</Text>
 
-              
+
               <TouchableOpacity
                 style={[styles.locationButton, isLoadingLocation && styles.locationButtonDisabled]}
                 onPress={handleGetLocation}
@@ -818,12 +819,12 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Anexos</Text>
 
-              
+
               <Text style={styles.attachmentSectionTitle}>
                 Imagens ({getAttachmentCount('image')}/{LIMITS.image})
               </Text>
 
-              
+
               {isCompressing && compressionType === 'image' && (
                 <View style={styles.compressingContainer}>
                   <View style={styles.compressingHeader}>
@@ -864,7 +865,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              
+
               {attachments.filter(att => att.fileType === 'image').length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewContainer}>
                   {attachments.map((file, index) => (
@@ -884,12 +885,12 @@ export default function CreateOrderScreen() {
                 </ScrollView>
               )}
 
-              
+
               <Text style={styles.attachmentSectionTitle}>
                 Vídeo ({getAttachmentCount('video')}/{LIMITS.video})
               </Text>
 
-              
+
               {isCompressing && compressionType === 'video' && (
                 <View style={styles.compressingContainer}>
                   <View style={styles.compressingHeader}>
@@ -923,7 +924,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              
+
               {attachments.filter(att => att.fileType === 'video').length > 0 && (
                 <View style={styles.attachmentsContainer}>
                   {attachments.map((file, index) => (
@@ -940,7 +941,7 @@ export default function CreateOrderScreen() {
                 </View>
               )}
 
-              
+
               <Text style={styles.attachmentSectionTitle}>
                 Documentos ({getAttachmentCount('document')}/{LIMITS.document})
               </Text>
@@ -955,7 +956,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              
+
               {attachments.filter(att => att.fileType === 'document').length > 0 && (
                 <View style={styles.attachmentsContainer}>
                   {attachments.map((file, index) => (
@@ -1128,6 +1129,28 @@ const styles = StyleSheet.create({
   },
   categoryButtonTextUnselected: {
     color: '#1f2937',
+  },
+  categorySearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    gap: 8,
+  },
+  categorySearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1f2937',
+    paddingVertical: 10,
+  },
+  categoryHintText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 4,
+    width: '100%',
   },
   compressingContainer: {
     backgroundColor: '#eff6ff',

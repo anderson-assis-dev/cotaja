@@ -4,6 +4,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { proposalService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 type Proposal = {
   id: string;
@@ -27,6 +28,7 @@ export default function CheckoutScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<CheckoutRouteParams, 'Checkout'>>();
   const insets = useSafeAreaInsets();
+  const { showSuccess, showError } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const proposal = route.params?.proposal;
@@ -59,24 +61,14 @@ export default function CheckoutScreen() {
             try {
               const response = await proposalService.acceptProposal(Number(proposal.id));
               if (response.success) {
-                Alert.alert(
-                  'Proposta Aceita! 🎉',
-                  `A proposta de ${proposal.provider.name} foi aceita com sucesso. O prestador será notificado.`,
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => {
-                        navigation.popToTop();
-                      },
-                    },
-                  ]
-                );
+                showSuccess(`Proposta de ${proposal.provider.name} aceita com sucesso!`);
+                navigation.popToTop();
               } else {
-                Alert.alert('Erro', response.message || 'Não foi possível aceitar a proposta.');
+                showError(response.message || 'Não foi possível aceitar a proposta.');
               }
             } catch (error: any) {
               const message = error?.response?.data?.message || 'Erro ao aceitar a proposta. Tente novamente.';
-              Alert.alert('Erro', message);
+              showError(message);
             } finally {
               setIsLoading(false);
             }
@@ -91,7 +83,7 @@ export default function CheckoutScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Confirmar Proposta</Text>
 
-        
+
         <View style={styles.providerCard}>
           <View style={styles.providerRow}>
             {proposal.provider.avatar || proposal.provider.avatarUri ? (
@@ -119,7 +111,7 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        
+
         <View style={styles.proposalCard}>
           <Text style={styles.sectionTitle}>Detalhes da Proposta</Text>
 
@@ -146,7 +138,7 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        
+
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             accessibilityLabel="Confirmar proposta"

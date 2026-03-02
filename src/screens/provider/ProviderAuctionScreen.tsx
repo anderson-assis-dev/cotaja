@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Trophy, Target, Hourglass } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
@@ -153,6 +154,7 @@ export default function AuctionScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [providerLocation, setProviderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
@@ -425,7 +427,7 @@ export default function AuctionScreen() {
         {
           text: 'Recusar', style: 'destructive',
           onPress: () => {
-            Alert.alert('Recusar Proposta', 'Funcionalidade de recusa de proposta ainda não implementada.');
+            showError('Funcionalidade de recusa de proposta ainda não implementada.');
           }
         }
       ]
@@ -441,7 +443,7 @@ export default function AuctionScreen() {
         {
           text: 'Encerrar', style: 'destructive',
           onPress: () => {
-            Alert.alert('Encerrar Demanda', 'Funcionalidade de encerramento de demanda ainda não implementada.');
+            showError('Funcionalidade de encerramento de demanda ainda não implementada.');
           }
         }
       ]
@@ -457,7 +459,7 @@ export default function AuctionScreen() {
         {
           text: 'Sim', style: 'destructive',
           onPress: () => {
-            Alert.alert('Cancelar Proposta', 'Funcionalidade de cancelamento de proposta ainda não implementada.');
+            showError('Funcionalidade de cancelamento de proposta ainda não implementada.');
           }
         }
       ]

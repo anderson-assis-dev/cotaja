@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,8 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
-
-const SERVICE_CATEGORIES = ['Limpeza','Manutenção','Construção','Elétrica','Hidráulica','Pintura','Outros'];
+import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
@@ -36,6 +35,7 @@ export default function RegisterScreen() {
   const [motherName, setMotherName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categorySearch, setCategorySearch] = useState('');
 
   const [cep, setCep] = useState('');
   const [addressStreet, setAddressStreet] = useState('');
@@ -126,7 +126,7 @@ export default function RegisterScreen() {
       },
       () => {
         setLoadingLocation(false);
-        Alert.alert('Permissão negada', 'Ative a localização nas configurações do dispositivo.');
+        showError('Ative a localização nas configurações do dispositivo.');
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
@@ -263,12 +263,28 @@ export default function RegisterScreen() {
                     <TextInputMask ref={birthDateInputRef} type={'datetime'} options={{format:'DD/MM/YYYY'}} value={birthDate} onChangeText={setBirthDate} placeholder="DD/MM/AAAA" placeholderTextColor="#9ca3af" style={styles.input} keyboardType="numeric" editable={!registering} returnKeyType="next" onSubmitEditing={() => senhaInputRef.current?.focus()} />
                   </View>
                   <Text style={styles.label}>Categorias de serviço</Text>
+                  {selectedCategories.length > 0 && (
+                    <View style={styles.categoriesContainer}>
+                      {selectedCategories.map(cat => (
+                        <TouchableOpacity key={cat} style={[styles.categoryBadge, styles.categoryBadgeSelected]} onPress={() => toggleCategory(cat)} disabled={registering}>
+                          <Text style={[styles.categoryBadgeText, styles.categoryBadgeTextSelected]}>{cat} ✕</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                  <View style={styles.inputRow}>
+                    <Icon name="search" size={20} color="#6b7280" />
+                    <TextInput style={styles.input} placeholder="Digite para buscar categorias..." placeholderTextColor="#9ca3af" value={categorySearch} onChangeText={setCategorySearch} editable={!registering} />
+                  </View>
                   <View style={styles.categoriesContainer}>
-                    {SERVICE_CATEGORIES.map(cat => (
-                      <TouchableOpacity key={cat} style={[styles.categoryBadge, selectedCategories.includes(cat) && styles.categoryBadgeSelected]} onPress={() => toggleCategory(cat)} disabled={registering}>
-                        <Text style={[styles.categoryBadgeText, selectedCategories.includes(cat) && styles.categoryBadgeTextSelected]}>{cat}</Text>
+                    {filterCategories(categorySearch).filter(c => !selectedCategories.includes(c.name)).slice(0, categorySearch ? 50 : 12).map(cat => (
+                      <TouchableOpacity key={cat.id} style={styles.categoryBadge} onPress={() => { toggleCategory(cat.name); setCategorySearch(''); }} disabled={registering}>
+                        <Text style={styles.categoryBadgeText}>{cat.name}</Text>
                       </TouchableOpacity>
                     ))}
+                    {!categorySearch && SERVICE_CATEGORIES.length > 12 && (
+                      <Text style={styles.categoryHint}>Digite para ver mais categorias...</Text>
+                    )}
                   </View>
                   <Text style={styles.providerSectionLabel}>Localização</Text>
                   <TouchableOpacity
@@ -569,6 +585,13 @@ const styles = StyleSheet.create({
   },
   categoryBadgeTextSelected: {
     color:'#4f46e5',
+  },
+  categoryHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 4,
+    width: '100%',
   },
   locationButton: {
     flexDirection: 'row',

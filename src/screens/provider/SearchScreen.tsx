@@ -8,6 +8,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { orderService } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
+import { SERVICE_CATEGORIES, filterCategories, ServiceCategory } from '../../utils/serviceCategories';
 
 type RootStackParamList = {
   AuctionsTab: {
@@ -23,12 +24,6 @@ type RootStackParamList = {
 
 type ProviderSearchScreenNavigationProp = NavigationProp<RootStackParamList>;
 
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-}
-
 interface Demand {
   id: string;
   title: string;
@@ -39,21 +34,6 @@ interface Demand {
   _raw?: any;
 }
 
-const mockCategories: Category[] = [
-  { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
-  { id: '2', name: 'Reparos', icon: 'build' },
-  { id: '3', name: 'Tecnologia', icon: 'computer' },
-  { id: '4', name: 'Aulas', icon: 'school' },
-  { id: '5', name: 'Design', icon: 'design-services' },
-  { id: '6', name: 'Eventos', icon: 'celebration' },
-  { id: '7', name: 'Pintura', icon: 'format-paint' },
-  { id: '8', name: 'Elétrica', icon: 'electrical-services' },
-  { id: '9', name: 'Encanamento', icon: 'plumbing' },
-  { id: '10', name: 'Jardinagem', icon: 'yard' },
-  { id: '11', name: 'Transporte', icon: 'local-shipping' },
-  { id: '12', name: 'Outros', icon: 'more-horiz' },
-];
-
 export default function ProviderSearchScreen() {
   const navigation = useNavigation<ProviderSearchScreenNavigationProp>();
   const insets = useSafeAreaInsets();
@@ -62,6 +42,7 @@ export default function ProviderSearchScreen() {
   const [filteredDemands, setFilteredDemands] = useState<Demand[]>([]);
   const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [categoryFilter, setCategoryFilter] = useState('');
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -111,7 +92,7 @@ export default function ProviderSearchScreen() {
     };
   }, [searchQuery]);
 
-  const handleCategoryPress = (category: Category) => {
+  const handleCategoryPress = (category: ServiceCategory) => {
     navigation.navigate('AuctionsTab', {
       screen: 'ProviderAuction',
       params: {
@@ -237,7 +218,7 @@ export default function ProviderSearchScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Buscar Demandas</Text>
 
-        
+
         <View style={styles.searchContainer}>
           <Icon name="search" size={24} color="#9ca3af" />
           <TextInput
@@ -254,7 +235,7 @@ export default function ProviderSearchScreen() {
           )}
         </View>
 
-        
+
         {(loading || showSearchResults) && (
           <View style={styles.searchResultsContainer}>
             <View style={styles.searchResultsHeader}>
@@ -272,29 +253,41 @@ export default function ProviderSearchScreen() {
           </View>
         )}
 
-        
+
         {!showSearchResults && !loading && (
           <View style={styles.categoriesContainer}>
             <Text style={styles.categoriesTitle}>Categorias</Text>
             <Text style={styles.categoriesSubtitle}>
               Selecione uma categoria para ver as demandas disponíveis
             </Text>
+            <View style={styles.categorySearchRow}>
+              <Icon name="search" size={20} color="#9ca3af" />
+              <TextInput placeholder="Buscar categoria..." style={styles.categorySearchInput} value={categoryFilter} onChangeText={setCategoryFilter} />
+              {categoryFilter !== '' && (
+                <TouchableOpacity onPress={() => setCategoryFilter('')}>
+                  <Icon name="close" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
             <View style={styles.categoriesGrid}>
-              {mockCategories.map((category) => (
+              {filterCategories(categoryFilter).slice(0, categoryFilter ? 50 : 12).map((category) => (
                 <TouchableOpacity
                   key={category.id}
                   style={styles.categoryCard}
-                  onPress={() => handleCategoryPress(category)}
+                  onPress={() => { handleCategoryPress(category); setCategoryFilter(''); }}
                 >
-                  <Icon name={category.icon} size={32} color="#4f46e5" />
+                  <Icon name={category.icon} size={28} color="#4f46e5" />
                   <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
+            {!categoryFilter && SERVICE_CATEGORIES.length > 12 && (
+              <Text style={styles.categoryHintText}>Busque acima para ver mais categorias...</Text>
+            )}
           </View>
         )}
 
-        
+
         {!showSearchResults && !loading && (
           <View style={styles.infoContainer}>
             <Text style={styles.infoTitle}><Lightbulb size={16} color="#f59e0b" /> Como funciona?</Text>
@@ -308,7 +301,7 @@ export default function ProviderSearchScreen() {
           </View>
         )}
 
-        
+
         {!showSearchResults && !loading && (
           <TouchableOpacity
             style={styles.viewAllButton}
@@ -322,7 +315,7 @@ export default function ProviderSearchScreen() {
       </View>
       </ScrollView>
 
-      
+
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
@@ -498,6 +491,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+  },
+  categorySearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  categorySearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1f2937',
+    paddingVertical: 10,
+  },
+  categoryHintText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
   categoryCard: {
     width: '48%',

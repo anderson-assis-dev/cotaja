@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput, Alert, StyleSheet,
+  View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
   ActivityIndicator, Image, FlatList, KeyboardAvoidingView, Platform, Modal, StatusBar
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Clock, Check, CheckCheck, Send } from 'lucide-react-native';
+import { Clock, Check, CheckCheck, Send, RotateCcw, AlertCircle } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import {
   chatService, orderActionService, orderService,
   Message, Order
@@ -22,7 +23,7 @@ type RouteParams = {
 type TabType = 'chat' | 'schedule' | 'info';
 
 interface LocalMessage extends Message {
-  _status?: 'sending' | 'sent' | 'read';
+  _status?: 'sending' | 'sent' | 'read' | 'error';
   _tempId?: string;
 }
 
@@ -31,6 +32,7 @@ export default function AcceptedOrderScreen() {
   const route = useRoute<RouteProp<RouteParams, 'AcceptedOrder'>>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const flatListRef = useRef<FlatList>(null);
 
   const orderId = route.params?.orderId;
@@ -79,10 +81,10 @@ export default function AcceptedOrderScreen() {
           _status: msg.read_at ? 'read' : 'sent',
         }));
         setMessages(prev => {
-          const sendingMsgs = prev.filter(m => m._status === 'sending');
+          const pendingMsgs = prev.filter(m => m._status === 'sending' || m._status === 'error');
           const serverIds = new Set(serverMessages.map(m => m.id));
-          const stillSending = sendingMsgs.filter(m => !serverIds.has(m.id));
-          return [...serverMessages, ...stillSending];
+          const stillPending = pendingMsgs.filter(m => !serverIds.has(m.id));
+          return [...serverMessages, ...stillPending];
         });
       }
     } catch (error) {
@@ -148,18 +150,54 @@ export default function AcceptedOrderScreen() {
           )
         );
       }
-    } catch (error) {
-      Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
-      setMessages(prev => prev.filter(m => m._tempId !== tempId));
-      setMessageText(text);
+    } catch {
+      setMessages(prev =>
+        prev.map(m =>
+          m._tempId === tempId
+            ? { ...m, _status: 'error' as const }
+            : m
+        )
+      );
     } finally {
       setIsSending(false);
     }
   };
 
+  const handleRetryMessage = async (tempId: string) => {
+    const failedMsg = messages.find(m => m._tempId === tempId);
+    if (!failedMsg) return;
+
+    setMessages(prev =>
+      prev.map(m =>
+        m._tempId === tempId ? { ...m, _status: 'sending' as const } : m
+      )
+    );
+
+    try {
+      const response = await chatService.sendMessage(orderId, failedMsg.content);
+      if (response.success) {
+        setMessages(prev =>
+          prev.map(m =>
+            m._tempId === tempId
+              ? { ...response.data, _status: 'sent' as const }
+              : m
+          )
+        );
+      }
+    } catch {
+      setMessages(prev =>
+        prev.map(m =>
+          m._tempId === tempId
+            ? { ...m, _status: 'error' as const }
+            : m
+        )
+      );
+    }
+  };
+
   const handleCancelOrder = async () => {
     if (!cancelReason.trim()) {
-      Alert.alert('Atenção', 'Informe o motivo do cancelamento.');
+      showError('Informe o motivo do cancelamento.');
       return;
     }
 
@@ -168,13 +206,12 @@ export default function AcceptedOrderScreen() {
       const response = await orderActionService.cancelOrder(orderId, cancelReason.trim());
       if (response.success) {
         setShowCancelModal(false);
-        Alert.alert('Pedido Cancelado', 'O pedido foi cancelado com sucesso.', [
-          { text: 'OK', onPress: () => navigation.popToTop() }
-        ]);
+        showSuccess('O pedido foi cancelado com sucesso.');
+        navigation.popToTop();
       }
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Erro ao cancelar pedido.';
-      Alert.alert('Erro', msg);
+      showError(msg);
     } finally {
       setIsCancelling(false);
     }
@@ -182,7 +219,7 @@ export default function AcceptedOrderScreen() {
 
   const handleProposeSchedule = async () => {
     if (selectedDate <= new Date()) {
-      Alert.alert('Atenção', 'Selecione uma data e horário futuros.');
+      showError('Selecione uma data e horário futuros.');
       return;
     }
 
@@ -193,11 +230,11 @@ export default function AcceptedOrderScreen() {
         setOrder(response.data);
         setShowDatePicker(false);
         setShowTimePicker(false);
-        Alert.alert('Agendamento Proposto', 'Aguardando confirmação da outra parte.');
+        showSuccess('Aguardando confirmação da outra parte.');
       }
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Erro ao propor agendamento.';
-      Alert.alert('Erro', msg);
+      showError(msg);
     } finally {
       setIsScheduling(false);
     }
@@ -209,11 +246,11 @@ export default function AcceptedOrderScreen() {
       const response = await orderActionService.confirmSchedule(orderId);
       if (response.success) {
         setOrder(response.data);
-        Alert.alert('Confirmado!', response.message);
+        showSuccess(response.message);
       }
     } catch (error: any) {
       const msg = error?.response?.data?.message || 'Erro ao confirmar agendamento.';
-      Alert.alert('Erro', msg);
+      showError(msg);
     } finally {
       setIsConfirming(false);
     }
@@ -309,6 +346,7 @@ export default function AcceptedOrderScreen() {
 
   const renderMessage = ({ item }: { item: LocalMessage }) => {
     const isMe = String(item.sender_id) === String(user?.id);
+    const isError = item._status === 'error';
 
     const iconColor = isMe ? 'rgba(255,255,255,0.75)' : '#9ca3af';
     const readColor = isMe ? '#c7d2fe' : '#6366f1';
@@ -318,6 +356,8 @@ export default function AcceptedOrderScreen() {
       switch (status) {
         case 'sending':
           return <Clock size={13} color={iconColor} />;
+        case 'error':
+          return <AlertCircle size={13} color="#fca5a5" />;
         case 'read':
           return <CheckCheck size={13} color={readColor} />;
         case 'sent':
@@ -327,19 +367,38 @@ export default function AcceptedOrderScreen() {
     };
 
     return (
-      <View style={[styles.messageBubble, isMe ? styles.myMessage : styles.otherMessage]}>
-        {!isMe && (
-          <Text style={styles.messageSenderName}>{item.sender?.name || 'Usuário'}</Text>
-        )}
-        <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
-          {item.content}
-        </Text>
-        <View style={[styles.messageFooter, isMe ? styles.messageFooterMine : styles.messageFooterOther]}>
-          <Text style={[styles.messageTime, isMe ? styles.myMessageTime : styles.otherMessageTime]}>
-            {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+      <View style={isError ? styles.errorMessageWrapper : undefined}>
+        <View style={[
+          styles.messageBubble,
+          isMe ? styles.myMessage : styles.otherMessage,
+          isError && styles.errorMessage,
+        ]}>
+          {!isMe && (
+            <Text style={styles.messageSenderName}>{item.sender?.name || 'Usuário'}</Text>
+          )}
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.otherMessageText]}>
+            {item.content}
           </Text>
-          {isMe && renderStatusIcon()}
+          <View style={[styles.messageFooter, isMe ? styles.messageFooterMine : styles.messageFooterOther]}>
+            <Text style={[styles.messageTime, isMe ? styles.myMessageTime : styles.otherMessageTime]}>
+              {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </Text>
+            {isMe && renderStatusIcon()}
+          </View>
         </View>
+        {isError && item._tempId && (
+          <View style={styles.errorActions}>
+            <Text style={styles.errorLabel}>Falha ao enviar</Text>
+            <TouchableOpacity
+              style={styles.retryBtn}
+              onPress={() => handleRetryMessage(item._tempId!)}
+              activeOpacity={0.7}
+            >
+              <RotateCcw size={14} color="#4f46e5" />
+              <Text style={styles.retryText}>Tentar novamente</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
@@ -768,6 +827,12 @@ const styles = StyleSheet.create({
   messageBubble: { maxWidth: '80%', marginBottom: 8, borderRadius: 16, padding: 12 },
   myMessage: { alignSelf: 'flex-end', backgroundColor: '#4f46e5', borderBottomRightRadius: 4 },
   otherMessage: { alignSelf: 'flex-start', backgroundColor: '#ffffff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#e5e7eb' },
+  errorMessage: { backgroundColor: '#4f46e5', opacity: 0.7 },
+  errorMessageWrapper: { alignSelf: 'flex-end', maxWidth: '80%' },
+  errorActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 4, marginBottom: 8, paddingRight: 4 },
+  errorLabel: { fontSize: 12, color: '#ef4444', fontWeight: '500' },
+  retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#eef2ff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 },
+  retryText: { fontSize: 12, color: '#4f46e5', fontWeight: '600' },
   messageSenderName: { fontSize: 12, fontWeight: '600', color: '#4f46e5', marginBottom: 4 },
   messageText: { fontSize: 15, lineHeight: 20 },
   myMessageText: { color: '#ffffff' },

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ratingService } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function RateProviderScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const { showSuccess, showError } = useToast();
   const { companyToRate } = (route.params as any) || {};
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -27,7 +29,7 @@ export default function RateProviderScreen() {
   }
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Avaliação Incompleta', 'Por favor, selecione pelo menos uma estrela.');
+      showError('Por favor, selecione pelo menos uma estrela.');
       return;
     }
     if (submitting) return;
@@ -36,12 +38,13 @@ export default function RateProviderScreen() {
       const providerId = String(companyToRate.id);
       const response = await ratingService.createProviderRating(providerId, { rating, comment, attachments });
       if (response.success) {
-        Alert.alert('Avaliação Enviada', 'Obrigado por seu feedback!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        showSuccess('Obrigado por seu feedback!');
+        navigation.goBack();
       } else {
-        Alert.alert('Erro', response.message || 'Não foi possível enviar sua avaliação');
+        showError(response.message || 'Não foi possível enviar sua avaliação');
       }
     } catch (e: any) {
-      Alert.alert('Erro', e?.message || 'Não foi possível enviar sua avaliação');
+      showError(e?.message || 'Não foi possível enviar sua avaliação');
     } finally {
       setSubmitting(false);
     }

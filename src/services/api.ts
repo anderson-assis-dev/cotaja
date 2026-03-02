@@ -283,6 +283,11 @@ export const orderService = {
     return response.data;
   },
 
+  async getMyProviders(): Promise<{ success: boolean; data: any[] }> {
+    const response = await api.get('/orders/my-providers');
+    return response.data;
+  },
+
   async getRecentOrders(): Promise<{ success: boolean; data: Order[] }> {
     const response = await api.get('/orders/recent');
     return response.data;
@@ -692,6 +697,11 @@ export const serviceService = {
     const response = await api.get('/services/my-services');
     return response.data;
   },
+
+  async getProviderServices(providerId: string): Promise<{ success: boolean; data: Service[] }> {
+    const response = await api.get(`/services/provider/${providerId}`);
+    return response.data;
+  },
 };
 
 export interface Message {
@@ -837,6 +847,90 @@ export const walletService = {
 
   async removeCard(paymentMethodId: string): Promise<any> {
     const response = await api.delete(`/wallet/cards/${paymentMethodId}`);
+    return response.data;
+  },
+};
+
+export interface AdPackage {
+  id: number;
+  name: string;
+  slug: string;
+  price_cents: number;
+  ad_count: number;
+  ad_type: 'single' | 'general' | 'targeted';
+  description: string;
+}
+
+export interface AdPurchase {
+  id: number;
+  user_id: string;
+  package_id: number;
+  amount_cents: number;
+  remaining_ads: number;
+  ad_type: string;
+  status: string;
+  package_name?: string;
+  created_at: string;
+}
+
+export interface AdItem {
+  id: number;
+  purchase_id: number;
+  user_id: string;
+  title: string;
+  message: string;
+  ad_type: string;
+  target_categories?: string[];
+  target_radius_km?: number;
+  scheduled_date: string;
+  scheduled_time: string;
+  status: 'scheduled' | 'sent' | 'failed' | 'cancelled';
+  sent_count: number;
+  sent_at?: string;
+  created_at: string;
+}
+
+export const adService = {
+  async getPackages(): Promise<{ success: boolean; data: AdPackage[] }> {
+    const response = await api.get('/ads/packages');
+    return response.data;
+  },
+
+  async purchasePackage(packageId: number, paymentMethodId: string): Promise<any> {
+    const response = await api.post('/ads/purchase', { package_id: packageId, payment_method_id: paymentMethodId });
+    return response.data;
+  },
+
+  async getMyPurchases(): Promise<{ success: boolean; data: AdPurchase[] }> {
+    const response = await api.get('/ads/purchases');
+    return response.data;
+  },
+
+  async getCredits(): Promise<{ success: boolean; data: { total_remaining: number; by_type: { single: number; general: number; targeted: number }; purchases: any[] } }> {
+    const response = await api.get('/ads/credits');
+    return response.data;
+  },
+
+  async scheduleAd(data: {
+    purchase_id: number;
+    title: string;
+    message: string;
+    scheduled_date: string;
+    scheduled_time: string;
+    target_categories?: string[];
+    target_radius_km?: number;
+  }): Promise<any> {
+    const response = await api.post('/ads/schedule', data);
+    return response.data;
+  },
+
+  async getMyAds(): Promise<{ success: boolean; data: AdItem[] }> {
+    const response = await api.get('/ads/my-ads');
+    return response.data;
+  },
+
+  async cancelAd(id: number): Promise<any> {
+    const response = await api.post(`/ads/${id}/cancel`);
     return response.data;
   },
 };

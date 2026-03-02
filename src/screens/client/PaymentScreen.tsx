@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useToast } from '../../contexts/ToastContext';
 
 type PaymentMethod = 'credit' | 'debit' | 'pix';
 
@@ -17,6 +18,7 @@ interface CardData {
 
 export default function PaymentScreen() {
   const navigation = useNavigation<any>();
+  const { showSuccess, showError } = useToast();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('credit');
   const [cardData, setCardData] = useState<CardData>({
     number: '',
@@ -74,32 +76,16 @@ export default function PaymentScreen() {
 
   const handlePayment = () => {
     if (selectedMethod === 'pix') {
-      Alert.alert(
-        'Pagamento com PIX',
-        'QR Code gerado com sucesso!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ClientHome'),
-          },
-        ]
-      );
+      showSuccess('QR Code gerado com sucesso!');
+      navigation.navigate('ClientHome');
     } else {
       if (!cardData.number || !cardData.name || !cardData.expiry || !cardData.cvv || !cardData.cpf) {
-        Alert.alert('Erro', 'Por favor, preencha todos os campos');
+        showError('Por favor, preencha todos os campos');
         return;
       }
 
-      Alert.alert(
-        'Pagamento Realizado',
-        'Seu pagamento foi processado com sucesso!',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('ClientHome'),
-          },
-        ]
-      );
+      showSuccess('Seu pagamento foi processado com sucesso!');
+      navigation.navigate('ClientHome');
     }
   };
 
@@ -453,4 +439,4 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     marginTop: 8,
   },
-}); 
+});

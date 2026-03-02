@@ -169,23 +169,11 @@ export default function ProfileScreen() {
             <ChevronRight size={18} color="#9ca3af" />
           </TouchableOpacity>
           <View style={styles.sep} />
-          {user.profile_type === 'provider' ? (
-            <>
-              <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
-                <Wallet size={22} color="#374151" />
-                <Text style={styles.itemText}>Carteira</Text>
-                <ChevronRight size={18} color="#9ca3af" />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
-                <CreditCard size={22} color="#374151" />
-                <Text style={styles.itemText}>Pagamentos</Text>
-                <ChevronRight size={18} color="#9ca3af" />
-              </TouchableOpacity>
-            </>
-          )}
+          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
+            <CreditCard size={22} color="#374151" />
+            <Text style={styles.itemText}>Carteira & Pagamentos</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.groupLabel}>Suporte</Text>

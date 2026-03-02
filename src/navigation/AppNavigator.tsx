@@ -23,6 +23,7 @@ import CreateOrderScreen from '../screens/client/CreateOrderScreen';
 import OrderDetailsScreen from '../screens/client/OrderDetailsScreen';
 import ActiveAuctionScreen from '../screens/client/ActiveAuctionScreen';
 import RateProviderScreen from '../screens/client/RateProviderScreen';
+import RateProviderListScreen from '../screens/client/RateProviderListScreen';
 import CheckoutScreen from '../screens/client/CheckoutScreen';
 import PaymentScreen from '../screens/client/PaymentScreen';
 import SearchScreen from '../screens/client/SearchScreen';
@@ -111,6 +112,14 @@ function ClientHomeStackNavigator({ route }: any) {
       <ClientHomeStack.Screen
         name="HomeAcceptedOrder"
         component={AcceptedOrderScreen}
+      />
+      <ClientHomeStack.Screen
+        name="RateProviderList"
+        component={RateProviderListScreen}
+      />
+      <ClientHomeStack.Screen
+        name="RateProvider"
+        component={RateProviderScreen}
       />
     </ClientHomeStack.Navigator>
   );

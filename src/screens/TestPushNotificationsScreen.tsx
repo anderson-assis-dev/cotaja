@@ -5,12 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   Platform
 } from 'react-native';
 import pushNotificationService from '../services/pushNotificationService';
+import { useToast } from '../contexts/ToastContext';
 
 const TestPushNotificationsScreen: React.FC = () => {
+  const { showSuccess, showError } = useToast();
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
@@ -30,7 +31,7 @@ const TestPushNotificationsScreen: React.FC = () => {
       setPermissions(perms);
     } catch (error) {
       console.error('Error initializing push notifications:', error);
-      Alert.alert('Erro', 'Falha ao inicializar push notifications');
+      showError('Falha ao inicializar push notifications');
     }
   };
 
@@ -41,10 +42,10 @@ const TestPushNotificationsScreen: React.FC = () => {
         'Esta é uma notificação de teste local!',
         { testData: 'local_notification' }
       );
-      Alert.alert('Sucesso', 'Notificação local enviada!');
+      showSuccess('Notificação local enviada!');
     } catch (error) {
       console.error('Error sending local notification:', error);
-      Alert.alert('Erro', 'Falha ao enviar notificação local');
+      showError('Falha ao enviar notificação local');
     }
   };
 
@@ -59,10 +60,10 @@ const TestPushNotificationsScreen: React.FC = () => {
         futureDate,
         { testData: 'scheduled_notification' }
       );
-      Alert.alert('Sucesso', 'Notificação agendada para 10 segundos!');
+      showSuccess('Notificação agendada para 10 segundos!');
     } catch (error) {
       console.error('Error sending scheduled notification:', error);
-      Alert.alert('Erro', 'Falha ao agendar notificação');
+      showError('Falha ao agendar notificação');
     }
   };
 
@@ -70,12 +71,12 @@ const TestPushNotificationsScreen: React.FC = () => {
     if (Platform.OS === 'ios') {
       try {
         await pushNotificationService.setBadgeCount(5);
-        Alert.alert('Sucesso', 'Badge count definido para 5');
+        showSuccess('Badge count definido para 5');
       } catch (error) {
-        Alert.alert('Erro', 'Falha ao definir badge count');
+        showError('Falha ao definir badge count');
       }
     } else {
-      Alert.alert('Info', 'Badge count é apenas para iOS');
+      showError('Badge count é apenas para iOS');
     }
   };
 
@@ -83,21 +84,21 @@ const TestPushNotificationsScreen: React.FC = () => {
     if (Platform.OS === 'ios') {
       try {
         await pushNotificationService.setBadgeCount(0);
-        Alert.alert('Sucesso', 'Badge count zerado');
+        showSuccess('Badge count zerado');
       } catch (error) {
-        Alert.alert('Erro', 'Falha ao zerar badge count');
+        showError('Falha ao zerar badge count');
       }
     } else {
-      Alert.alert('Info', 'Badge count é apenas para iOS');
+      showError('Badge count é apenas para iOS');
     }
   };
 
   const cancelAllNotifications = async () => {
     try {
       await pushNotificationService.cancelAllNotifications();
-      Alert.alert('Sucesso', 'Todas as notificações canceladas');
+      showSuccess('Todas as notificações canceladas');
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao cancelar notificações');
+      showError('Falha ao cancelar notificações');
     }
   };
 

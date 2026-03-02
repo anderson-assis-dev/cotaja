@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Image, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Image, Dimensions } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -8,6 +8,7 @@ import Config from 'react-native-config';
 import { proposalService, orderService } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { ImageViewer } from '../../components/ImageViewer';
@@ -76,6 +77,7 @@ export default function SendProposalScreen() {
   const navigation = useNavigation<SendProposalScreenNavigationProp>();
   const route = useRoute<SendProposalScreenRouteProp>();
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [price, setPrice] = useState<string>('');
   const [priceDisplay, setPriceDisplay] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
@@ -248,13 +250,13 @@ export default function SendProposalScreen() {
 
   const handleSubmit = async () => {
     if (!price || !deadline || !description) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos');
+      showError('Por favor, preencha todos os campos');
       return;
     }
 
     const priceNumber = parseInt(price, 10) / 100;
     if (isNaN(priceNumber) || priceNumber <= 0) {
-      Alert.alert('Erro', 'Por favor, informe um valor válido para a proposta');
+      showError('Por favor, informe um valor válido para a proposta');
       return;
     }
 
@@ -292,13 +294,9 @@ export default function SendProposalScreen() {
 
         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
 
-        Alert.alert(
-          'Sucesso',
-          alreadyProposed ? 'Proposta atualizada com sucesso!' : 'Proposta enviada com sucesso! O cliente será notificado.',
-          [{ text: 'OK' }]
-        );
+        showSuccess(alreadyProposed ? 'Proposta atualizada com sucesso!' : 'Proposta enviada com sucesso!');
       } else {
-        Alert.alert('Erro', response.message || 'Erro ao enviar proposta');
+        showError(response.message || 'Erro ao enviar proposta');
       }
     } catch (error: any) {
       console.log('❌ Erro completo:', error);
@@ -309,14 +307,8 @@ export default function SendProposalScreen() {
 
       if (error.response?.data?.message === 'Você já enviou uma proposta para este pedido') {
         errorMessage = 'Você já possui uma proposta para este pedido. Atualizando...';
-        Alert.alert('Aviso', errorMessage, [
-          {
-            text: 'OK',
-            onPress: async () => {
-              await refreshDemandData();
-            },
-          },
-        ]);
+        showError(errorMessage);
+        await refreshDemandData();
         setLoading(false);
         return;
       } else if (error.response?.data?.data?.message) {
@@ -327,14 +319,8 @@ export default function SendProposalScreen() {
         errorMessage = error.message;
       }
 
-      Alert.alert('Atenção', errorMessage, [
-        {
-          text: 'OK',
-          onPress: () => {
-            refreshDemandData();
-          }
-        }
-      ]);
+      showError(errorMessage);
+      refreshDemandData();
     } finally {
       setLoading(false);
     }

@@ -1,25 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Modal, Image, StyleSheet, ActivityIndicator, Linking, Alert, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { Play } from 'lucide-react-native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
-import { OrderCardSkeleton } from '../../components/Skeleton';
-import { providerService, ratingService, serviceService } from '../../services/api';
+import { OrderCardSkeleton, SkeletonBlock } from '../../components/Skeleton';
+import { providerService, ratingService, serviceService, Service } from '../../services/api';
 import { getAttachmentName, getAttachmentUrl } from '../../utils/attachmentHelpers';
+import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
+import { useToast } from '../../contexts/ToastContext';
 
-const mockCategories = [
-  { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
-  { id: '2', name: 'Reparos', icon: 'build' },
-  { id: '3', name: 'Tecnologia', icon: 'computer' },
-  { id: '4', name: 'Aulas', icon: 'school' },
-  { id: '5', name: 'Design', icon: 'design-services' },
-  { id: '6', name: 'Eventos', icon: 'celebration' },
-];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const defaultCompanyImage = require('../../../assets/icon.png');
-type Company = { id: string; name: string; category: string; rating: number; ratingsCount: number; description: string; phone: string; image: any; _raw?: any; };
+type Company = { id: string; name: string; category: string; rating: number; ratingsCount: number; description: string; phone: string; image: any; serviceCategories?: string[]; _raw?: any; };
 type ProviderRatingItem={id?:number;provider_id?:string;client_id?:string;rating?:number;comment?:string|null;attachments?:any[]|null;created_at?:string;client_name?:string;client_avatar_base64?:string;};
 const normalizeAvatarUri = (avatar?: string) => {
   if (!avatar) return null;
@@ -56,6 +52,7 @@ export default function SearchScreen() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
@@ -67,9 +64,12 @@ export default function SearchScreen() {
   const [attachmentsModalTitle,setAttachmentsModalTitle]=useState('');
   const [previewImageUrl,setPreviewImageUrl]=useState<string|null>(null);
   const [requestingQuote,setRequestingQuote]=useState(false);
+  const [providerServices, setProviderServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [serviceImagePreview, setServiceImagePreview] = useState<string | null>(null);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
-
-  const isRatingMode = (route.params as any)?.isRatingMode || false;
+  const { showSuccess, showError } = useToast();
 
   const fetchCompanies = async (category?: string | null) => {
     setLoadingCompanies(true);
@@ -97,6 +97,7 @@ export default function SearchScreen() {
           description: provider?.address || 'Sem descrição',
           phone: provider?.phone || 'Não informado',
           image: avatarUri ? { uri: avatarUri } : defaultCompanyImage,
+          serviceCategories: Array.isArray(provider?.service_categories) ? provider.service_categories : [],
           _raw: provider
         });
       }
@@ -136,6 +137,20 @@ export default function SearchScreen() {
     return()=>{mounted=false;};
   },[selectedCompany?.id]);
 
+  useEffect(() => {
+    let mounted = true;
+    const providerId = selectedCompany?.id;
+    if (!providerId) { setProviderServices([]); setLoadingServices(false); setSelectedServiceId(null); return () => { mounted = false; }; }
+    setLoadingServices(true);
+    setSelectedServiceId(null);
+    serviceService.getProviderServices(providerId).then(res => {
+      if (mounted && res?.success) setProviderServices(res.data || []);
+    }).catch(() => {
+      if (mounted) setProviderServices([]);
+    }).finally(() => { if (mounted) setLoadingServices(false); });
+    return () => { mounted = false; };
+  }, [selectedCompany?.id]);
+
   const filteredCompanies = useMemo(() => {
     let list = companies;
     if (searchQuery.length > 1) {
@@ -159,6 +174,9 @@ export default function SearchScreen() {
 
   const handleCloseModal = () => {
     setSelectedCompany(null);
+    setProviderServices([]);
+    setSelectedServiceId(null);
+    setServiceImagePreview(null);
   };
   const handleCloseAttachmentsModal=()=>{
     setAttachmentsModalVisible(false);
@@ -168,38 +186,31 @@ export default function SearchScreen() {
   };
   const handleOpenAttachment=async(att:any)=>{
     const url=getAttachmentUrl(att);
-    if(!url){Alert.alert('Erro','Anexo inválido');return;}
+    if(!url){showError('Anexo inválido');return;}
     if(typeof url==='string'&&url.startsWith('data:image/')){setPreviewImageUrl(url);return;}
     try{
       const supported=await Linking.canOpenURL(url);
-      if(!supported){Alert.alert('Erro','Não foi possível abrir o anexo');return;}
+      if(!supported){showError('Não foi possível abrir o anexo');return;}
       await Linking.openURL(url);
     }catch(e){
       console.warn('openAttachment error',e);
-      Alert.alert('Erro','Não foi possível abrir o anexo');
+      showError('Não foi possível abrir o anexo');
     }
   };
 
-  const handleNavigateToRate = (company: Company) => {
-    handleCloseModal();
-    navigation.navigate('MyOrdersTab', {
-      screen: 'RateProvider',
-      params: { companyToRate: company }
-    });
-  };
   const handleRequestQuote=async()=>{
     if(!selectedCompany||requestingQuote)return;
     try{
       setRequestingQuote(true);
       const res=await providerService.requestQuote(selectedCompany.id);
-      Alert.alert('Sucesso',res?.message||'Solicitação enviada com sucesso');
+      showSuccess(res?.message||'Solicitação enviada com sucesso');
       handleCloseModal();
     }catch(e:any){
       const msg=e?.response?.data?.message||e?.message||'Não foi possível solicitar orçamento';
       if(String(msg).toLowerCase().includes('cadastrar um pedido')){
         Alert.alert('Atenção',msg,[{text:'Cadastrar pedido',onPress:()=>navigation.navigate('Home',{screen:'CreateOrder',params:{...(route.params as any)}})},{text:'OK'}]);
       }else{
-        Alert.alert('Erro',msg);
+        showError(msg);
       }
     }finally{
       setRequestingQuote(false);
@@ -282,14 +293,32 @@ export default function SearchScreen() {
           </View>
           <View style={styles.categoriesSection}>
             <Text style={styles.sectionTitle}>Categorias</Text>
-            <View style={styles.categoriesGrid}>
-              {mockCategories.map((category) => (
-                <TouchableOpacity key={category.id} style={[styles.categoryButton, selectedCategory === category.name ? styles.selectedCategory : styles.unselectedCategory]} onPress={() => handleCategoryPress(category.name)}>
-                  <Icon name={category.icon} size={32} color={selectedCategory === category.name ? '#4f46e5' : '#6b7280'} />
-                  <Text style={[styles.categoryText, selectedCategory === category.name ? styles.selectedCategoryText : styles.unselectedCategoryText]}>{category.name}</Text>
+            <View style={styles.categorySearchRow}>
+              <Icon name="search" size={20} color="#9ca3af" />
+              <TextInput placeholder="Buscar categoria..." style={styles.categorySearchInput} value={categoryFilter} onChangeText={setCategoryFilter} />
+              {categoryFilter !== '' && (
+                <TouchableOpacity onPress={() => setCategoryFilter('')}>
+                  <Icon name="close" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryBadgeScroll} contentContainerStyle={styles.categoryBadgeScrollContent}>
+              {selectedCategory && (
+                <TouchableOpacity style={[styles.categoryBadge, styles.categoryBadgeSelected]} onPress={() => handleCategoryPress(selectedCategory)}>
+                  <Icon name={SERVICE_CATEGORIES.find(c => c.name === selectedCategory)?.icon || 'label'} size={16} color="#4f46e5" />
+                  <Text style={[styles.categoryBadgeText, styles.categoryBadgeTextSelected]}>{selectedCategory} ✕</Text>
+                </TouchableOpacity>
+              )}
+              {filterCategories(categoryFilter).filter(c => c.name !== selectedCategory).slice(0, categoryFilter ? 50 : 15).map((cat) => (
+                <TouchableOpacity key={cat.id} style={[styles.categoryBadge, styles.categoryBadgeUnselected]} onPress={() => { handleCategoryPress(cat.name); setCategoryFilter(''); }}>
+                  <Icon name={cat.icon} size={16} color="#6b7280" />
+                  <Text style={[styles.categoryBadgeText, styles.categoryBadgeTextUnselected]}>{cat.name}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
+            {!categoryFilter && SERVICE_CATEGORIES.length > 15 && (
+              <Text style={styles.categoryHintText}>Busque acima para ver mais categorias...</Text>
+            )}
           </View>
           <View>
             <Text style={styles.sectionTitle}>{searchQuery || selectedCategory ? 'Resultados da Busca' : 'Empresas Populares'}</Text>
@@ -316,15 +345,97 @@ export default function SearchScreen() {
                 <View style={styles.modalCompanyInfo}>
                     <Image source={selectedCompany.image} style={styles.modalCompanyAvatar} />
                     <Text style={styles.modalCompanyName}>{selectedCompany.name}</Text>
-                    <Text style={styles.modalCompanyCategory}>{selectedCompany.category}</Text>
                     <View style={styles.modalRatingBadge}>
                         <Icon name="star" size={18} color="#f59e0b" />
                         <Text style={styles.modalRatingText}>{`${Number(selectedCompany.rating||0).toFixed(1)} (${selectedCompany.ratingsCount||0})`}</Text>
                     </View>
                 </View>
 
-                <ScrollView>
+                {selectedCompany.serviceCategories && selectedCompany.serviceCategories.length > 0 && (
+                  <View style={styles.categoriesBadgeContainer}>
+                    {selectedCompany.serviceCategories.map((cat, idx) => (
+                      <View key={`cat-${idx}`} style={styles.categoryBadge}>
+                        <Text style={styles.categoryBadgeText}>{cat}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <ScrollView showsVerticalScrollIndicator={false}>
                     <Text style={styles.modalDescription}>{selectedCompany.description}</Text>
+
+                    <View style={styles.servicesSection}>
+                      <Text style={styles.servicesSectionTitle}>Serviços Oferecidos</Text>
+                      {loadingServices ? (
+                        <View style={{ gap: 12 }}>
+                          <SkeletonBlock width="100%" height={120} borderRadius={12} />
+                          <SkeletonBlock width="100%" height={120} borderRadius={12} />
+                        </View>
+                      ) : providerServices.length > 0 ? (
+                        providerServices.map(svc => {
+                          const isSelected = selectedServiceId === svc.id;
+                          const images = Array.isArray(svc.images) ? svc.images : [];
+                          return (
+                            <TouchableOpacity
+                              key={svc.id}
+                              style={[styles.serviceCard, isSelected && styles.serviceCardSelected]}
+                              onPress={() => setSelectedServiceId(isSelected ? null : svc.id)}
+                              activeOpacity={0.8}
+                            >
+                              {images.length > 0 && (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.serviceImagesRow}>
+                                  {images.map((img: string, imgIdx: number) => {
+                                    const isVideo = img.match(/\.(mp4|mov|webm)$/i);
+                                    const isBase64 = img.startsWith('data:');
+                                    const imgUri = isBase64 ? img : img.startsWith('http') ? img : `data:image/jpeg;base64,${img}`;
+                                    if (isVideo) {
+                                      return (
+                                        <TouchableOpacity key={`img-${imgIdx}`} style={styles.serviceImageWrap} onPress={() => Linking.openURL(img)}>
+                                          <View style={[styles.serviceImage, styles.videoPlaceholder]}>
+                                            <Play size={24} color="#fff" />
+                                          </View>
+                                        </TouchableOpacity>
+                                      );
+                                    }
+                                    return (
+                                      <TouchableOpacity key={`img-${imgIdx}`} style={styles.serviceImageWrap} onPress={() => setServiceImagePreview(imgUri)}>
+                                        <Image source={{ uri: imgUri }} style={styles.serviceImage} />
+                                      </TouchableOpacity>
+                                    );
+                                  })}
+                                </ScrollView>
+                              )}
+                              <View style={styles.serviceInfo}>
+                                <Text style={styles.serviceTitle}>{svc.title}</Text>
+                                <Text style={styles.serviceDescription} numberOfLines={2}>{svc.description}</Text>
+                                <View style={styles.serviceFooter}>
+                                  <View style={styles.serviceCategoryTag}>
+                                    <Text style={styles.serviceCategoryTagText}>{svc.category}</Text>
+                                  </View>
+                                  <Text style={styles.servicePrice}>
+                                    {Number(svc.price) > 0
+                                      ? `R$ ${Number(svc.price).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                      : 'A combinar'}
+                                  </Text>
+                                </View>
+                              </View>
+                              {isSelected && (
+                                <View style={styles.selectedIndicator}>
+                                  <Icon name="check-circle" size={18} color="#4f46e5" />
+                                  <Text style={styles.selectedIndicatorText}>Selecionado</Text>
+                                </View>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })
+                      ) : (
+                        <View style={styles.noServicesBox}>
+                          <Icon name="inventory-2" size={32} color="#d1d5db" />
+                          <Text style={styles.noServicesText}>Nenhum serviço cadastrado.</Text>
+                        </View>
+                      )}
+                    </View>
+
                     <View style={styles.contactCard}>
                         <Text style={styles.contactTitle}>Contato</Text>
                         <Text style={styles.contactPhone}>{selectedCompany.phone}</Text>
@@ -335,18 +446,10 @@ export default function SearchScreen() {
                     </View>
                 </ScrollView>
 
-                {isRatingMode ? (
-                  <TouchableOpacity
-                    style={styles.rateButton}
-                    onPress={() => handleNavigateToRate(selectedCompany!)}
-                  >
-                    <Text style={styles.actionButtonText}>Avaliar Empresa</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.quoteButton}
+                <TouchableOpacity
+                    style={[styles.quoteButton, !selectedServiceId && providerServices.length > 0 && styles.quoteButtonDisabled]}
                     onPress={handleRequestQuote}
-                    disabled={requestingQuote}
+                    disabled={requestingQuote || (!selectedServiceId && providerServices.length > 0)}
                   >
                     {requestingQuote?(
                       <View style={styles.quoteLoadingRow}>
@@ -354,10 +457,13 @@ export default function SearchScreen() {
                         <Text style={styles.actionButtonText}>Enviando...</Text>
                       </View>
                     ):(
-                      <Text style={styles.actionButtonText}>Solicitar Orçamento</Text>
+                      <Text style={styles.actionButtonText}>
+                        {providerServices.length > 0 && !selectedServiceId
+                          ? 'Selecione um serviço acima'
+                          : 'Solicitar Orçamento'}
+                      </Text>
                     )}
                   </TouchableOpacity>
-                )}
               </>
             )}
           </View>
@@ -401,6 +507,18 @@ export default function SearchScreen() {
                     <Text style={styles.noRatingsText}>Nenhum anexo.</Text>
                   )}
                 </ScrollView>
+              </View>
+            </View>
+          )}
+
+          {serviceImagePreview && (
+            <View style={styles.serviceImagePreviewOverlay}>
+              <TouchableOpacity style={styles.serviceImagePreviewBackdrop} onPress={() => setServiceImagePreview(null)} />
+              <View style={styles.serviceImagePreviewContainer}>
+                <Image source={{ uri: serviceImagePreview }} style={styles.serviceImagePreviewFull} resizeMode="contain" />
+                <TouchableOpacity style={styles.serviceImagePreviewClose} onPress={() => setServiceImagePreview(null)}>
+                  <Icon name="close" size={28} color="#fff" />
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -494,40 +612,61 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 12,
   },
-  categoriesGrid: {
+  categorySearchRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryButton: {
-    width: '48%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
     alignItems: 'center',
-    borderWidth: 2,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    gap: 8,
   },
-  selectedCategory: {
+  categorySearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1f2937',
+    paddingVertical: 10,
+  },
+  categoryBadgeScroll: {
+    marginBottom: 4,
+  },
+  categoryBadgeScrollContent: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  categoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1.5,
+  },
+  categoryBadgeSelected: {
     borderColor: '#4f46e5',
+    backgroundColor: '#eef2ff',
   },
-  unselectedCategory: {
-    borderColor: 'transparent',
+  categoryBadgeUnselected: {
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
   },
-  categoryText: {
-    marginTop: 8,
+  categoryBadgeText: {
+    fontSize: 13,
     fontWeight: '600',
   },
-  selectedCategoryText: {
+  categoryBadgeTextSelected: {
     color: '#4f46e5',
   },
-  unselectedCategoryText: {
-    color: '#4b5563',
+  categoryBadgeTextUnselected: {
+    color: '#6b7280',
+  },
+  categoryHintText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 2,
+    marginBottom: 8,
   },
   companyCard: {
     backgroundColor: 'white',
@@ -625,9 +764,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#374151',
   },
-  modalCompanyCategory: {
-    fontSize: 18,
-    color: '#6b7280',
+  categoriesBadgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  categoryBadge: {
+    backgroundColor: '#eef2ff',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+  },
+  categoryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4f46e5',
   },
   modalRatingBadge: {
     flexDirection: 'row',
@@ -664,17 +820,14 @@ const styles = StyleSheet.create({
   contactPhone: {
     color: '#6b7280',
   },
-  rateButton: {
-    backgroundColor: '#f59e0b',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 16,
-  },
   quoteButton: {
     backgroundColor: '#4f46e5',
     borderRadius: 8,
     padding: 16,
     marginTop: 16,
+  },
+  quoteButtonDisabled: {
+    backgroundColor: '#a5b4fc',
   },
   quoteLoadingRow:{
     flexDirection:'row',
@@ -876,5 +1029,144 @@ const styles = StyleSheet.create({
     color:'#6b7280',
     textAlign:'center',
     paddingVertical:12,
+  },
+  servicesSection: {
+    marginBottom: 16,
+  },
+  servicesSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 12,
+  },
+  serviceCard: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  serviceCardSelected: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#f5f3ff',
+  },
+  serviceImagesRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+  },
+  serviceImageWrap: {
+    marginRight: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  serviceImage: {
+    width: 100,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#e5e7eb',
+  },
+  videoPlaceholder: {
+    backgroundColor: '#1f2937',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceInfo: {
+    padding: 12,
+  },
+  serviceTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  serviceDescription: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  serviceFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceCategoryTag: {
+    backgroundColor: '#e0e7ff',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  serviceCategoryTagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4338ca',
+  },
+  servicePrice: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#10b981',
+  },
+  selectedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#c7d2fe',
+    backgroundColor: '#eef2ff',
+  },
+  selectedIndicatorText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4f46e5',
+  },
+  noServicesBox: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  noServicesText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginTop: 8,
+  },
+  serviceImagePreviewOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  serviceImagePreviewBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+  },
+  serviceImagePreviewContainer: {
+    width: '90%',
+    height: '60%',
+  },
+  serviceImagePreviewFull: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  serviceImagePreviewClose: {
+    position: 'absolute',
+    top: -40,
+    right: 0,
+    padding: 8,
   },
 });

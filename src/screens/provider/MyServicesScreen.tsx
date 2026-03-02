@@ -8,6 +8,7 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { serviceService, Service, orderService, Order } from '../../services/api';
 import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType, PhotoQuality } from 'react-native-image-picker';
 import { formatPrice } from '../../utils/formatters';
+import { useToast } from '../../contexts/ToastContext';
 import React from 'react';
 
 const categories = [
@@ -19,6 +20,7 @@ export default function MyServicesScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
+  const { showSuccess, showError } = useToast();
 
   const [services, setServices] = useState<Service[]>([]);
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
@@ -69,7 +71,7 @@ export default function MyServicesScreen() {
       setServices(response.data);
     } catch (error: any) {
       console.error('Erro ao carregar serviços:', error);
-      Alert.alert('Erro', 'Não foi possível carregar seus serviços');
+      showError('Não foi possível carregar seus serviços');
     } finally {
       setLoading(false);
     }
@@ -108,7 +110,7 @@ export default function MyServicesScreen() {
 
   const selectImageSource = () => {
     if (serviceImages.length >= 5) {
-      Alert.alert('Limite atingido', 'Você pode adicionar no máximo 5 imagens por serviço.');
+      showError('Você pode adicionar no máximo 5 imagens por serviço.');
       return;
     }
 
@@ -149,7 +151,7 @@ export default function MyServicesScreen() {
   const openCamera = async () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) {
-      Alert.alert('Permissão negada', 'Permissão da câmera é necessária para tirar fotos.');
+      showError('Permissão da câmera é necessária para tirar fotos.');
       return;
     }
 
@@ -264,7 +266,7 @@ export default function MyServicesScreen() {
       );
     } catch (error: any) {
       console.error('Erro ao alterar status:', error);
-      Alert.alert('Erro', 'Não foi possível alterar o status do serviço');
+      showError('Não foi possível alterar o status do serviço');
     }
   };
 
@@ -296,10 +298,10 @@ export default function MyServicesScreen() {
             try {
               await serviceService.deleteService(serviceId);
               setServices(prevServices => prevServices.filter(service => service.id !== serviceId));
-              Alert.alert('Sucesso', 'Serviço excluído com sucesso!');
+              showSuccess('Serviço excluído com sucesso!');
             } catch (error: any) {
               console.error('Erro ao excluir serviço:', error);
-              Alert.alert('Erro', 'Não foi possível excluir o serviço');
+              showError('Não foi possível excluir o serviço');
             }
           }
         }
@@ -323,13 +325,13 @@ export default function MyServicesScreen() {
 
   const handleAddNewService = async () => {
     if (!newService.title || !newService.description || !newService.price || !newService.category) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios');
+      showError('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
     const price = parseCurrencyInput(newService.price);
     if (isNaN(price) || price <= 0) {
-      Alert.alert('Erro', 'Por favor, insira um preço válido');
+      showError('Por favor, insira um preço válido');
       return;
     }
 
@@ -360,7 +362,7 @@ export default function MyServicesScreen() {
           )
         );
 
-        Alert.alert('Sucesso', 'Serviço atualizado com sucesso!');
+        showSuccess('Serviço atualizado com sucesso!');
         await loadMyServices();
       } else {
         const response = await serviceService.createService({
@@ -373,7 +375,7 @@ export default function MyServicesScreen() {
         });
 
         setServices(prevServices => [...prevServices, response.data]);
-        Alert.alert('Sucesso', 'Serviço criado com sucesso!');
+        showSuccess('Serviço criado com sucesso!');
       }
 
       setShowNewServiceModal(false);
@@ -382,7 +384,7 @@ export default function MyServicesScreen() {
       setEditingServiceId(0);
     } catch (error: any) {
       console.error('Erro ao salvar serviço:', error);
-      Alert.alert('Erro', 'Não foi possível salvar o serviço');
+      showError('Não foi possível salvar o serviço');
     }
   };
 
@@ -409,7 +411,7 @@ export default function MyServicesScreen() {
       onScroll={handleScroll}
       scrollEventThrottle={16}
     >
-      
+
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.title}>Meus Serviços</Text>
@@ -424,7 +426,7 @@ export default function MyServicesScreen() {
       </View>
 
       <View style={styles.content}>
-        
+
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>Resumo</Text>
           <View style={styles.statsRow}>
@@ -449,7 +451,7 @@ export default function MyServicesScreen() {
           </View>
         </View>
 
-        
+
         {activeOrders.length > 0 && (
           <View style={{ marginBottom: 20 }}>
             <Text style={styles.sectionTitle}>
@@ -492,7 +494,7 @@ export default function MyServicesScreen() {
           </View>
         )}
 
-        
+
         <View style={styles.servicesList}>
           {services.map((service) => (
             <View key={service.id} style={[styles.serviceCard, { borderLeftColor: getStatusBorderColor(service.status) }]}>
@@ -515,7 +517,7 @@ export default function MyServicesScreen() {
                 </Text>
               </View>
 
-              
+
               <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={styles.editButton}
@@ -546,7 +548,7 @@ export default function MyServicesScreen() {
           ))}
         </View>
 
-        
+
         {services.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Nenhum serviço cadastrado</Text>
@@ -557,7 +559,7 @@ export default function MyServicesScreen() {
         )}
       </View>
 
-      
+
       <Modal
         visible={showNewServiceModal}
         animationType="slide"
@@ -588,9 +590,9 @@ export default function MyServicesScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: extraScrollHeight }}
           >
-            
+
             <View style={styles.formSection}>
-              
+
               <Text style={[styles.fieldLabel, { marginBottom: 0 }]}>Fotos do Serviço ({serviceImages.length}/5)</Text>
               <Text style={styles.imageHint}>
                 Adicione fotos para mostrar melhor seu serviço
@@ -743,7 +745,7 @@ export default function MyServicesScreen() {
               </View>
             </View>
 
-            
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -769,7 +771,7 @@ export default function MyServicesScreen() {
       </Modal>
     </ScrollView>
 
-    
+
     <Modal
       visible={previewModalVisible}
       transparent={true}
@@ -817,7 +819,7 @@ export default function MyServicesScreen() {
       </View>
     </Modal>
 
-    
+
     <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );
