@@ -9,7 +9,6 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { orderService } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
 
-// Navigation types
 type RootStackParamList = {
   AuctionsTab: {
     screen: string;
@@ -24,7 +23,6 @@ type RootStackParamList = {
 
 type ProviderSearchScreenNavigationProp = NavigationProp<RootStackParamList>;
 
-// TypeScript interfaces
 interface Category {
   id: string;
   name: string;
@@ -41,7 +39,6 @@ interface Demand {
   _raw?: any;
 }
 
-// Mock data for example
 const mockCategories: Category[] = [
   { id: '1', name: 'Limpeza', icon: 'cleaning-services' },
   { id: '2', name: 'Reparos', icon: 'build' },
@@ -57,7 +54,6 @@ const mockCategories: Category[] = [
   { id: '12', name: 'Outros', icon: 'more-horiz' },
 ];
 
-
 export default function ProviderSearchScreen() {
   const navigation = useNavigation<ProviderSearchScreenNavigationProp>();
   const insets = useSafeAreaInsets();
@@ -68,7 +64,6 @@ export default function ProviderSearchScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Busca no backend com debounce de 500ms
   useEffect(() => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
@@ -117,7 +112,6 @@ export default function ProviderSearchScreen() {
   }, [searchQuery]);
 
   const handleCategoryPress = (category: Category) => {
-    // Navigate to auctions screen with category filter
     navigation.navigate('AuctionsTab', {
       screen: 'ProviderAuction',
       params: {
@@ -243,7 +237,7 @@ export default function ProviderSearchScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Buscar Demandas</Text>
 
-        {/* Search Bar */}
+        
         <View style={styles.searchContainer}>
           <Icon name="search" size={24} color="#9ca3af" />
           <TextInput
@@ -260,7 +254,7 @@ export default function ProviderSearchScreen() {
           )}
         </View>
 
-        {/* Search Results */}
+        
         {(loading || showSearchResults) && (
           <View style={styles.searchResultsContainer}>
             <View style={styles.searchResultsHeader}>
@@ -278,7 +272,7 @@ export default function ProviderSearchScreen() {
           </View>
         )}
 
-        {/* Categories - only shows when there's no active search */}
+        
         {!showSearchResults && !loading && (
           <View style={styles.categoriesContainer}>
             <Text style={styles.categoriesTitle}>Categorias</Text>
@@ -300,7 +294,7 @@ export default function ProviderSearchScreen() {
           </View>
         )}
 
-        {/* Information - only shows when there's no active search */}
+        
         {!showSearchResults && !loading && (
           <View style={styles.infoContainer}>
             <Text style={styles.infoTitle}><Lightbulb size={16} color="#f59e0b" /> Como funciona?</Text>
@@ -314,7 +308,7 @@ export default function ProviderSearchScreen() {
           </View>
         )}
 
-        {/* Button to view all demands - only shows when there's no active search */}
+        
         {!showSearchResults && !loading && (
           <TouchableOpacity
             style={styles.viewAllButton}
@@ -328,13 +322,12 @@ export default function ProviderSearchScreen() {
       </View>
       </ScrollView>
 
-      {/* Status Bar Overlay */}
+      
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }
 
-// StyleSheet definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,

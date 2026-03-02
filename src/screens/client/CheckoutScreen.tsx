@@ -91,7 +91,7 @@ export default function CheckoutScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Confirmar Proposta</Text>
 
-        {/* Provider Info */}
+        
         <View style={styles.providerCard}>
           <View style={styles.providerRow}>
             {proposal.provider.avatar || proposal.provider.avatarUri ? (
@@ -119,7 +119,7 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {/* Proposal Details */}
+        
         <View style={styles.proposalCard}>
           <Text style={styles.sectionTitle}>Detalhes da Proposta</Text>
 
@@ -146,7 +146,7 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
-        {/* Actions */}
+        
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             accessibilityLabel="Confirmar proposta"
@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Provider card
   providerCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
@@ -271,7 +270,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4f46e5',
   },
-  // Proposal card
   proposalCard: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
@@ -337,7 +335,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  // Actions
   actionsContainer: {
     gap: 12,
   },

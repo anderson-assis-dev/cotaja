@@ -25,18 +25,14 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     clearData
   } = usePushNotification();
 
-  /**
-   * Register device token with backend when user is authenticated
-   */
+  
   useEffect(() => {
     if (user && deviceToken && isInitialized) {
       registerDeviceWithBackend();
     }
   }, [user, deviceToken, isInitialized]);
 
-  /**
-   * Register device token with backend
-   */
+  
   const registerDeviceWithBackend = async () => {
     try {
       const deviceInfo = getDeviceInfo();
@@ -44,11 +40,10 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
 
       console.log('Registering device with backend:', deviceInfo);
 
-      // You can implement this endpoint in your backend
       const response = await api.post('/user/register-device', {
         fcm_token: deviceInfo.token,
         device_platform: deviceInfo.platform,
-        app_version: '1.0.0', // You can get this from package.json
+        app_version: '1.0.0',
       });
 
       if (response.data.success) {
@@ -59,9 +54,7 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     }
   };
 
-  /**
-   * Handle different notification types
-   */
+  
   const handleNotificationReceived = (type: string, data: any) => {
     console.log('Handling notification:', type, data);
 
@@ -70,7 +63,6 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
         if (handlers?.onNewProposal) {
           handlers.onNewProposal(data);
         } else {
-          // Default handling
           Alert.alert(
             'Nova Proposta',
             'Você recebeu uma nova proposta!',
@@ -120,9 +112,7 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     }
   };
 
-  /**
-   * Send notification to specific user
-   */
+  
   const sendNotificationToUser = async (userId: string, title: string, message: string, data?: any) => {
     try {
       const response = await api.post('/notifications/push/user', {
@@ -140,12 +130,9 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     }
   };
 
-  /**
-   * Send notification to multiple users
-   */
+  
   const sendBulkNotification = async (userIds: string[], title: string, message: string, data?: any) => {
     try {
-      // You would need to implement this endpoint to get device tokens for multiple users
       const response = await api.post('/notifications/push/bulk-users', {
         user_ids: userIds,
         title,
@@ -161,9 +148,7 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     }
   };
 
-  /**
-   * Request notification permission if not granted
-   */
+  
   const requestPermissionIfNeeded = async () => {
     if (permissionStatus === 'denied' || permissionStatus === 'not_determined') {
       Alert.alert(
@@ -174,7 +159,7 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
           {
             text: 'Permitir',
             onPress: async () => {
-              await refreshToken(); // This will trigger permission request
+              await refreshToken();
             }
           }
         ]
@@ -182,9 +167,7 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     }
   };
 
-  /**
-   * Get notification settings info
-   */
+  
   const getNotificationInfo = () => {
     return {
       isEnabled: permissionStatus === 'authorized' || permissionStatus === 'provisional',
@@ -195,13 +178,10 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
     };
   };
 
-  /**
-   * Disable notifications (clear token from backend)
-   */
+  
   const disableNotifications = async () => {
     try {
       if (deviceToken) {
-        // Call backend to remove device token
         await api.delete('/user/remove-device', {
           data: { fcm_token: deviceToken }
         });
@@ -217,13 +197,11 @@ export const usePushNotifications = (handlers?: NotificationHandlers) => {
   };
 
   return {
-    // State
     isInitialized,
     deviceToken,
     permissionStatus,
     isLoading,
 
-    // Methods
     initializeService,
     sendTestNotification,
     refreshToken,

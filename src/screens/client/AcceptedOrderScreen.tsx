@@ -13,6 +13,7 @@ import {
   chatService, orderActionService, orderService,
   Message, Order
 } from '../../services/api';
+import { SkeletonBlock } from '../../components/Skeleton';
 
 type RouteParams = {
   AcceptedOrder: { orderId: number };
@@ -20,7 +21,6 @@ type RouteParams = {
 
 type TabType = 'chat' | 'schedule' | 'info';
 
-// Extended message type for optimistic UI
 interface LocalMessage extends Message {
   _status?: 'sending' | 'sent' | 'read';
   _tempId?: string;
@@ -45,7 +45,6 @@ export default function AcceptedOrderScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  // Schedule state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -55,7 +54,6 @@ export default function AcceptedOrderScreen() {
   const isClient = user?.id === order?.client_id;
   const isProvider = user?.id === order?.provider_id;
 
-  // Keep status bar icons white over the blue header
   useEffect(() => {
     StatusBar.setBarStyle('light-content', true);
     return () => StatusBar.setBarStyle('dark-content', true);
@@ -80,7 +78,6 @@ export default function AcceptedOrderScreen() {
           ...msg,
           _status: msg.read_at ? 'read' : 'sent',
         }));
-        // Merge: keep optimistic (sending) messages that aren't yet confirmed
         setMessages(prev => {
           const sendingMsgs = prev.filter(m => m._status === 'sending');
           const serverIds = new Set(serverMessages.map(m => m.id));
@@ -102,14 +99,12 @@ export default function AcceptedOrderScreen() {
     if (orderId) init();
   }, [orderId, loadOrder, loadMessages]);
 
-  // Refresh messages every 10 seconds when on chat tab
   useEffect(() => {
     if (activeTab !== 'chat') return;
     const interval = setInterval(loadMessages, 10000);
     return () => clearInterval(interval);
   }, [activeTab, loadMessages]);
 
-  // Refresh order when returning to screen
   useFocusEffect(
     useCallback(() => {
       if (orderId) {
@@ -125,9 +120,8 @@ export default function AcceptedOrderScreen() {
     const text = messageText.trim();
     const tempId = `temp_${Date.now()}`;
 
-    // Optimistic: add message instantly
     const optimisticMessage: LocalMessage = {
-      id: Date.now(), // temporary id
+      id: Date.now(),
       order_id: orderId,
       sender_id: String(user?.id),
       receiver_id: '',
@@ -146,7 +140,6 @@ export default function AcceptedOrderScreen() {
     try {
       const response = await chatService.sendMessage(orderId, text);
       if (response.success) {
-        // Replace optimistic message with real one
         setMessages(prev =>
           prev.map(m =>
             m._tempId === tempId
@@ -157,7 +150,6 @@ export default function AcceptedOrderScreen() {
       }
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível enviar a mensagem.');
-      // Remove optimistic message and restore text
       setMessages(prev => prev.filter(m => m._tempId !== tempId));
       setMessageText(text);
     } finally {
@@ -241,9 +233,34 @@ export default function AcceptedOrderScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={{ color: '#6b7280', marginTop: 12 }}>Carregando...</Text>
+      <View style={[styles.container, { flex: 1 }]}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <SkeletonBlock width={24} height={24} borderRadius={12} style={{ opacity: 0.4 }} />
+          <View style={{ flex: 1, marginHorizontal: 12, gap: 6 }}>
+            <SkeletonBlock width="60%" height={16} borderRadius={6} style={{ opacity: 0.4 }} />
+            <SkeletonBlock width="40%" height={12} borderRadius={5} style={{ opacity: 0.3 }} />
+          </View>
+          <SkeletonBlock width={80} height={24} borderRadius={12} style={{ opacity: 0.3 }} />
+        </View>
+        <View style={styles.tabBar}>
+          {[0, 1, 2].map(i => (
+            <View key={i} style={styles.tab}>
+              <SkeletonBlock width={60} height={14} borderRadius={6} />
+            </View>
+          ))}
+        </View>
+        <View style={{ flex: 1, padding: 16, gap: 10, justifyContent: 'flex-end' }}>
+          <SkeletonBlock width="55%" height={44} borderRadius={16} style={{ alignSelf: 'flex-start' }} />
+          <SkeletonBlock width="65%" height={44} borderRadius={16} style={{ alignSelf: 'flex-end' }} />
+          <SkeletonBlock width="45%" height={44} borderRadius={16} style={{ alignSelf: 'flex-start' }} />
+          <SkeletonBlock width="70%" height={60} borderRadius={16} style={{ alignSelf: 'flex-end' }} />
+          <SkeletonBlock width="50%" height={44} borderRadius={16} style={{ alignSelf: 'flex-start' }} />
+          <SkeletonBlock width="60%" height={44} borderRadius={16} style={{ alignSelf: 'flex-end' }} />
+        </View>
+        <View style={[styles.chatInputContainer, { paddingBottom: insets.bottom + 8 }]}>
+          <SkeletonBlock width="82%" height={42} borderRadius={20} />
+          <SkeletonBlock width={42} height={42} borderRadius={21} />
+        </View>
       </View>
     );
   }
@@ -293,7 +310,6 @@ export default function AcceptedOrderScreen() {
   const renderMessage = ({ item }: { item: LocalMessage }) => {
     const isMe = String(item.sender_id) === String(user?.id);
 
-    // Colors adapt to bubble background: purple (mine) or white (other)
     const iconColor = isMe ? 'rgba(255,255,255,0.75)' : '#9ca3af';
     const readColor = isMe ? '#c7d2fe' : '#6366f1';
 
@@ -375,7 +391,7 @@ export default function AcceptedOrderScreen() {
 
   const renderScheduleTab = () => (
     <ScrollView style={styles.scheduleContainer} contentContainerStyle={{ padding: 20 }}>
-      {/* Current schedule status */}
+
       {order?.scheduled_date ? (
         <View style={styles.scheduleCard}>
           <View style={styles.scheduleHeader}>
@@ -439,7 +455,7 @@ export default function AcceptedOrderScreen() {
         </View>
       )}
 
-      {/* Propose new schedule */}
+
       <View style={styles.proposeScheduleCard}>
         <Text style={styles.proposeTitle}>
           {order?.scheduled_date ? 'Propor Nova Data' : 'Agendar Serviço'}
@@ -581,7 +597,7 @@ export default function AcceptedOrderScreen() {
 
   const renderInfoTab = () => (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
-      {/* Order info */}
+
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>{order?.title}</Text>
         <Text style={styles.infoCategory}>{order?.category}</Text>
@@ -601,7 +617,7 @@ export default function AcceptedOrderScreen() {
         </View>
       </View>
 
-      {/* Other party info */}
+
       <View style={styles.infoCard}>
         <Text style={styles.infoSectionTitle}>{isClient ? 'Prestador' : 'Cliente'}</Text>
         <View style={styles.partyRow}>
@@ -616,7 +632,7 @@ export default function AcceptedOrderScreen() {
         </View>
       </View>
 
-      {/* Cancel button */}
+
       <TouchableOpacity style={styles.cancelOrderBtn} onPress={() => setShowCancelModal(true)}>
         <Icon name="cancel" size={20} color="#ef4444" />
         <Text style={styles.cancelOrderBtnText}>Cancelar Pedido</Text>
@@ -630,7 +646,7 @@ export default function AcceptedOrderScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
-      {/* Header */}
+
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#ffffff" />
@@ -644,7 +660,7 @@ export default function AcceptedOrderScreen() {
         </View>
       </View>
 
-      {/* Tabs */}
+
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'chat' && styles.activeTab]}
@@ -669,12 +685,12 @@ export default function AcceptedOrderScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Tab content */}
+
       {activeTab === 'chat' && renderChatTab()}
       {activeTab === 'schedule' && renderScheduleTab()}
       {activeTab === 'info' && renderInfoTab()}
 
-      {/* Cancel Modal */}
+
       <Modal visible={showCancelModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -726,7 +742,6 @@ const styles = StyleSheet.create({
   backBtn: { backgroundColor: '#3b82f6', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, marginTop: 16 },
   backBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  // Header
   header: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 14,
     backgroundColor: '#4f46e5',
@@ -736,7 +751,6 @@ const styles = StyleSheet.create({
   statusBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   statusText: { fontSize: 12, fontWeight: '600', color: '#ffffff' },
 
-  // Tabs
   tabBar: {
     flexDirection: 'row', backgroundColor: '#ffffff',
     borderBottomWidth: 1, borderBottomColor: '#e5e7eb',
@@ -749,7 +763,6 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 14, color: '#9ca3af', fontWeight: '500' },
   activeTabText: { color: '#4f46e5', fontWeight: '600' },
 
-  // Chat
   chatList: { flex: 1 },
   chatContent: { padding: 16, flexGrow: 1, justifyContent: 'flex-end' },
   messageBubble: { maxWidth: '80%', marginBottom: 8, borderRadius: 16, padding: 12 },
@@ -783,7 +796,6 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: { backgroundColor: '#c7d2fe' },
 
-  // Schedule
   scheduleContainer: { flex: 1 },
   scheduleCard: {
     backgroundColor: '#ffffff', borderRadius: 12, padding: 20,
@@ -828,7 +840,6 @@ const styles = StyleSheet.create({
   },
   proposeBtnText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 
-  // Info
   infoCard: {
     backgroundColor: '#ffffff', borderRadius: 12, padding: 20, marginBottom: 16,
     elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
@@ -857,7 +868,6 @@ const styles = StyleSheet.create({
   },
   cancelOrderBtnText: { fontSize: 16, fontWeight: '600', color: '#ef4444' },
 
-  // Date/Time Picker Modal (iOS)
   pickerModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -894,7 +904,6 @@ const styles = StyleSheet.create({
     color: '#4f46e5',
   },
 
-  // Cancel Modal
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end',
   },

@@ -16,7 +16,6 @@ import { FileViewer } from '../../components/FileViewer';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment, isDocumentAttachment } from '../../utils/attachmentHelpers';
 import { OrderListSkeleton } from '../../components/Skeleton';
 
-// Tipos TypeScript (compartilhados com OrderDetailsScreen)
 interface Proposal {
   id: string;
   provider: {
@@ -60,7 +59,6 @@ interface Order {
   attachments?: Attachment[];
 }
 
-// Função para converter dados da API para o formato da interface
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
   const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => {
     const avatarUri = proposal.provider_avatar_base64 || proposal.provider?.avatar_base64 || null;
@@ -247,7 +245,6 @@ export default function MyOrdersHomeScreen() {
     }
   }, [fromLeiloes, selectedCategory, user?.id]);
 
-  // Recarregar pedidos ao voltar para esta tela (ex: retorno do chat)
   useFocusEffect(
     useCallback(() => {
       if (user?.id && !loading) {
@@ -292,19 +289,16 @@ export default function MyOrdersHomeScreen() {
     );
   };
 
-  // Função para cliente pausar/retomar pedido (otimista — UI atualiza instantaneamente)
   const handleToggleStopOrder = async (orderId: string) => {
     const isStopped = selectedOrder?.status === 'Pausado';
     const newStatus = isStopped ? 'Aguardando propostas' : 'Pausado';
 
-    // Atualização otimista — muda o UI imediatamente
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
     }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     showSuccess(isStopped ? 'Pedido ativado!' : 'Pedido pausado!');
 
-    // Dispara API em background
     orderService.toggleStopOrder(parseInt(orderId)).then(response => {
       if (!response.success) {
         const revertStatus = isStopped ? 'Pausado' : 'Aguardando propostas';
@@ -320,7 +314,6 @@ export default function MyOrdersHomeScreen() {
     });
   };
 
-  // Função para excluir pedido
   const handleDeleteOrder = (orderId: string) => {
     Alert.alert(
       'Excluir Pedido',
@@ -360,8 +353,6 @@ export default function MyOrdersHomeScreen() {
     }
   };
 
-  // getRankingIcon replaced by Lucide Trophy icons
-
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'Em andamento': return styles.statusInProgress;
@@ -386,7 +377,6 @@ export default function MyOrdersHomeScreen() {
     return 'Acompanhe seus pedidos e propostas recebidas';
   };
 
-  // Loading state
   if (loading) {
     return (
       <View style={styles.container}>
@@ -402,7 +392,6 @@ export default function MyOrdersHomeScreen() {
     );
   }
 
-  // Usuário não autenticado
   if (!user?.id) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
@@ -413,7 +402,6 @@ export default function MyOrdersHomeScreen() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
@@ -540,7 +528,7 @@ export default function MyOrdersHomeScreen() {
         forceLight
       />
 
-      {/* Modal de Detalhes */}
+      
       <Modal
         visible={showDetails}
         animationType="slide"
@@ -556,7 +544,7 @@ export default function MyOrdersHomeScreen() {
 
           {selectedOrder && (
             <ScrollView style={styles.modalContent}>
-              {/* Informações do Pedido */}
+              
               <View style={styles.orderInfoCard}>
                 <View style={styles.orderInfoHeader}>
                   <Text style={styles.orderInfoTitle}>{selectedOrder.title}</Text>
@@ -591,7 +579,7 @@ export default function MyOrdersHomeScreen() {
                   <Text style={styles.modalLocationText}>{selectedOrder.location}</Text>
                 </View>
 
-                {/* Botões de Ação do Pedido */}
+                
                 <View style={styles.orderActionsContainer}>
                   <TouchableOpacity
                     style={[
@@ -632,7 +620,7 @@ export default function MyOrdersHomeScreen() {
                 </View>
               </View>
 
-              {/* Anexos do Pedido */}
+              
               <View style={styles.attachmentsSection}>
                 <Text style={styles.attachmentsSectionTitle}>
                   <Icon name="attach-file" size={20} color="#4f46e5" /> Anexos ({selectedOrder.attachments?.length || 0})
@@ -757,7 +745,7 @@ export default function MyOrdersHomeScreen() {
                 )}
               </View>
 
-              {/* Seção de Propostas ou Gerenciamento do Pedido */}
+              
               {selectedOrder.status === 'Em andamento' ? (
                 <TouchableOpacity
                   style={{
@@ -795,7 +783,7 @@ export default function MyOrdersHomeScreen() {
                 </View>
               ) : (
                 <>
-                  {/* Ranking das Propostas */}
+                  
                   {selectedOrder.proposals.length > 0 ? (
                     <View style={styles.proposalsBox}>
                       <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
@@ -887,7 +875,7 @@ export default function MyOrdersHomeScreen() {
                 </>
               )}
 
-              {/* Ícone para cliente pausar/ativar pedido */}
+              
               {(selectedOrder.status === 'Aguardando propostas' || selectedOrder.status === 'Pausado') && (
                 <TouchableOpacity
                   style={styles.closeOrderButton}
@@ -907,7 +895,7 @@ export default function MyOrdersHomeScreen() {
           )}
         </View>
 
-        {/* Avatar Viewer - inside modal for proper iOS stacking */}
+        
         {avatarViewerVisible && avatarViewerImage ? (
           <ImageViewer
             visible={true}
@@ -917,7 +905,7 @@ export default function MyOrdersHomeScreen() {
           />
         ) : null}
 
-        {/* Attachment Image Viewer with zoom - inside modal for proper iOS stacking */}
+        
         {imageViewerVisible && selectedOrder && (() => {
           const imageAttachments = (selectedOrder.attachments || [])
             .filter(isImageAttachment)
@@ -934,7 +922,7 @@ export default function MyOrdersHomeScreen() {
           ) : null;
         })()}
 
-        {/* File Viewer for videos and documents - inside modal */}
+        
         <FileViewer
           visible={fileViewerVisible}
           url={fileViewerUrl}
@@ -1211,7 +1199,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: 'white',

@@ -16,7 +16,6 @@ import { FileViewer } from '../../components/FileViewer';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 import { OrderListSkeleton } from '../../components/Skeleton';
 
-// Tipos TypeScript
 interface Proposal {
   id: string;
   provider: {
@@ -60,9 +59,7 @@ interface Order {
   attachments?: Attachment[];
 }
 
-// Função para converter dados da API para o formato da interface
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
-  // Converter propostas da API para o formato da interface
   const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => {
     const avatarUri = proposal.provider_avatar_base64 || proposal.provider?.avatar_base64 || null;
     console.log(`[OrderDetails] Proposal ${proposal.id} - provider_name: ${proposal.provider_name}, has provider obj: ${!!proposal.provider}, provider_avatar_base64: ${avatarUri ? avatarUri.substring(0, 50) + '...' : 'null'}`);
@@ -70,7 +67,7 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     id: proposal.id.toString(),
     provider: {
       name: proposal.provider?.name || proposal.provider_name || 'Prestador',
-      rating: 4.5, // Valor padrão, ajustar conforme necessário
+      rating: 4.5,
       avatar: avatarUri ? { uri: avatarUri } : null,
       avatarUri: avatarUri,
     },
@@ -81,15 +78,12 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
   };
   }) || [];
 
-  // Determinar se tem leilão ativo
   const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at &&
     new Date() >= new Date(apiOrder.auction_started_at) &&
     new Date() <= new Date(apiOrder.auction_ends_at));
 
-  // Determinar se é nova demanda (pedido recente sem propostas)
   const isNewDemand = apiOrder.status === 'open' && proposals.length === 0;
 
-  // Converter status da API para português
   const getStatusInPortuguese = (status: string): string => {
     switch (status) {
       case 'open': return 'Aguardando propostas';
@@ -101,7 +95,6 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     }
   };
 
-  // Gerar insights baseados nos dados
   const generateInsights = (apiOrder: ApiOrder, proposals: Proposal[]): string[] => {
     const insights: string[] = [];
 
@@ -119,17 +112,14 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     return insights;
   };
 
-  // Tratar budget - pode vir como string ou number
   const budgetValue = typeof apiOrder.budget === 'string'
     ? parseFloat(apiOrder.budget)
     : (apiOrder.budget || 0);
 
-  // Tratar deadline - pode vir como string ou number
   const deadlineValue = typeof apiOrder.deadline === 'string'
     ? parseInt(apiOrder.deadline)
     : (apiOrder.deadline || 0);
 
-  // Processar anexos
   let attachments: Attachment[] = [];
   if (apiOrder.attachments) {
     try {
@@ -137,7 +127,6 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       console.log('📎 Tipo de attachments:', typeof apiOrder.attachments);
       console.log('📎 Valor de attachments:', apiOrder.attachments);
 
-      // Se attachments for string JSON, parsear
       const attachmentsData = typeof apiOrder.attachments === 'string'
         ? JSON.parse(apiOrder.attachments)
         : apiOrder.attachments;
@@ -165,7 +154,7 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
     location: apiOrder.address || 'Local não informado',
-    clientRating: 4.8, // Valor padrão, ajustar conforme necessário
+    clientRating: 4.8,
     proposals,
     insights: generateInsights(apiOrder, proposals),
     clientId: apiOrder.client_id?.toString() || '0',
@@ -173,7 +162,6 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     isNewDemand,
     attachments,
   };
-
 
   return convertedOrder;
 };
@@ -203,13 +191,11 @@ export default function OrderDetailsScreen() {
   const [fileViewerTitle, setFileViewerTitle] = useState('');
   const [fileViewerMime, setFileViewerMime] = useState('');
 
-  // Recebe parâmetros da navegação
   const profileType = (route.params as any)?.profileType || 'client';
   const clientId = user?.id?.toString() || (route.params as any)?.clientId || '1';
   const selectedCategory = (route.params as any)?.selectedCategory;
   const fromLeiloes = (route.params as any)?.fromLeiloes || false;
 
-  // Buscar pedidos da API
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -217,22 +203,18 @@ export default function OrderDetailsScreen() {
 
       let params: any = {};
 
-      // Se veio da tela de leilões, filtrar apenas pedidos em andamento
       if (fromLeiloes) {
         params.status = 'in_progress';
       }
 
-      // Aplicar filtro por categoria se selecionada
       if (selectedCategory) {
         params.category = selectedCategory;
       }
-
 
       const response = await orderService.getOrders(params);
 
       if (response.success) {
 
-        // Verificar se a estrutura está correta
         if (!response.data.data || !Array.isArray(response.data.data)) {
           setOrders([]);
           return;
@@ -240,12 +222,10 @@ export default function OrderDetailsScreen() {
 
         const convertedOrders = response.data.data.map((apiOrder: any, index: number) => {
 
-
           try {
             return convertApiOrderToOrder(apiOrder);
           } catch (error) {
             console.error('❌ Erro ao converter pedido:', apiOrder.id, error);
-            // Retornar um pedido padrão em caso de erro
             return {
               id: apiOrder.id?.toString() || '0',
               title: apiOrder.title || 'Pedido sem título',
@@ -277,7 +257,6 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  // Carregar pedidos quando o componente montar
   useEffect(() => {
     if (user?.id) {
       fetchOrders();
@@ -286,7 +265,6 @@ export default function OrderDetailsScreen() {
     }
   }, [fromLeiloes, selectedCategory, user?.id]);
 
-  // Recarregar pedidos ao voltar para esta tela (ex: retorno do chat)
   useFocusEffect(
     useCallback(() => {
       if (user?.id && !loading) {
@@ -295,23 +273,19 @@ export default function OrderDetailsScreen() {
     }, [user?.id, fromLeiloes, selectedCategory])
   );
 
-  // Filtra os pedidos conforme o tipo de usuário e categoria
   let filteredOrders = profileType === 'client'
     ? orders.filter(o => o.clientId === clientId)
     : orders;
 
-  // Remove pedidos encerrados
   filteredOrders = filteredOrders.filter(
     (order) => !closedOrders.includes(order.id)
   );
-
 
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
     setShowDetails(true);
   };
 
-  // Função para recusar proposta
   const handleRefuseProposal = (orderId: string, proposalId: string) => {
     Alert.alert(
       'Recusar Proposta',
@@ -322,8 +296,6 @@ export default function OrderDetailsScreen() {
           text: 'Recusar', style: 'destructive',
           onPress: async () => {
             try {
-              // Aqui você pode implementar a chamada da API para recusar proposta
-              // await proposalService.rejectProposal(parseInt(proposalId));
 
               setRefusedProposals((prev) => ({
                 ...prev,
@@ -338,29 +310,24 @@ export default function OrderDetailsScreen() {
     );
   };
 
-  // Função para cliente pausar/retomar pedido (otimista — UI atualiza instantaneamente)
   const handleToggleStopOrder = async (orderId: string) => {
     const isStopped = selectedOrder?.status === 'Pausado';
     const newStatus = isStopped ? 'Aguardando propostas' : 'Pausado';
 
-    // Atualização otimista — muda o UI imediatamente
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
     }
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     showSuccess(isStopped ? 'Pedido ativado!' : 'Pedido pausado!');
 
-    // Dispara API em background
     orderService.toggleStopOrder(parseInt(orderId)).then(response => {
       if (!response.success) {
-        // Reverter em caso de erro
         const revertStatus = isStopped ? 'Pausado' : 'Aguardando propostas';
         setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: revertStatus } : prev);
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: revertStatus } : o));
         showError(response.message || 'Erro ao alterar status do pedido');
       }
     }).catch((error: any) => {
-      // Reverter em caso de erro
       const revertStatus = isStopped ? 'Pausado' : 'Aguardando propostas';
       setSelectedOrder(prev => prev && prev.id === orderId ? { ...prev, status: revertStatus } : prev);
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: revertStatus } : o));
@@ -368,7 +335,6 @@ export default function OrderDetailsScreen() {
     });
   };
 
-  // Função para excluir pedido
   const handleDeleteOrder = (orderId: string) => {
     Alert.alert(
       'Excluir Pedido',
@@ -432,7 +398,6 @@ export default function OrderDetailsScreen() {
     return 'Acompanhe seus pedidos e propostas recebidas';
   };
 
-  // Loading state
   if (loading) {
     return (
       <View style={styles.container}>
@@ -448,7 +413,6 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  // Usuário não autenticado
   if (!user?.id) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
@@ -463,7 +427,6 @@ export default function OrderDetailsScreen() {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
@@ -602,14 +565,14 @@ export default function OrderDetailsScreen() {
         forceLight
       />
 
-      {/* Modal de Detalhes */}
+
       <Modal
         visible={showDetails}
         animationType="slide"
         presentationStyle="pageSheet"
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalHeader,{paddingTop:insets.top+16}]}>
+          <View style={[styles.modalHeader,{paddingTop:16}]}>
             <Text style={styles.modalTitle}>Detalhes do Pedido</Text>
             <TouchableOpacity onPress={() => setShowDetails(false)}>
               <Icon name="close" size={24} color="#ffffff" />
@@ -619,7 +582,7 @@ export default function OrderDetailsScreen() {
           {selectedOrder && (
             <ScrollView
               style={styles.modalScroll}
-              contentContainerStyle={[styles.modalContent,{paddingBottom:insets.bottom+24}]}
+              contentContainerStyle={[styles.modalContent,{paddingBottom:insets.bottom+80}]}
             >
               <View style={styles.demandCard}>
                 {(() => {
@@ -741,7 +704,7 @@ export default function OrderDetailsScreen() {
                 </View>
               </View>
 
-              {/* Seção de Propostas ou Gerenciamento do Pedido */}
+
               {selectedOrder.status === 'Em andamento' ? (
                 <TouchableOpacity
                   style={{
@@ -779,7 +742,7 @@ export default function OrderDetailsScreen() {
                 </View>
               ) : (
                 <>
-                  {/* Ranking das Propostas */}
+
                   {selectedOrder.proposals.length > 0 ? (
                     <View style={styles.proposalsBox}>
                       <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
@@ -872,7 +835,7 @@ export default function OrderDetailsScreen() {
                 </>
               )}
 
-              {/* Ícone para cliente pausar/ativar pedido */}
+
               {(selectedOrder.status === 'Aguardando propostas' || selectedOrder.status === 'Pausado') && (
                 <TouchableOpacity
                   style={styles.closeOrderButton}
@@ -892,7 +855,7 @@ export default function OrderDetailsScreen() {
           )}
         </View>
 
-        {/* Image Viewer with zoom - inside modal for proper iOS stacking */}
+
         {imageViewerVisible && selectedOrder && (() => {
           const imageAttachments = (selectedOrder.attachments || [])
             .filter(isImageAttachment)
@@ -909,7 +872,7 @@ export default function OrderDetailsScreen() {
           ) : null;
         })()}
 
-        {/* Avatar Viewer - inside modal for proper iOS stacking */}
+
         {avatarViewerVisible && avatarViewerImage ? (
           <ImageViewer
             visible={true}
@@ -919,7 +882,7 @@ export default function OrderDetailsScreen() {
           />
         ) : null}
 
-        {/* File Viewer for videos and documents - inside modal */}
+
         <FileViewer
           visible={fileViewerVisible}
           url={fileViewerUrl}
@@ -1198,7 +1161,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#f3f4f6',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1206,6 +1169,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 18,
+    backgroundColor: '#4f46e5',
   },
   modalTitle: {
     fontSize: 20,

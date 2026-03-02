@@ -8,7 +8,6 @@ interface SkeletonProps {
   style?: ViewStyle;
 }
 
-/** Bloco individual com animação de pulso */
 export function SkeletonBlock({ width = '100%', height = 16, borderRadius = 8, style }: SkeletonProps) {
   const opacity = useRef(new Animated.Value(0.3)).current;
 
@@ -33,36 +32,35 @@ export function SkeletonBlock({ width = '100%', height = 16, borderRadius = 8, s
   );
 }
 
-/** Skeleton que imita um card de pedido (OrderCard) */
 export function OrderCardSkeleton() {
   return (
     <View style={sk.card}>
-      {/* Título */}
+      
       <SkeletonBlock width="75%" height={20} style={{ marginBottom: 10 }} />
 
-      {/* Status badges row */}
+      
       <View style={[sk.row, { marginBottom: 16, gap: 6 }]}>
         <SkeletonBlock width={28} height={28} borderRadius={14} />
         <SkeletonBlock width={140} height={26} borderRadius={12} />
         <SkeletonBlock width={80} height={26} borderRadius={12} />
       </View>
 
-      {/* Orçamento */}
+      
       <SkeletonBlock width="55%" height={14} style={{ marginBottom: 16 }} />
 
-      {/* Localização */}
+      
       <View style={[sk.row, { marginBottom: 16, gap: 4 }]}>
         <SkeletonBlock width={16} height={16} borderRadius={4} />
         <SkeletonBlock width="80%" height={14} />
       </View>
 
-      {/* Caixa de status de propostas */}
+      
       <View style={sk.proposalBox}>
         <SkeletonBlock width="60%" height={16} style={{ marginBottom: 8 }} />
         <SkeletonBlock width="85%" height={14} />
       </View>
 
-      {/* Footer: prazo + ver detalhes */}
+      
       <View style={[sk.row, { justifyContent: 'space-between' }]}>
         <SkeletonBlock width={100} height={14} />
         <SkeletonBlock width={110} height={14} />
@@ -71,7 +69,6 @@ export function OrderCardSkeleton() {
   );
 }
 
-/** Skeleton para lista de pedidos (cards sem padding extra) */
 export function OrderListSkeleton() {
   return (
     <View>
@@ -82,7 +79,6 @@ export function OrderListSkeleton() {
   );
 }
 
-/** Skeleton para tela de busca (search bar + categorias + cards) */
 export function SearchSkeleton() {
   return (
     <View style={sk.list}>
@@ -109,22 +105,21 @@ export function SearchSkeleton() {
   );
 }
 
-/** Skeleton full-screen que simula a Home screen (header azul + serviços + propostas) */
 export function HomeScreenSkeleton() {
   return (
     <View style={sk.homeContainer}>
-      {/* Fundo azul fixo (50% da tela), igual ao HomeScreen real */}
+      
       <View style={sk.homeHeaderBackground} />
 
-      {/* Header azul */}
+      
       <View style={sk.homeHeader}>
         <SkeletonBlock width="65%" height={26} style={{ marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} borderRadius={6} />
         <SkeletonBlock width="80%" height={15} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} borderRadius={6} />
       </View>
 
-      {/* Content area */}
+      
       <View style={sk.homeContent}>
-        {/* Seção Serviços */}
+        
         <SkeletonBlock width={100} height={22} style={{ marginBottom: 16 }} />
         <View style={sk.homeGrid}>
           {[1, 2, 3, 4].map(i => (
@@ -136,7 +131,7 @@ export function HomeScreenSkeleton() {
           ))}
         </View>
 
-        {/* Seção Últimas Propostas */}
+        
         <SkeletonBlock width={250} height={22} style={{ marginTop: 8, marginBottom: 16 }} />
         <OrderCardSkeleton />
       </View>
@@ -144,21 +139,20 @@ export function HomeScreenSkeleton() {
   );
 }
 
-/** Skeleton full-screen que simula a Home do Prestador (stats + serviços + próximos) */
 export function ProviderHomeScreenSkeleton() {
   return (
     <View style={sk.homeContainer}>
       <View style={sk.homeHeaderBackground} />
 
-      {/* Header azul */}
+      
       <View style={sk.homeHeader}>
         <SkeletonBlock width="55%" height={26} style={{ marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} borderRadius={6} />
         <SkeletonBlock width="72%" height={15} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} borderRadius={6} />
       </View>
 
-      {/* Content area */}
+      
       <View style={sk.homeContent}>
-        {/* Stats card */}
+        
         <View style={sk.providerStatsCard}>
           <View style={[sk.providerStatsRow, { marginBottom: 0 }]}>
             <View style={{ alignItems: 'center' }}>
@@ -176,7 +170,7 @@ export function ProviderHomeScreenSkeleton() {
           </View>
         </View>
 
-        {/* Seção Serviços */}
+        
         <SkeletonBlock width={100} height={22} style={{ marginBottom: 16 }} />
         <View style={sk.homeGrid}>
           {[1, 2, 3, 4].map(i => (
@@ -188,7 +182,7 @@ export function ProviderHomeScreenSkeleton() {
           ))}
         </View>
 
-        {/* Seção Próximos Serviços */}
+        
         <SkeletonBlock width={180} height={22} style={{ marginTop: 8, marginBottom: 16 }} />
         <OrderCardSkeleton />
       </View>

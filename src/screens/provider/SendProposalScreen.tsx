@@ -17,11 +17,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BASE_URL = Config.API_URL || Config.SERVER_BASE_URL || 'http://10.0.2.2:3000';
 
-// Use shared helpers for attachment URL resolution
 const getAttachmentUrl = sharedGetAttachmentUrl;
 const isImageAttachment = sharedIsImageAttachment;
 
-// Navigation types
 type RootStackParamList = {
   Home: undefined;
   [key: string]: any;
@@ -30,7 +28,6 @@ type RootStackParamList = {
 type SendProposalScreenNavigationProp = NavigationProp<RootStackParamList>;
 type SendProposalScreenRouteProp = RouteProp<{ params: { demand: Demand } }, 'params'>;
 
-// TypeScript interfaces
 interface Proposal {
   id: string;
   providerName: string;
@@ -83,18 +80,14 @@ export default function SendProposalScreen() {
   const [priceDisplay, setPriceDisplay] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
 
-  // Formatar valor como moeda brasileira (R$ 1.234,56)
   const handlePriceChange = (text: string) => {
-    // Remover tudo que não é dígito
     const digits = text.replace(/\D/g, '');
     if (!digits) {
       setPrice('');
       setPriceDisplay('');
       return;
     }
-    // Guardar centavos como string de dígitos
     setPrice(digits);
-    // Formatar para exibição
     const numericValue = parseInt(digits, 10);
     const formatted = (numericValue / 100).toLocaleString('pt-BR', {
       minimumFractionDigits: 2,
@@ -103,7 +96,6 @@ export default function SendProposalScreen() {
     setPriceDisplay(`R$ ${formatted}`);
   };
 
-  // Handler para prazo - apenas números
   const handleDeadlineChange = (text: string) => {
     const numbers = text.replace(/[^0-9]/g, '');
     setDeadline(numbers);
@@ -130,7 +122,6 @@ export default function SendProposalScreen() {
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Debug: Log attachments data
   useEffect(() => {
     if (demand) {
       console.log('📎 SendProposal - demand.attachments:', {
@@ -145,16 +136,13 @@ export default function SendProposalScreen() {
     }
   }, [demand]);
 
-  // Function to update demand data
   const refreshDemandData = useCallback(async () => {
     if (!demand?.id) return;
 
     setRefreshing(true);
     try {
-      // Fetch updated proposals to check if user's proposal already exists
       const response = await proposalService.getProposals({ order_id: parseInt(demand.id) });
       if (response.success) {
-        // Format raw API proposals to match local Proposal interface
         const formattedProposals = (response.data.data || []).map((p: any, index: number) => ({
           id: p.id?.toString() || index.toString(),
           providerName: p.provider?.name || 'Prestador',
@@ -175,7 +163,6 @@ export default function SendProposalScreen() {
       }
     } catch (error) {
       console.log('Erro ao atualizar dados da demanda:', error);
-      // If there's an error, just reload the original data from parameters
       const originalDemand = route.params?.demand;
       if (originalDemand) {
         setDemand(originalDemand);
@@ -185,7 +172,6 @@ export default function SendProposalScreen() {
     }
   }, [demand?.id, route.params]);
 
-  // Keyboard listeners
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
@@ -207,7 +193,6 @@ export default function SendProposalScreen() {
     };
   }, []);
 
-  // Function to scroll to focused input with keyboard consideration
   const scrollToInput = useCallback((inputRef: React.RefObject<TextInput | null>) => {
     if (!inputRef.current || !scrollViewRef.current) return;
 
@@ -217,27 +202,32 @@ export default function SendProposalScreen() {
         const availableHeight = screenHeight - keyboardHeight;
         const inputBottom = y + height;
 
-        // Calculate desired position: input should be at 1/3 from top of available space
         const targetY = availableHeight * 0.33;
         const currentScrollY = y;
 
-        // Calculate scroll offset needed
-        const scrollTo = Math.max(0, currentScrollY - targetY + 100); // +100 for extra margin
+        const scrollTo = Math.max(0, currentScrollY - targetY + 100);
 
         scrollViewRef.current?.scrollTo({
           y: scrollTo,
           animated: true
         });
       });
-    }, 100); // Reduced timeout for better responsiveness
+    }, 100);
   }, [keyboardHeight]);
 
-  // Update data when screen gains focus (only once)
   useFocusEffect(
     useCallback(() => {
-      // Don't do automatic refresh to avoid multiple calls
-      // Refresh will be done only when necessary (after errors)
     }, [])
+  );
+
+  const insets = useSafeAreaInsets();
+
+  const alreadyProposed = demand?.proposals?.some(
+    (proposal: Proposal) => proposal.provider_id === user?.id
+  ) ?? false;
+
+  const myProposal = demand?.proposals?.find(
+    (proposal: Proposal) => proposal.provider_id === user?.id
   );
 
   if (!demand) {
@@ -255,26 +245,6 @@ export default function SendProposalScreen() {
       </View>
     );
   }
-
-  // Check if logged provider already has a proposal
-  const alreadyProposed = demand.proposals?.some(
-    (proposal: Proposal) => proposal.provider_id === user?.id
-  );
-
-  const myProposal = demand.proposals?.find(
-    (proposal: Proposal) => proposal.provider_id === user?.id
-  );
-
-  // Debug proposals
-  useEffect(() => {
-    console.log('🔍 Verificando propostas:', {
-      user_id: user?.id,
-      proposals: demand.proposals,
-      proposals_count: demand.proposals?.length || 0,
-      alreadyProposed,
-      myProposal: myProposal ? { id: myProposal.id, provider_id: myProposal.provider_id } : null,
-    });
-  }, [demand.proposals, alreadyProposed, myProposal, user?.id]);
 
   const handleSubmit = async () => {
     if (!price || !deadline || !description) {
@@ -302,7 +272,6 @@ export default function SendProposalScreen() {
       let response;
 
       if (alreadyProposed && myProposal) {
-        // Update existing proposal
         const updatePayload: ApiProposalUpdatePayload = {
           price: parseInt(price, 10) / 100,
           deadline: deadline,
@@ -310,21 +279,17 @@ export default function SendProposalScreen() {
         };
         response = await proposalService.updateProposal(Number(myProposal.id), updatePayload);
       } else {
-        // Create new proposal
         response = await proposalService.createProposal(payload);
       }
 
       if (response.success) {
-        // Clear form fields
         setPrice('');
         setPriceDisplay('');
         setDeadline('');
         setDescription('');
 
-        // Refresh demand data to show updated proposals
         await refreshDemandData();
 
-        // Scroll to top to show the updated proposals
         scrollViewRef.current?.scrollTo({ y: 0, animated: true });
 
         Alert.alert(
@@ -340,11 +305,9 @@ export default function SendProposalScreen() {
       console.log('❌ Erro response:', error.response);
       console.log('❌ Erro response data:', error.response?.data);
 
-      // Handle specific API error
       let errorMessage = 'Erro ao enviar proposta';
 
       if (error.response?.data?.message === 'Você já enviou uma proposta para este pedido') {
-        // The proposal exists but wasn't loaded - refresh to show update form
         errorMessage = 'Você já possui uma proposta para este pedido. Atualizando...';
         Alert.alert('Aviso', errorMessage, [
           {
@@ -357,13 +320,10 @@ export default function SendProposalScreen() {
         setLoading(false);
         return;
       } else if (error.response?.data?.data?.message) {
-        // Specific API message (e.g., "Você já enviou uma proposta para este pedido")
         errorMessage = error.response.data.data.message;
       } else if (error.response?.data?.message) {
-        // General API message
         errorMessage = error.response.data.message;
       } else if (error.message) {
-        // Error message
         errorMessage = error.message;
       }
 
@@ -371,7 +331,6 @@ export default function SendProposalScreen() {
         {
           text: 'OK',
           onPress: () => {
-            // Update screen data after showing message
             refreshDemandData();
           }
         }
@@ -381,12 +340,10 @@ export default function SendProposalScreen() {
     }
   };
 
-  // Function to get ranking position
   const getRankingPosition = (index: number): string => {
     return `#${index + 1}`;
   };
 
-  // Function to check if it's winning
   const isWinning = (proposal: Proposal, index: number): boolean => {
     if (index === 0) return true;
     const budget = parseFloat(demand.budget.replace('R$ ', '').replace(',', '.'));
@@ -394,11 +351,9 @@ export default function SendProposalScreen() {
     return proposalPrice <= budget;
   };
 
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={styles.container}>
-      {/* Header fixo roxo */}
+      <View style={styles.headerBackground} />
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -434,9 +389,9 @@ export default function SendProposalScreen() {
         >
         <View style={styles.content}>
 
-        {/* Demand Information */}
+
         <View style={styles.demandCard}>
-          {/* Hero Image */}
+
           {(() => {
             const images = Array.isArray(demand.attachments)
               ? demand.attachments.filter(isImageAttachment)
@@ -466,7 +421,7 @@ export default function SendProposalScreen() {
             );
           })()}
 
-          {/* Thumbnails */}
+
           {(() => {
             const images = Array.isArray(demand.attachments)
               ? demand.attachments.filter(isImageAttachment)
@@ -498,7 +453,7 @@ export default function SendProposalScreen() {
             );
           })()}
 
-          {/* Title + Category */}
+
           <View style={styles.demandTitleArea}>
             <Text style={styles.demandTitle}>{demand.title}</Text>
             <View style={styles.badgesRow}>
@@ -515,7 +470,7 @@ export default function SendProposalScreen() {
             </View>
           </View>
 
-          {/* Address highlight */}
+
           <View style={styles.budgetStrip}>
             <View style={styles.budgetStripLeft}>
               <Icon name="location-on" size={20} color="#4f46e5" />
@@ -524,13 +479,13 @@ export default function SendProposalScreen() {
             <Text style={styles.budgetStripValue} numberOfLines={2}>{demand.location}</Text>
           </View>
 
-          {/* Description */}
+
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionLabel}>Descrição do Serviço</Text>
             <Text style={styles.sectionText}>{demand.description}</Text>
           </View>
 
-          {/* Client info */}
+
           <View style={styles.clientRow}>
             <View style={styles.clientInfo}>
               <Icon name="person" size={18} color="#6b7280" />
@@ -542,7 +497,7 @@ export default function SendProposalScreen() {
             </View>
           </View>
 
-          {/* Documents (non-image attachments) */}
+
           {(() => {
             const docs = Array.isArray(demand.attachments)
               ? demand.attachments.filter((att: any) => !isImageAttachment(att))
@@ -562,13 +517,11 @@ export default function SendProposalScreen() {
           })()}
         </View>
 
-        {/* Insights calculados dinamicamente */}
+
         {(() => {
           if (!demand.proposals || demand.proposals.length === 0) return null;
 
-          // Calcular média de preços
           const prices = demand.proposals.map((p: Proposal) => {
-            // Remove "R$ ", remove dots (thousands sep), replace comma with period
             const priceStr = p.price?.toString()
               .replace('R$ ', '')
               .replace(/\./g, '')
@@ -577,7 +530,6 @@ export default function SendProposalScreen() {
           });
           const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
 
-          // Calcular prazo médio
           const deadlines = demand.proposals.map((p: Proposal) => {
             const deadlineStr = p.deadline?.toString().replace(/[^0-9]/g, '');
             return parseInt(deadlineStr) || 0;
@@ -620,7 +572,7 @@ export default function SendProposalScreen() {
           );
         })()}
 
-        {/* Existing Proposals Ranking */}
+
         {demand.proposals && demand.proposals.length > 0 && (
           <View style={styles.rankingSection}>
             <View style={styles.rankingSectionHeader}>
@@ -646,7 +598,7 @@ export default function SendProposalScreen() {
                     isMyProposal && styles.rankingCardMine,
                   ]}
                 >
-                  {/* Top row: position + name */}
+
                   <View style={styles.rankingCardTop}>
                     <View style={[
                       styles.positionCircle,
@@ -694,7 +646,7 @@ export default function SendProposalScreen() {
                     </View>
                   </View>
 
-                  {/* Price */}
+
                   <View style={styles.rankingBottomRow}>
                     <Text style={styles.rankingPriceValue}>{proposal.price}</Text>
                     <View style={styles.rankingDeadlineBox}>
@@ -703,7 +655,7 @@ export default function SendProposalScreen() {
                     </View>
                   </View>
 
-                  {/* Deadline + Budget row */}
+
                   <View style={styles.rankingBottomRow}>
                     {isWinningProposal && (
                       <View style={styles.budgetOkPill}>
@@ -713,7 +665,7 @@ export default function SendProposalScreen() {
                     )}
                   </View>
 
-                  {/* My status footer */}
+
                   {isMyProposal && (
                     <View style={[
                       styles.myStatusBar,
@@ -740,7 +692,7 @@ export default function SendProposalScreen() {
           </View>
         )}
 
-        {/* Proposal Form - Only show if not submitted yet */}
+
         {!alreadyProposed && (
           <View style={styles.formCard}>
             <Text style={styles.formLabel}>Valor da Proposta</Text>
@@ -790,7 +742,7 @@ export default function SendProposalScreen() {
           </View>
         )}
 
-        {/* Form to update existing proposal */}
+
         {alreadyProposed && myProposal && (
           <View style={styles.formCard}>
             <View style={styles.updateProposalHeader}>
@@ -849,7 +801,7 @@ export default function SendProposalScreen() {
           </View>
         )}
 
-        {/* Message if proposal already sent */}
+
         {alreadyProposed && (
           <View style={styles.alreadyProposedCard}>
             <View style={styles.alreadyProposedContent}>
@@ -871,10 +823,10 @@ export default function SendProposalScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#4f46e5"
+        forceLight
       />
 
-      {/* Image Viewer */}
+
       {Array.isArray(demand?.attachments) && (
         <ImageViewer
           visible={imageViewerVisible}
@@ -889,10 +841,17 @@ export default function SendProposalScreen() {
   );
 }
 
-// StyleSheet definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: '-50%',
+    left: 0,
+    right: 0,
+    height: '100%',
     backgroundColor: '#4f46e5',
   },
   keyboardView: {
@@ -965,7 +924,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     overflow: 'hidden',
   },
-  // Hero image
   heroImageContainer: {
     width: '100%',
     height: 200,
@@ -1022,7 +980,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  // Title area
   demandTitleArea: {
     paddingHorizontal: 18,
     paddingTop: 16,
@@ -1070,7 +1027,6 @@ const styles = StyleSheet.create({
   deadlineBadgeText: {
     color: '#c2410c',
   },
-  // Budget strip (reused for address)
   budgetStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1102,7 +1058,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginLeft: 8,
   },
-  // Section blocks
   sectionBlock: {
     paddingHorizontal: 18,
     marginBottom: 16,
@@ -1120,7 +1075,6 @@ const styles = StyleSheet.create({
     color: '#374151',
     lineHeight: 21,
   },
-  // Info grid
   infoGrid: {
     flexDirection: 'row',
     marginHorizontal: 18,
@@ -1154,7 +1108,6 @@ const styles = StyleSheet.create({
     color: '#111827',
     textAlign: 'center',
   },
-  // Client row
   clientRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1185,7 +1138,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  // Documents
   docsSection: {
     paddingHorizontal: 18,
     paddingBottom: 16,
@@ -1240,7 +1192,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  // ===== RANKING STYLES =====
   rankingSection: {
     marginBottom: 24,
   },

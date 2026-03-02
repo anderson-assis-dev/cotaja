@@ -10,8 +10,9 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isInitializing: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider') => Promise<boolean>;
+  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number) => Promise<boolean>;
   logout: () => void;
   updateProfileType: (profileType: 'client' | 'provider', serviceCategories?: string[]) => Promise<boolean>;
   refreshUser: () => Promise<boolean>;
@@ -37,27 +38,24 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Verificar se há token salvo ao inicializar
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const savedToken = await AsyncStorage.getItem('auth_token');
         const savedUser = await AsyncStorage.getItem('user');
 
-
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
 
-          // Verificar se o token ainda é válido
           try {
             const response = await authService.me();
             setUser(response.data.user);
             await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
 
-            // Inicializar notificações push para usuário autenticado (se ainda não estiver inicializado)
             if (!pushNotificationService.isServiceInitialized()) {
               console.log('🔔 [INIT] Inicializando notificações push...');
               await pushNotificationService.initialize();
@@ -66,7 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.log('ℹ️ [INIT] Notificações push já inicializadas');
             }
 
-            // Atualizar FCM token no backend quando o app é aberto com usuário logado
             console.log('🔄 [INIT] Atualizando FCM token no backend...');
             try {
               const storedToken = await AsyncStorage.getItem('device_token');
@@ -80,7 +77,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               console.error('❌ [INIT] Erro ao atualizar FCM token no backend:', error);
             }
           } catch (error: any) {
-            // Token inválido, limpar dados
             await AsyncStorage.removeItem('auth_token');
             await AsyncStorage.removeItem('user');
             setToken(null);
@@ -91,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('❌ Erro ao inicializar autenticação:', error);
       } finally {
-        setIsLoading(false);
+        setIsInitializing(false);
       }
     };
 
@@ -100,15 +96,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const promptBiometricSetup = async (email: string, password: string) => {
     try {
-      // Check if user has already made a decision
       const biometricPreference = await biometricService.getBiometricPreference();
 
-      // If user has already decided, don't prompt again
       if (biometricPreference !== null) {
         return;
       }
 
-      // Check if biometrics are supported
       const biometricSupported = await biometricService.isBiometricSupported();
 
       if (biometricSupported) {
@@ -164,20 +157,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔐 [LOGIN] Iniciando processo de login...');
       console.log('📱 [LOGIN] Push service inicializado?', pushNotificationService.isServiceInitialized());
 
-      // Get FCM token before login
       let fcm_token = null;
       let device_platform = null;
 
       try {
-        // Tentar obter do serviço primeiro
         const serviceToken = pushNotificationService.getDeviceToken();
         console.log('🔍 [LOGIN] Token do serviço:', serviceToken ? serviceToken.substring(0, 20) + '...' : 'null');
 
-        // Tentar obter do AsyncStorage
         const storedToken = await AsyncStorage.getItem('device_token');
         console.log('🔍 [LOGIN] Token do AsyncStorage:', storedToken ? storedToken.substring(0, 20) + '...' : 'null');
 
-        // Usar o que estiver disponível
         fcm_token = serviceToken || storedToken;
 
         if (fcm_token) {
@@ -211,8 +200,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
       console.log('✅ [LOGIN] Dados salvos no AsyncStorage');
 
-      // Inicializar notificações push após login (sem enviar token - já foi enviado no payload)
-      // Só inicializar se ainda não estiver inicializado
       if (!pushNotificationService.isServiceInitialized()) {
         console.log('🔔 [LOGIN] Inicializando notificações push...');
         await pushNotificationService.initialize();
@@ -227,7 +214,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log('✅ [LOGIN] Token FCM foi enviado no payload de login');
       }
 
-      // Prompt biometric setup after successful login
       await promptBiometricSetup(email, password);
 
       return true;
@@ -254,40 +240,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider'): Promise<boolean> => {
+  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number): Promise<boolean> => {
     try {
-      setIsLoading(true);
-      console.log('📝 [REGISTER] Iniciando processo de cadastro...');
-      console.log('👤 [REGISTER] Profile Type:', profileType || 'não informado');
-      console.log('📱 [REGISTER] Push service inicializado?', pushNotificationService.isServiceInitialized());
-
-      // Get FCM token before registration
       let fcm_token = null;
       let device_platform = null;
 
       try {
-        // Tentar obter do serviço primeiro
         const serviceToken = pushNotificationService.getDeviceToken();
-        console.log('🔍 [REGISTER] Token do serviço:', serviceToken ? serviceToken.substring(0, 20) + '...' : 'null');
-
-        // Tentar obter do AsyncStorage
         const storedToken = await AsyncStorage.getItem('device_token');
-        console.log('🔍 [REGISTER] Token do AsyncStorage:', storedToken ? storedToken.substring(0, 20) + '...' : 'null');
-
-        // Usar o que estiver disponível
         fcm_token = serviceToken || storedToken;
-
         if (fcm_token) {
           device_platform = Platform.OS;
-          console.log('✅ [REGISTER] FCM token encontrado:', fcm_token.substring(0, 20) + '...');
-          console.log('📱 [REGISTER] Platform:', device_platform);
-        } else {
-          console.log('⚠️ [REGISTER] Nenhum FCM token disponível');
-          console.log('⚠️ [REGISTER] Token será enviado quando disponível');
         }
-      } catch (error) {
-        console.log('❌ [REGISTER] Erro ao obter FCM token:', error);
-      }
+      } catch {}
 
       const registerData: any = {
         name,
@@ -299,26 +264,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (profileType) {
         registerData.profile_type = profileType;
-        console.log('📤 [REGISTER] Enviando profile_type:', profileType);
+      }
+
+      if (profileType === 'provider') {
+        if (motherName) registerData.mother_name = motherName;
+        if (birthDate) registerData.birth_date = birthDate;
+        if (categories && categories.length > 0) registerData.service_categories = categories;
+        if (address) registerData.address = address;
+        if (zipCode) registerData.zip_code = zipCode;
+        if (latitude != null) registerData.latitude = latitude;
+        if (longitude != null) registerData.longitude = longitude;
       }
 
       if (fcm_token) {
         registerData.fcm_token = fcm_token;
         registerData.device_platform = device_platform;
-        console.log('📤 [REGISTER] Enviando FCM token no payload de registro');
       }
 
-      console.log('🌐 [REGISTER] Fazendo requisição de registro...');
       const response = await authService.register(registerData);
-      console.log('✅ [REGISTER] Cadastro bem-sucedido!');
-
-      // Account needs activation via email - don't auto-login
-      console.log('📧 [REGISTER] Conta criada. Ativação via email necessária.');
 
       return true;
     } catch (error: any) {
-      console.error('❌ Erro no registro:', error);
-
       let errorMessage = 'Erro ao fazer registro';
 
       if (error.response?.data?.message) {
@@ -334,8 +300,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       throw new Error(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -352,10 +316,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AsyncStorage.removeItem('auth_token');
       await AsyncStorage.removeItem('user');
 
-      // Limpar token de notificações push
       await pushNotificationService.clearToken();
 
-      // NOTE: We DON'T clear biometric data on logout so it persists for future logins
     }
   };
 
@@ -404,14 +366,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
 
-      // First check if biometric authentication is available
       const biometricSupported = await biometricService.isBiometricSupported();
       if (!biometricSupported) {
         globalToastRef.current?.showError('Biometria não está disponível neste dispositivo');
         return false;
       }
 
-      // Get saved credentials from AsyncStorage (using the keys the app actually uses)
       let savedEmail, savedPassword, biometryActivated;
       try {
         savedEmail = await AsyncStorage.getItem('biometric_email');
@@ -422,32 +382,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-
       if (!savedEmail || !savedPassword || biometryActivated !== 'true') {
         globalToastRef.current?.showError('Credenciais biométricas não encontradas ou biometria não está ativada');
         return false;
       }
 
-      // Perform biometric authentication
       const biometricResult = await biometricService.authenticateWithBiometric();
 
       if (biometricResult.success) {
         console.log('🔐 [BIOMETRIC] Autenticação biométrica bem-sucedida, fazendo login...');
 
-        // Get FCM token before login
         let fcm_token = null;
         let device_platform = null;
 
         try {
-          // Tentar obter do serviço primeiro
           const serviceToken = pushNotificationService.getDeviceToken();
           console.log('🔍 [BIOMETRIC] Token do serviço:', serviceToken ? serviceToken.substring(0, 20) + '...' : 'null');
 
-          // Tentar obter do AsyncStorage
           const storedToken = await AsyncStorage.getItem('device_token');
           console.log('🔍 [BIOMETRIC] Token do AsyncStorage:', storedToken ? storedToken.substring(0, 20) + '...' : 'null');
 
-          // Usar o que estiver disponível
           fcm_token = serviceToken || storedToken;
 
           if (fcm_token) {
@@ -472,7 +426,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           console.log('📤 [BIOMETRIC] Enviando FCM token no payload de login');
         }
 
-        // If biometric is successful, login with saved credentials
         const response = await authService.login(loginData);
 
         setUser(response.data.user);
@@ -481,7 +434,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await AsyncStorage.setItem('auth_token', response.data.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
 
-        // Inicializar notificações push se ainda não estiver inicializado
         if (!pushNotificationService.isServiceInitialized()) {
           console.log('🔔 [BIOMETRIC] Inicializando notificações push...');
           await pushNotificationService.initialize();
@@ -502,7 +454,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error('❌ Erro no login biométrico:', error);
 
-      // More specific error messages
       let errorMessage = 'Falha na autenticação biométrica';
       if (error.message) {
         if (error.message.includes('BiometryNotAvailable')) {
@@ -529,11 +480,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const hasBiometricCredentials = async (): Promise<boolean> => {
     try {
-      // Use the actual keys the app is using
       const biometryActivated = await AsyncStorage.getItem('biometryactivated');
       const savedEmail = await AsyncStorage.getItem('biometric_email');
       const savedPassword = await AsyncStorage.getItem('biometric_password');
-
 
       return biometryActivated === 'true' && savedEmail !== null && savedPassword !== null;
     } catch (error) {
@@ -545,6 +494,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     token,
     isLoading,
+    isInitializing,
     login,
     register,
     logout,

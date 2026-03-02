@@ -10,7 +10,6 @@ class BiometricService {
 
   constructor() {
     try {
-      // Check if the native module is available
       if (ReactNativeBiometrics && typeof ReactNativeBiometrics === 'function') {
         this.rnBiometrics = new ReactNativeBiometrics({
           allowDeviceCredentials: true,
@@ -78,7 +77,6 @@ class BiometricService {
     try {
       if (!this.isLibraryAvailable || !this.rnBiometrics) {
         console.warn('ReactNativeBiometrics not initialized, using fallback method');
-        // Fallback: Save credentials in a simple encrypted format
         const credentials = {
           email,
           password,
@@ -126,11 +124,9 @@ class BiometricService {
   async authenticateWithBiometric(): Promise<{ success: boolean }> {
     try {
 
-      // If library is not available, check if we can still prompt for biometric
       if (!this.isLibraryAvailable || !this.rnBiometrics) {
         console.warn('ReactNativeBiometrics not available, checking if biometric is supported on device');
 
-        // Try to reinitialize
         try {
           if (ReactNativeBiometrics && typeof ReactNativeBiometrics === 'function') {
             this.rnBiometrics = new ReactNativeBiometrics({
@@ -145,14 +141,12 @@ class BiometricService {
         }
       }
 
-      // Check if sensor is available before proceeding
       const { available, biometryType } = await this.rnBiometrics!.isSensorAvailable();
 
       if (!available) {
         return { success: false };
       }
 
-      // Use simplePrompt instead of createSignature for authentication only
       const result = await this.rnBiometrics!.simplePrompt({
         promptMessage: 'Use sua biometria para fazer login',
         fallbackPromptMessage: 'Use sua senha do dispositivo'
@@ -193,7 +187,6 @@ class BiometricService {
     }
   }
 
-  // Method to reset just the preference (for testing)
   async resetBiometricPreference(): Promise<void> {
     try {
       await AsyncStorage.removeItem(BIOMETRIC_PREFERENCE_KEY);
@@ -201,7 +194,6 @@ class BiometricService {
     }
   }
 
-  // For debugging - shows current state
   async debugBiometricState(): Promise<void> {
     try {
       const preference = await this.getBiometricPreference();

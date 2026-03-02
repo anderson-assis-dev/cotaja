@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, ScrollView, TouchableWithoutFeedback, Keyboard, Platform, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,7 +40,6 @@ export default function LoginScreen() {
     checkBiometricStatus();
   }, []);
 
-  // Recheck when screen becomes visible
   useEffect(() => {
     const recheckBiometric = async () => {
       try {
@@ -100,14 +99,15 @@ export default function LoginScreen() {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.outer}>
-            <View style={[styles.header,{paddingTop:insets.top+20}]}>
-              <Text style={styles.headerTitle}>Cotajá</Text>
-              <Text style={styles.headerSubtitle}>Marketplace de Serviços</Text>
+            <View style={[styles.header,{paddingTop:insets.top}]}>
+              <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
             </View>
             <View style={styles.content}>
-              <View style={styles.card}>
+              <View style={styles.headerContent}>
                 <Text style={styles.title}>Bem-vindo de volta</Text>
                 <Text style={styles.subtitle}>Entre com seu email e senha</Text>
+              </View>
+              <View style={styles.card}>
                 <Text style={styles.label}>Email</Text>
                 <View style={styles.inputRow}>
                   <Icon name="mail-outline" size={20} color="#6b7280" />
@@ -179,6 +179,13 @@ const styles = StyleSheet.create({
     paddingBottom:26,
     alignItems:'center',
   },
+  logo: {
+    width: 270,
+    height: 94,
+    tintColor:'#ffffff',
+    left: 15,
+    marginBottom: -15,
+  },
   headerTitle:{
     fontSize:34,
     fontWeight:'900',
@@ -201,6 +208,10 @@ const styles = StyleSheet.create({
     borderTopLeftRadius:24,
     borderTopRightRadius:24,
     padding:20,
+  },
+  headerContent: {
+    alignItems:'flex-start',
+    marginBottom:5,
   },
   card:{
     backgroundColor:'#ffffff',

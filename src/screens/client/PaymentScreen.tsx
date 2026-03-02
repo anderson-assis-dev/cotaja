@@ -74,7 +74,6 @@ export default function PaymentScreen() {
 
   const handlePayment = () => {
     if (selectedMethod === 'pix') {
-      // Lógica para pagamento com PIX
       Alert.alert(
         'Pagamento com PIX',
         'QR Code gerado com sucesso!',
@@ -86,13 +85,11 @@ export default function PaymentScreen() {
         ]
       );
     } else {
-      // Validação dos campos do cartão
       if (!cardData.number || !cardData.name || !cardData.expiry || !cardData.cvv || !cardData.cpf) {
         Alert.alert('Erro', 'Por favor, preencha todos os campos');
         return;
       }
 
-      // Simulação de pagamento
       Alert.alert(
         'Pagamento Realizado',
         'Seu pagamento foi processado com sucesso!',

@@ -15,7 +15,6 @@ interface ToastContextData {
   showInfo: (message: string, duration?: number) => void;
 }
 
-// Ref global para chamar toast de fora da árvore React (ex: AuthContext)
 export const globalToastRef: { current: ToastContextData | null } = { current: null };
 
 const ToastContext = createContext<ToastContextData>({} as ToastContextData);
@@ -49,7 +48,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     showToast({ message, type: 'info', duration });
   };
 
-  // Manter ref global atualizada
   globalToastRef.current = { showToast, showSuccess, showError, showWarning, showInfo };
 
   const handleHide = () => {

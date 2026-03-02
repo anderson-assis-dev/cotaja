@@ -7,7 +7,6 @@ import { Star } from 'lucide-react-native';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
-// --- Tipos e Dados Mockados ---
 interface Proposal {
   id: string;
   provider: { name: string; rating: number; avatar: any; };
@@ -46,7 +45,6 @@ const mockAuctions: Auction[] = [
   },
 ];
 
-// --- Componente TimeLeft ---
 const TimeLeft = ({ endTime }: { endTime: Date }) => {
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -75,7 +73,6 @@ const TimeLeft = ({ endTime }: { endTime: Date }) => {
   );
 };
 
-// --- Tela Principal ---
 export default function ActiveAuctionScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
@@ -162,7 +159,7 @@ export default function ActiveAuctionScreen() {
         backgroundColor="#4f46e5"
       />
 
-      {/* --- Modal de Propostas --- */}
+      
       <Modal
         visible={!!selectedAuction}
         animationType="slide"

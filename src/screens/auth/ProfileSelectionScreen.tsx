@@ -14,7 +14,6 @@ export default function ProfileSelectionScreen() {
     try {
       setIsUpdating(true);
       await updateProfileType(type);
-      // Não navegue manualmente! O AppNavigator já faz isso.
     } catch (error: any) {
       console.log('Erro ao selecionar perfil:', error.message || error);
     } finally {
@@ -87,7 +86,7 @@ export default function ProfileSelectionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 to purple-600 gradient
+    backgroundColor: '#6366f1',
     padding: 24,
   },
   title: {
@@ -130,19 +129,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clientIconContainer: {
-    backgroundColor: '#e0e7ff', // indigo-100
+    backgroundColor: '#e0e7ff',
   },
   providerIconContainer: {
-    backgroundColor: '#dcfce7', // green-100
+    backgroundColor: '#dcfce7',
   },
   profileTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1f2937', // gray-800
+    color: '#1f2937',
     marginBottom: 8,
   },
   profileDescription: {
-    color: '#6b7280', // gray-600
+    color: '#6b7280',
     textAlign: 'center',
   },
   loadingOverlay: {
@@ -162,7 +161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#1f2937', // gray-800
+    color: '#1f2937',
     marginTop: 8,
   },
   backButton: {

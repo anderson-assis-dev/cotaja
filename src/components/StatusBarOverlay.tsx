@@ -20,7 +20,6 @@ export const StatusBarOverlay: React.FC<StatusBarOverlayProps> = ({
   console.log('StatusBarOverlay render - show:', show, 'opacity:', opacity);
 
   useEffect(() => {
-    // Change status bar style based on overlay visibility and opacity
     if (forceLight) {
       StatusBar.setBarStyle('light-content', true);
     } else if (show && opacity > 0.5) {

@@ -1,59 +1,89 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from 'react-native';
-import { useNavigation, NavigationProp, CommonActions } from '@react-navigation/native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch } from 'react-native';
+import { useNavigation, NavigationProp, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/api';
-import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
-import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import pushNotificationService from '../../services/pushNotificationService';
 
-// Navigation types
 type RootStackParamList = {
   Login: undefined;
-  Documents: undefined;
+  MyData: undefined;
+  Security: undefined;
   Wallet: undefined;
-  Settings: undefined;
+  TermsOfUse: undefined;
+  PrivacyPolicy: undefined;
   [key: string]: any;
 };
 
-type ProfileScreenNavigationProp = NavigationProp<RootStackParamList>;
+const SOCIAL_LINKS = {
+  instagram: 'https://www.instagram.com/cotaja.io',
+  whatsapp: 'https://wa.me/557197022550',
+  youtube: 'https://youtube.com/@cotajaseumarketplacedeservicos',
+  facebook: 'https://www.facebook.com/share/1ArvGRTDmo/',
+  tiktok: 'https://www.tiktok.com/@cotaja.seu.market',
+  kwai: 'https://www.kwai.com/@cotajaseumarke',
+};
 
-// TypeScript interfaces
-interface User {
-  name: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  profile_type: 'provider' | 'client' | string;
-}
+type ProfileScreenNavigationProp = NavigationProp<RootStackParamList>;
 
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
   const { logout, user, refreshUser } = useAuth();
-  const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
   const { showSuccess, showError } = useToast();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(false);
 
-  const handleLogout = async (): Promise<void> => {
-    await logout();
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      })
+  const loadPermissionsState = useCallback(async () => {
+    const notifPref = await AsyncStorage.getItem('push_notifications_pref');
+    setNotificationsEnabled(
+      notifPref !== 'false' && pushNotificationService.isServiceInitialized(),
     );
+    const locPref = await AsyncStorage.getItem('location_enabled_pref');
+    setLocationEnabled(locPref === 'true');
+  }, []);
+
+  useEffect(() => {
+    loadPermissionsState();
+  }, [loadPermissionsState]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadPermissionsState();
+      StatusBar.setBarStyle('dark-content', true);
+      StatusBar.setBackgroundColor('#f0f2f5');
+    }, [loadPermissionsState]),
+  );
+
+  const handleToggleNotifications = async (value: boolean) => {
+    setNotificationsEnabled(value);
+    await AsyncStorage.setItem('push_notifications_pref', value ? 'true' : 'false');
+    if (value) {
+      await pushNotificationService.initialize();
+    } else {
+      await pushNotificationService.clearToken();
+    }
   };
 
-  const getProfileTypeLabel = (profileType: string): string => {
-    switch (profileType) {
-      case 'provider': return 'Prestador';
-      case 'client': return 'Cliente';
-      default: return 'Usuário';
-    }
+  const handleToggleLocation = async (value: boolean) => {
+    setLocationEnabled(value);
+    await AsyncStorage.setItem('location_enabled_pref', value ? 'true' : 'false');
+  };
+
+  const handleOpenSocial = (url: string) => {
+    Linking.openURL(url).catch(() => {});
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
   };
 
   const handleChangeAvatar = async () => {
@@ -65,322 +95,284 @@ export default function ProfileScreen() {
         maxHeight: 500,
         includeBase64: true,
       });
-
-      if (result.didCancel || !result.assets || result.assets.length === 0) {
-        return;
-      }
-
+      if (result.didCancel || !result.assets?.length) return;
       const asset = result.assets[0];
       if (!asset.base64) {
         showError('Não foi possível processar a imagem.');
         return;
       }
-
       const base64String = `data:${asset.type || 'image/jpeg'};base64,${asset.base64}`;
-
       setUploadingAvatar(true);
-
       await authService.updateAvatar(base64String);
       await refreshUser();
-
       showSuccess('Foto de perfil atualizada com sucesso!');
     } catch (error: any) {
-      console.error('Erro ao atualizar avatar:', error);
       showError(error.response?.data?.message || 'Não foi possível atualizar a foto de perfil.');
     } finally {
       setUploadingAvatar(false);
     }
   };
 
+  const getInitials = (name: string) => {
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
+
   if (!user) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Carregando dados do usuário...</Text>
+        <ActivityIndicator size="large" color="#4f46e5" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f0f2f5" />
       <ScrollView
-        style={styles.scrollView}
-        onScroll={handleScroll}
-        scrollEventThrottle={1}
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        showsVerticalScrollIndicator={false}
       >
-      <View style={[styles.header, { paddingTop: insets.top + 60, marginTop: -60 }]}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.avatarContainer} onPress={handleChangeAvatar} disabled={uploadingAvatar}>
+        <View style={styles.hero}>
+          <TouchableOpacity style={styles.avatarWrap} onPress={handleChangeAvatar} disabled={uploadingAvatar} activeOpacity={0.85}>
             {uploadingAvatar ? (
-              <ActivityIndicator size="large" color="#ffffff" />
+              <View style={styles.avatarPlaceholder}>
+                <ActivityIndicator size="large" color="#4f46e5" />
+              </View>
             ) : user.avatar_base64 ? (
-              <Image
-                source={{ uri: user.avatar_base64 }}
-                style={styles.avatarImage}
-              />
+              <Image source={{ uri: user.avatar_base64 }} style={styles.avatarImg} />
             ) : (
-              <Icon name="person" size={48} color="#ffffff" />
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarInitials}>{getInitials(user.name)}</Text>
+              </View>
             )}
-            <View style={styles.avatarEditBadge}>
-              <Icon name="camera-alt" size={16} color="#ffffff" />
+            <View style={styles.cameraTag}>
+              <Camera size={13} color="#fff" />
             </View>
           </TouchableOpacity>
-          <Text style={styles.userName}>
-            {user.name}
-          </Text>
-          <View style={styles.profileTypeBadge}>
-            <Text style={styles.profileTypeText}>
-              {getProfileTypeLabel(user.profile_type)}
-            </Text>
-          </View>
+          <Text style={styles.heroName}>{user.name}</Text>
         </View>
-      </View>
 
-      <View style={styles.content}>
-        <View style={styles.infoCard}>
-          <Text style={styles.infoCardTitle}>Informações Pessoais</Text>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{user.email}</Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Telefone</Text>
-            <Text style={styles.infoValue}>{user.phone || '-'}</Text>
-          </View>
-
-          {user.address && (
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Endereço</Text>
-              <Text style={styles.infoValue}>{user.address}</Text>
-            </View>
+        <Text style={styles.groupLabel}>Minha Conta</Text>
+        <View style={styles.group}>
+          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('MyData')} activeOpacity={0.7}>
+            <User size={22} color="#374151" />
+            <Text style={styles.itemText}>Meus Dados</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Security')} activeOpacity={0.7}>
+            <Lock size={22} color="#374151" />
+            <Text style={styles.itemText}>Segurança</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          {user.profile_type === 'provider' ? (
+            <>
+              <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
+                <Wallet size={22} color="#374151" />
+                <Text style={styles.itemText}>Carteira</Text>
+                <ChevronRight size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('Wallet')} activeOpacity={0.7}>
+                <CreditCard size={22} color="#374151" />
+                <Text style={styles.itemText}>Pagamentos</Text>
+                <ChevronRight size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            </>
           )}
         </View>
 
-        {/* Menu Options */}
-        <View style={styles.menuContainer}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('Documents')}
-          >
-            <View style={[styles.menuIcon, styles.documentsIcon]}>
-              <Icon name="description" size={24} color="#4f46e5" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Gerenciar Documentos</Text>
-              <Text style={styles.menuSubtitle}>Visualizar e atualizar documentos</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color="#9ca3af" />
+        <Text style={styles.groupLabel}>Suporte</Text>
+        <View style={styles.group}>
+          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('TermsOfUse')} activeOpacity={0.7}>
+            <FileText size={22} color="#374151" />
+            <Text style={styles.itemText}>Termos de Uso</Text>
+            <ChevronRight size={18} color="#9ca3af" />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('Wallet')}
-          >
-            <View style={[styles.menuIcon, styles.walletIcon]}>
-              <Icon name="account-balance-wallet" size={24} color="#16a34a" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Carteira</Text>
-              <Text style={styles.menuSubtitle}>Gerenciar saldo e transações</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color="#9ca3af" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <View style={[styles.menuIcon, styles.settingsIcon]}>
-              <Icon name="settings" size={24} color="#6b7280" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Configurações</Text>
-              <Text style={styles.menuSubtitle}>Preferências e privacidade</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color="#9ca3af" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleLogout}
-          >
-            <View style={[styles.menuIcon, styles.logoutIcon]}>
-              <Icon name="logout" size={24} color="#dc2626" />
-            </View>
-            <View style={styles.menuContent}>
-              <Text style={styles.menuTitle}>Sair</Text>
-              <Text style={styles.menuSubtitle}>Fazer logout da conta</Text>
-            </View>
-            <Icon name="chevron-right" size={24} color="#9ca3af" />
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('PrivacyPolicy')} activeOpacity={0.7}>
+            <Shield size={22} color="#374151" />
+            <Text style={styles.itemText}>Política de Privacidade</Text>
+            <ChevronRight size={18} color="#9ca3af" />
           </TouchableOpacity>
         </View>
-      </View>
-      </ScrollView>
 
-      {/* Status Bar Overlay */}
-      {console.log('Passing to StatusBarOverlay - show:', showStatusBarOverlay, 'opacity:', statusBarOpacity)}
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+        <Text style={styles.groupLabel}>Preferências</Text>
+        <View style={styles.group}>
+          <View style={styles.item}>
+            <Bell size={22} color="#374151" />
+            <Text style={styles.itemText}>Notificações push</Text>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
+              thumbColor={notificationsEnabled ? '#4f46e5' : '#f3f4f6'}
+            />
+          </View>
+          <View style={styles.sep} />
+          <View style={styles.item}>
+            <MapPin size={22} color="#374151" />
+            <Text style={styles.itemText}>Localização</Text>
+            <Switch
+              value={locationEnabled}
+              onValueChange={handleToggleLocation}
+              trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
+              thumbColor={locationEnabled ? '#4f46e5' : '#f3f4f6'}
+            />
+          </View>
+        </View>
+
+        <Text style={styles.groupLabel}>Redes sociais</Text>
+        <View style={styles.group}>
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.instagram)} activeOpacity={0.7}>
+            <Instagram size={22} color="#374151" />
+            <Text style={styles.itemText}>Instagram</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.whatsapp)} activeOpacity={0.7}>
+            <MessageCircle size={22} color="#374151" />
+            <Text style={styles.itemText}>WhatsApp</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.youtube)} activeOpacity={0.7}>
+            <Youtube size={22} color="#374151" />
+            <Text style={styles.itemText}>YouTube</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.facebook)} activeOpacity={0.7}>
+            <Facebook size={22} color="#374151" />
+            <Text style={styles.itemText}>Facebook</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.tiktok)} activeOpacity={0.7}>
+            <Music2 size={22} color="#374151" />
+            <Text style={styles.itemText}>TikTok</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+          <View style={styles.sep} />
+          <TouchableOpacity style={styles.item} onPress={() => handleOpenSocial(SOCIAL_LINKS.kwai)} activeOpacity={0.7}>
+            <Clapperboard size={22} color="#374151" />
+            <Text style={styles.itemText}>Kwai</Text>
+            <ChevronRight size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.groupLabel}>Conta</Text>
+        <View style={styles.group}>
+          <TouchableOpacity style={styles.item} onPress={handleLogout} activeOpacity={0.7}>
+            <LogOut size={22} color="#dc2626" />
+            <Text style={[styles.itemText, { color: '#dc2626' }]}>Sair</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-// StyleSheet definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f0f2f5',
   },
-  scrollView: {
+  scroll: {
     flex: 1,
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f0f2f5',
   },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  header: {
-    backgroundColor: '#4f46e5',
-    padding: 24,
-    paddingBottom: 32,
-  },
-  headerContent: {
+  hero: {
     alignItems: 'center',
-    paddingTop: 20
+    paddingTop: 36,
+    paddingBottom: 24,
+    backgroundColor: '#f0f2f5',
   },
-  avatarContainer: {
-    borderWidth: 4,
-    borderColor: '#ffffff',
+  avatarWrap: {
+    position: 'relative',
+    marginBottom: 14,
+  },
+  avatarImg: {
     width: 96,
     height: 96,
-    borderRadius: 100,
-    overflow: 'visible',
-    backgroundColor: '#6366f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  avatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    borderRadius: 48,
     resizeMode: 'cover',
   },
-  avatarEditBadge: {
+  avatarPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#d1d5db',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitials: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#4b5563',
+  },
+  cameraTag: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#2563eb',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
+    bottom: 2,
+    right: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#4f46e5',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#ffffff',
+    borderColor: '#f0f2f5',
   },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginVertical: 16,
-  },
-  profileTypeBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  profileTypeText: {
-    color: '#ffffff',
-    fontSize: 14,
-  },
-  content: {
-    padding: 24,
-  },
-  infoCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    marginBottom: 24,
-  },
-  infoCardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  heroName: {
+    fontSize: 22,
+    fontWeight: '800',
     color: '#111827',
-    marginBottom: 16,
+    letterSpacing: -0.3,
   },
-  infoItem: {
-    marginBottom: 16,
-  },
-  infoLabel: {
+  groupLabel: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#6b7280',
-    fontSize: 14,
-    marginBottom: 4,
+    marginLeft: 20,
+    marginBottom: 6,
+    marginTop: 18,
   },
-  infoValue: {
-    color: '#1f2937',
-    fontSize: 16,
-  },
-  menuContainer: {
-    gap: 16,
-  },
-  menuItem: {
+  group: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginHorizontal: 0,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#d1d5db',
+  },
+  item: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 16,
   },
-  menuIcon: {
-    borderRadius: 8,
-    padding: 8,
-    marginRight: 16,
-  },
-  documentsIcon: {
-    backgroundColor: '#e0e7ff',
-  },
-  walletIcon: {
-    backgroundColor: '#dcfce7',
-  },
-  settingsIcon: {
-    backgroundColor: '#f3f4f6',
-  },
-  logoutIcon: {
-    backgroundColor: '#fee2e2',
-  },
-  menuContent: {
+  itemText: {
     flex: 1,
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '400',
   },
-  menuTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    color: '#6b7280',
-    fontSize: 14,
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#d1d5db',
+    marginLeft: 58,
   },
 });
+

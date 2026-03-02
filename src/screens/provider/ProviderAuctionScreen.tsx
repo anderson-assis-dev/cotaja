@@ -9,8 +9,9 @@ import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
+import { SkeletonBlock } from '../../components/Skeleton';
+import Geolocation from '@react-native-community/geolocation';
 
-// Navigation types
 type RootStackParamList = {
   SendProposal: { demand: Auction };
   [key: string]: any;
@@ -19,7 +20,6 @@ type RootStackParamList = {
 type AuctionScreenNavigationProp = NavigationProp<RootStackParamList>;
 type AuctionScreenRouteProp = RouteProp<any, any>;
 
-// TypeScript interfaces
 interface Proposal {
   id: string;
   providerName: string;
@@ -28,7 +28,7 @@ interface Proposal {
   deadline: string;
   description: string;
   ranking: number;
-  provider_id?: string | number; // Added provider_id
+  provider_id?: string | number;
   created_at?: string;
   status?: string;
 }
@@ -61,31 +61,26 @@ interface RouteParams {
   fromSearch?: boolean;
 }
 
-// Function to convert API data to interface format
 const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
-  // Convert API proposals to interface format
   const proposals: Proposal[] = apiOrder.proposals?.map((proposal: ApiProposal, index: number) => ({
     id: proposal.id.toString(),
     providerName: proposal.provider?.name || 'Prestador',
-    providerRating: 4.5, // Default value, adjust as needed
+    providerRating: 4.5,
     price: `R$ ${formatPrice(Number(proposal.price || 0))}`,
     deadline: `${proposal.deadline || 0} dias`,
     description: proposal.description || 'Sem descrição',
     ranking: index + 1,
-    provider_id: proposal.provider_id, // Add provider_id
+    provider_id: proposal.provider_id,
     created_at: proposal.created_at || undefined,
     status: proposal.status || 'pending',
   })) || [];
 
-  // Determine if has active auction
   const hasActiveAuction = !!(apiOrder.auction_started_at && apiOrder.auction_ends_at &&
     new Date() >= new Date(apiOrder.auction_started_at) &&
     new Date() <= new Date(apiOrder.auction_ends_at));
 
-  // Determine if is new demand (recent order without proposals)
   const isNewDemand = apiOrder.status === 'open' && proposals.length === 0;
 
-  // Convert API status to Portuguese
   const getStatusInPortuguese = (status: string): string => {
     switch (status) {
       case 'open': return 'Aguardando propostas';
@@ -96,7 +91,6 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     }
   };
 
-  // Generate insights based on data
   const generateInsights = (apiOrder: ApiOrder, proposals: Proposal[]): string[] => {
     const insights: string[] = [];
 
@@ -117,12 +111,10 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     return insights;
   };
 
-  // Handle budget - can come as string or number
   const budgetValue = typeof apiOrder.budget === 'string'
     ? parseFloat(apiOrder.budget)
     : (apiOrder.budget || 0);
 
-  // Handle deadline - can come as string or number
   const deadlineValue = typeof apiOrder.deadline === 'string'
     ? parseInt(apiOrder.deadline)
     : (apiOrder.deadline || 0);
@@ -136,7 +128,7 @@ const convertApiOrderToAuction = (apiOrder: ApiOrder): Auction => {
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
     location: apiOrder.address || 'Local não informado',
-    clientRating: 4.8, // Default value, adjust as needed
+    clientRating: 4.8,
     proposals,
     insights: generateInsights(apiOrder, proposals),
     clientId: apiOrder.client_id?.toString() || '0',
@@ -161,15 +153,22 @@ export default function AuctionScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const [providerLocation, setProviderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  // States for filters
+  useEffect(() => {
+    Geolocation.getCurrentPosition(
+      (pos) => setProviderLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
+
   const [cepFilter, setCepFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [showCategoryAutocomplete, setShowCategoryAutocomplete] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<string[]>([]);
 
-  // Receive navigation parameters
   const routeParams = route.params as RouteParams | undefined;
   const profileType = routeParams?.profileType || 'provider';
   const clientId = routeParams?.clientId || '1';
@@ -184,19 +183,20 @@ export default function AuctionScreen() {
 
         let params: Record<string, any> = {};
 
-        // Apply category filter if selected
         if (selectedCategory) {
           params.category = selectedCategory;
         }
 
-        console.log('🔍 Buscando demandas disponíveis com parâmetros:', params);
+        if (providerLocation) {
+          params.latitude = providerLocation.latitude;
+          params.longitude = providerLocation.longitude;
+        }
 
         const response = await orderService.getAvailableOrders(params);
 
         if (response.success) {
           console.log('📦 Dados recebidos da API:', JSON.stringify(response.data, null, 2));
 
-          // Check if structure is correct
           if (!response.data.data || !Array.isArray(response.data.data)) {
             console.warn('⚠️ Estrutura de dados inesperada:', response.data);
             setAuctions([]);
@@ -224,7 +224,6 @@ export default function AuctionScreen() {
               return convertApiOrderToAuction(apiOrder);
             } catch (error) {
               console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
-              // Return default demand in case of error
               return {
                 id: apiOrder.id?.toString() || '0',
                 title: apiOrder.title || 'Demanda sem título',
@@ -258,15 +257,12 @@ export default function AuctionScreen() {
     };
 
     if (user?.id) {
-      console.log('👤 Usuário autenticado:', { id: user.id, name: user.name });
       fetchAuctions();
     } else {
-      console.log('⚠️ Usuário não autenticado, aguardando...');
       setLoading(false);
     }
-  }, [selectedCategory, user?.id]);
+  }, [selectedCategory, user?.id, providerLocation]);
 
-  // Function to fetch available categories
   const fetchAvailableCategories = async () => {
     try {
       const response = await orderService.getAvailableOrders();
@@ -280,7 +276,6 @@ export default function AuctionScreen() {
     }
   };
 
-  // Function to filter categories based on input
   const filterCategories = (input: string) => {
     if (!input.trim()) {
       setFilteredCategories([]);
@@ -295,17 +290,13 @@ export default function AuctionScreen() {
     setShowCategoryAutocomplete(true);
   };
 
-  // Function to select category
   const selectCategory = (category: string) => {
     setCategoryFilter(category);
     setShowCategoryAutocomplete(false);
   };
 
-  // Function to format CEP
   const formatCep = (value: string) => {
-    // Remove non-numeric characters
     const numbers = value.replace(/[^0-9]/g, '');
-    // Apply CEP mask (00000-000)
     if (numbers.length <= 5) {
       return numbers;
     } else {
@@ -313,7 +304,6 @@ export default function AuctionScreen() {
     }
   };
 
-  // Function to clear filters
   const clearFilters = () => {
     setCepFilter('');
     setCategoryFilter('');
@@ -321,7 +311,6 @@ export default function AuctionScreen() {
     applyFilters({});
   };
 
-  // Load available categories
   useEffect(() => {
     fetchAvailableCategories();
   }, []);
@@ -345,7 +334,10 @@ export default function AuctionScreen() {
         }
       }
 
-      console.log('🔍 Aplicando filtros:', params);
+      if (providerLocation) {
+        params.latitude = providerLocation.latitude;
+        params.longitude = providerLocation.longitude;
+      }
 
       const response = await orderService.getAvailableOrders(params);
 
@@ -391,15 +383,12 @@ export default function AuctionScreen() {
     }
   };
 
-  // Filter demands according to user type
-  let filteredAuctions = auctions; // For providers, don't filter by clientId
+  let filteredAuctions = auctions;
 
-  // Filter only open or in progress demands
   filteredAuctions = filteredAuctions.filter(
     (auction) => auction.status === 'Aguardando propostas' || auction.status === 'Em andamento'
   );
 
-  // Add information about logged provider's proposal
   filteredAuctions = filteredAuctions.map(auction => {
     const myProposal = auction.proposals?.find((proposal: Proposal) =>
       proposal.provider_id?.toString() === user?.id?.toString()
@@ -420,16 +409,13 @@ export default function AuctionScreen() {
   });
 
   const handleAuctionPress = (auction: Auction) => {
-    // Navigate to proposal sending screen with demand data
     navigation.navigate('SendProposal', { demand: auction });
   };
 
   const handleSendProposal = (auction: Auction) => {
-    // Navigate to proposal sending screen with demand data
     navigation.navigate('SendProposal', { demand: auction });
   };
 
-  // Function to refuse proposal
   const handleRefuseProposal = (auctionId: string, proposalId: string) => {
     Alert.alert(
       'Recusar Proposta',
@@ -439,7 +425,6 @@ export default function AuctionScreen() {
         {
           text: 'Recusar', style: 'destructive',
           onPress: () => {
-            // TODO: Implement proposal refusal logic in API
             Alert.alert('Recusar Proposta', 'Funcionalidade de recusa de proposta ainda não implementada.');
           }
         }
@@ -447,7 +432,6 @@ export default function AuctionScreen() {
     );
   };
 
-  // Function for client to close/cancel demand
   const handleCloseAuction = (auctionId: string) => {
     Alert.alert(
       'Encerrar Demanda',
@@ -457,7 +441,6 @@ export default function AuctionScreen() {
         {
           text: 'Encerrar', style: 'destructive',
           onPress: () => {
-            // TODO: Implement demand closure logic in API
             Alert.alert('Encerrar Demanda', 'Funcionalidade de encerramento de demanda ainda não implementada.');
           }
         }
@@ -465,7 +448,6 @@ export default function AuctionScreen() {
     );
   };
 
-  // Function for provider to cancel proposal
   const handleCancelProposal = (auctionId: string) => {
     Alert.alert(
       'Cancelar Proposta',
@@ -475,7 +457,6 @@ export default function AuctionScreen() {
         {
           text: 'Sim', style: 'destructive',
           onPress: () => {
-            // TODO: Implement proposal cancellation logic in API
             Alert.alert('Cancelar Proposta', 'Funcionalidade de cancelamento de proposta ainda não implementada.');
           }
         }
@@ -491,8 +472,6 @@ export default function AuctionScreen() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  // getRankingIcon replaced by Lucide Trophy icons in JSX
 
   const getPageTitle = () => {
     if (fromSearch) {
@@ -512,9 +491,21 @@ export default function AuctionScreen() {
 
   if (loading && auctions.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={styles.loadingText}>Carregando demandas...</Text>
+      <View style={styles.container}>
+        <View style={styles.headerBackground} />
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <View style={styles.headerTop}>
+            <SkeletonBlock width={32} height={32} borderRadius={16} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+            <SkeletonBlock width={220} height={22} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+          </View>
+          <SkeletonBlock width={180} height={14} style={{ marginTop: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+        </View>
+        <View style={styles.content}>
+          <SkeletonBlock width="100%" height={100} borderRadius={12} style={{ marginBottom: 16 }} />
+          <SkeletonBlock width="100%" height={80} borderRadius={12} style={{ marginBottom: 12 }} />
+          <SkeletonBlock width="100%" height={80} borderRadius={12} style={{ marginBottom: 12 }} />
+          <SkeletonBlock width="100%" height={80} borderRadius={12} />
+        </View>
       </View>
     );
   }
@@ -537,13 +528,14 @@ export default function AuctionScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
         scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom }}
       >
-      {/* Header */}
+
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButtonHeader} onPress={() => navigation.goBack()}>
@@ -555,11 +547,11 @@ export default function AuctionScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Filtros */}
+
         <View style={styles.filtersCard}>
           <Text style={styles.filtersTitle}>Filtros</Text>
 
-          {/* Filtro por CEP */}
+
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>CEP</Text>
             <View style={styles.filterInputContainer}>
@@ -578,7 +570,7 @@ export default function AuctionScreen() {
             </Text>
           </View>
 
-          {/* Filtro por Categoria */}
+
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>Categoria</Text>
             <View style={styles.categoryFilterContainer}>
@@ -608,7 +600,7 @@ export default function AuctionScreen() {
                 )}
               </View>
 
-              {/* Autocomplete de categorias */}
+
               {showCategoryAutocomplete && filteredCategories.length > 0 && (
                 <View style={styles.autocompleteContainer}>
                   <ScrollView
@@ -630,7 +622,7 @@ export default function AuctionScreen() {
             </View>
           </View>
 
-          {/* Botões de ação */}
+
           <View style={styles.filterActions}>
             {(cepFilter || categoryFilter) && (
               <TouchableOpacity
@@ -664,7 +656,7 @@ export default function AuctionScreen() {
             <View style={styles.auctionStatusRow}>
 
               <View style={styles.statusContainer}>
-                {/* Status da minha proposta */}
+
                 {auction.hasMyProposal && (
                   <View style={styles.myProposalBadge}>
                     <Text style={styles.myProposalText}>
@@ -672,13 +664,13 @@ export default function AuctionScreen() {
                     </Text>
                   </View>
                 )}
-                {/* Ícone de leilão ativo */}
+
                 {auction.hasActiveAuction && (
                   <View style={styles.activeAuctionBadge}>
                     <Icon name="gavel" size={14} color="#f97316" />
                   </View>
                 )}
-                {/* Ícone de nova demanda */}
+
                 {auction.isNewDemand && (
                   <View style={styles.newDemandBadge}>
                     <Icon name="new-releases" size={14} color="#22c55e" />
@@ -704,7 +696,7 @@ export default function AuctionScreen() {
               <Text style={styles.locationText}>{auction.location}</Text>
             </View>
 
-            {/* Status das propostas */}
+
             <View style={styles.statusProposalsContainer}>
               {auction.proposals.length > 0 ? (
                 <>
@@ -768,16 +760,23 @@ export default function AuctionScreen() {
       </View>
       </ScrollView>
 
-      {/* Status Bar Overlay */}
+
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }
 
-// StyleSheet definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: '-50%',
+    left: 0,
+    right: 0,
+    height: '100%',
     backgroundColor: '#4f46e5',
   },
   scrollView: {

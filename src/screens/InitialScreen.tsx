@@ -50,7 +50,7 @@ export default function InitialScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 to purple-600 gradient
+    backgroundColor: '#6366f1',
     padding: 24,
   },
   content: {
@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    color: '#1f2937', // gray-800
+    color: '#1f2937',
   },
   buttonSubtitle: {
-    color: '#6b7280', // gray-600
+    color: '#6b7280',
     textAlign: 'center',
     marginTop: 8,
   },

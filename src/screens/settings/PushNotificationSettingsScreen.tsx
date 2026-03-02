@@ -90,7 +90,7 @@ export default function PushNotificationSettingsScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Configurações de Notificação</Text>
 
-        {/* Status Card */}
+        
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Status do Serviço</Text>
 
@@ -127,7 +127,7 @@ export default function PushNotificationSettingsScreen() {
           </View>
         </View>
 
-        {/* Token Information */}
+        
         {deviceToken && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Token do Dispositivo</Text>
@@ -144,7 +144,7 @@ export default function PushNotificationSettingsScreen() {
           </View>
         )}
 
-        {/* Actions */}
+        
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Ações</Text>
 
@@ -210,7 +210,7 @@ export default function PushNotificationSettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Instructions */}
+        
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Instruções</Text>
 

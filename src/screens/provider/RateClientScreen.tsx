@@ -4,7 +4,6 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Star } from 'lucide-react-native';
 
-// Navigation types
 type RootStackParamList = {
   MyServices: undefined;
   [key: string]: any;
@@ -12,10 +11,9 @@ type RootStackParamList = {
 
 type RateClientScreenNavigationProp = NavigationProp<RootStackParamList>;
 
-// TypeScript interfaces
 interface Client {
   name: string;
-  avatar: any; // For require() images
+  avatar: any;
 }
 
 interface MockService {
@@ -25,7 +23,6 @@ interface MockService {
   date: string;
 }
 
-// Mock data for example
 const mockService: MockService = {
   id: '1',
   title: 'Pintura de apartamento',
@@ -47,7 +44,6 @@ export default function RateClientScreen() {
       return;
     }
 
-    // Simulation of rating submission
     Alert.alert(
       'Sucesso',
       'Avaliação enviada com sucesso!',
@@ -130,7 +126,6 @@ export default function RateClientScreen() {
   );
 }
 
-// StyleSheet definitions
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -7,7 +7,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -15,7 +15,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Conteúdo */}
+      
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -24,7 +24,7 @@ export default function HomeScreen() {
           Visão Geral
         </Text>
 
-        {/* Cards */}
+        
         <View style={styles.cardsContainer}>
           <Card title="Serviços" value="12" icon="construct-outline" />
           <Card title="Pendentes" value="4" icon="time-outline" />
@@ -36,7 +36,7 @@ export default function HomeScreen() {
           Últimos Serviços
         </Text>
 
-        {/* Lista simples */}
+        
         {['Reparo Elétrico', 'Limpeza Residencial', 'Pintura', 'Manutenção'].map((item, idx) => (
           <View
             key={idx}
@@ -70,7 +70,7 @@ function Card({ title, value, icon }: CardProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 to purple-600 gradient
+    backgroundColor: '#6366f1',
   },
   header: {
     padding: 24,
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#4f46e5', // indigo-700
+    color: '#4f46e5',
     marginBottom: 16,
   },
   sectionTitleSpaced: {
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   card: {
-    backgroundColor: '#4f46e5', // indigo-600
+    backgroundColor: '#4f46e5',
     width: '48%',
     borderRadius: 16,
     padding: 16,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   serviceItem: {
-    backgroundColor: '#f3f4f6', // gray-100
+    backgroundColor: '#f3f4f6',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -132,6 +132,6 @@ const styles = StyleSheet.create({
   },
   serviceItemText: {
     fontSize: 18,
-    color: '#1f2937', // gray-800
+    color: '#1f2937',
   },
 });

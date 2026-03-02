@@ -16,7 +16,6 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    // Simulação de envio de email de recuperação
     showSuccess('Se este email estiver cadastrado, você receberá as instruções para redefinir sua senha', 5000);
     setTimeout(() => {
       navigation.goBack();
@@ -68,7 +67,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 to purple-600 gradient
+    backgroundColor: '#6366f1',
     padding: 24,
   },
   content: {
@@ -96,7 +95,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   description: {
-    color: '#6b7280', // gray-600
+    color: '#6b7280',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -107,13 +106,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db', // gray-300
+    borderColor: '#d1d5db',
     borderRadius: 8,
     padding: 12,
     marginBottom: 24,
   },
   button: {
-    backgroundColor: '#4f46e5', // indigo-600
+    backgroundColor: '#4f46e5',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
@@ -125,7 +124,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   backText: {
-    color: '#4f46e5', // indigo-600
+    color: '#4f46e5',
     textAlign: 'center',
   },
 });

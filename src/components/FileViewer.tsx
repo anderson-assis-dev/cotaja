@@ -20,16 +20,11 @@ interface FileViewerProps {
   onClose: () => void;
 }
 
-/**
- * In-app file viewer using WebView.
- * Supports videos (mp4, mov, etc.), PDFs, and other documents.
- */
 export function FileViewer({ visible, url, title, mimeType = '', onClose }: FileViewerProps) {
   if (!visible) return null;
 
   const isVideo = mimeType.startsWith('video/') || /\.(mp4|mov|avi|webm|mpeg)$/i.test(url);
 
-  // For videos, wrap in an HTML5 video player for better controls
   const videoHtml = `
     <!DOCTYPE html>
     <html>
@@ -53,7 +48,7 @@ export function FileViewer({ visible, url, title, mimeType = '', onClose }: File
   return (
     <Modal visible={true} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaView style={styles.container}>
-        {/* Header */}
+        
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="arrow-back" size={24} color="#111827" />
@@ -62,7 +57,7 @@ export function FileViewer({ visible, url, title, mimeType = '', onClose }: File
           <View style={{ width: 40 }} />
         </View>
 
-        {/* Content */}
+        
         <View style={styles.content}>
           {isVideo ? (
             <WebView

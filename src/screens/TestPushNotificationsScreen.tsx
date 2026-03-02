@@ -23,11 +23,9 @@ const TestPushNotificationsScreen: React.FC = () => {
     try {
       await pushNotificationService.initialize();
 
-      // Update state
       setIsInitialized(pushNotificationService.isServiceInitialized());
       setDeviceToken(pushNotificationService.getDeviceToken());
 
-      // Check permissions
       const perms = await pushNotificationService.checkPermissions();
       setPermissions(perms);
     } catch (error) {
@@ -53,7 +51,7 @@ const TestPushNotificationsScreen: React.FC = () => {
   const sendScheduledNotification = async () => {
     try {
       const futureDate = new Date();
-      futureDate.setSeconds(futureDate.getSeconds() + 10); // 10 seconds from now
+      futureDate.setSeconds(futureDate.getSeconds() + 10);
 
       await pushNotificationService.sendScheduledNotification(
         'Teste Agendado',

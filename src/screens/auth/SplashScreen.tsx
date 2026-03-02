@@ -23,7 +23,6 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // Check onboarding status and navigate accordingly
     const timer = setTimeout(async () => {
       try {
         const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
@@ -62,7 +61,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#6366f1', // indigo-500 to purple-600 gradient
+    backgroundColor: '#6366f1',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -40,7 +40,6 @@ export default function OnboardingScreen() {
       await AsyncStorage.setItem('onboarding_completed', 'true');
       console.log('✅ Status do onboarding salvo com sucesso');
 
-      // Verificar se foi salvo corretamente
       const saved = await AsyncStorage.getItem('onboarding_completed');
       console.log('📱 Status salvo verificado:', saved);
     } catch (error) {
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   description: {
-    color: '#6b7280', // gray-600
+    color: '#6b7280',
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -191,13 +190,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: '#4f46e5', // indigo-600
+    backgroundColor: '#4f46e5',
   },
   inactiveDot: {
-    backgroundColor: '#d1d5db', // gray-300
+    backgroundColor: '#d1d5db',
   },
   button: {
-    backgroundColor: '#4f46e5', // indigo-600
+    backgroundColor: '#4f46e5',
     borderRadius: 8,
     padding: 16,
   },
@@ -211,7 +210,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   loginText: {
-    color: '#4f46e5', // indigo-600
+    color: '#4f46e5',
     textAlign: 'center',
   },
   debugContainer: {

@@ -88,7 +88,7 @@ const InAppNotification: React.FC<{ children: React.ReactNode }> = ({ children }
   return (
     <View style={{ flex: 1 }}>
       {children}
-      {/* Banner overlay — pointerEvents="none" when hidden so touches pass through */}
+      
       <Animated.View
         pointerEvents={notification ? 'box-none' : 'none'}
         style={[

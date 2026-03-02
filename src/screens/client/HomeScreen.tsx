@@ -53,12 +53,10 @@ export default function HomeScreen() {
   const [recentOrders, setRecentOrders] = useState<ApiOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
-  // Acessando os parâmetros do cliente
   const clientInfo = (route.params as any)?.clientInfo || {};
   const clientId = (route.params as any)?.clientId || null;
   const userType = (route.params as any)?.userType || 'client';
 
-  // Nome do cliente para exibição
   const clientName = clientInfo.name || 'Cliente';
 
   useEffect(() => {
@@ -70,7 +68,6 @@ export default function HomeScreen() {
       setLoadingOrders(true);
       const response = await orderService.getRecentOrders();
       if (response.success && Array.isArray(response.data)) {
-        // DEBUG: Ver o que a API retorna
         response.data.forEach((order: any) => {
           console.log(`[HomeScreen] Order ${order.id} - proposals:`, order.proposals?.length);
           order.proposals?.forEach((p: any) => {
@@ -86,7 +83,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Recarrega os pedidos recentes toda vez que a tela ganha foco
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
@@ -110,7 +106,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fundo azul fixo apenas no topo (50% da tela) */}
+      
       <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
@@ -118,8 +114,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#4f46e5']} // Android
-            tintColor="#ffffff" // iOS
+            colors={['#4f46e5']}
+            tintColor="#ffffff"
             progressViewOffset={top40}
           />
         }
@@ -187,11 +183,9 @@ export default function HomeScreen() {
               <OrderCardSkeleton />
             </View>
           ) : (() => {
-            // Filtrar apenas pedidos do usuário logado (segurança extra)
             const myOrders = recentOrders.filter((order: any) =>
               order.client_id?.toString() === user?.id?.toString()
             );
-            // Extrair todas as propostas dos pedidos do usuário e pegar as 5 mais recentes
             const allProposals = myOrders.flatMap((order) =>
               (order.proposals || []).map((p: any) => ({
                 ...p,
@@ -200,7 +194,6 @@ export default function HomeScreen() {
                 orderCategory: order.category,
               }))
             );
-            // Ordenar por created_at desc (mais recentes primeiro)
             allProposals.sort((a: any, b: any) => {
               const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
               const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -277,7 +270,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      {/* Status Bar Overlay */}
+      
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );

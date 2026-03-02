@@ -4,9 +4,7 @@ import { Platform } from 'react-native';
 import RNFS from 'react-native-fs';
 import Config from 'react-native-config';
 
-// Configurar URL base via variáveis de ambiente
 const getApiBaseUrl = () => {
-  // URL do servidor via .env
   return Config.API_BASE_URL || 'http://localhost:3000/api';
 };
 
@@ -14,17 +12,15 @@ const API_BASE_URL = getApiBaseUrl();
 
 console.log('API Base URL:', API_BASE_URL);
 
-// Criar instância do axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 120000, // 120 segundos (2 minutos) para uploads grandes
+  timeout: 120000,
 });
 
-// Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
   async (config) => {
     try {
@@ -45,7 +41,6 @@ api.interceptors.request.use(
   }
 );
 
-// Interceptor para tratar respostas
 api.interceptors.response.use(
   (response) => {
     console.log('Response:', response.status, response.config.url);
@@ -61,7 +56,6 @@ api.interceptors.response.use(
     });
 
     if (error.response?.status === 401) {
-      // Token expirado ou inválido
       try {
         await AsyncStorage.removeItem('auth_token');
         await AsyncStorage.removeItem('user');
@@ -70,7 +64,6 @@ api.interceptors.response.use(
       }
     }
 
-    // Melhorar mensagem de erro
     if (error.code === 'ECONNREFUSED') {
       error.message = 'Servidor não está acessível. Verifique se o backend está rodando.';
     } else if (error.code === 'NETWORK_ERROR') {
@@ -83,7 +76,6 @@ api.interceptors.response.use(
   }
 );
 
-// Tipos para as respostas da API
 export interface User {
   id: string;
   name: string;
@@ -95,7 +87,6 @@ export interface User {
   email_verified_at?: string;
   created_at: string;
   updated_at: string;
-  // User stats fields
   rate?: number;
   avg_rating?: number;
   ratings_count?: number;
@@ -140,7 +131,6 @@ export interface UpdateProfileData {
   profile_type?: 'client' | 'provider';
 }
 
-// Tipos para Pedidos
 export interface Order {
   id: number;
   title: string;
@@ -177,7 +167,6 @@ export interface Order {
   updated_at: string;
 }
 
-// Tipos para Propostas
 export interface Proposal {
   id: number;
   price: number;
@@ -195,7 +184,6 @@ export interface Proposal {
   updated_at: string;
 }
 
-// Tipos para Serviços
 export interface Service {
   id: number;
   title: string;
@@ -210,7 +198,6 @@ export interface Service {
   updated_at: string;
 }
 
-// Tipos para Anexos
 export interface Attachment {
   id?: number;
   filename: string;
@@ -229,40 +216,33 @@ export interface Attachment {
   updated_at?: string;
 }
 
-// Serviços de autenticação
 export const authService = {
-  // Registrar usuário
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await api.post('/register', data);
     return response.data;
   },
 
-  // Fazer login
   async login(data: LoginData): Promise<AuthResponse> {
     const response = await api.post('/login', data);
     console.log(response);
     return response.data;
   },
 
-  // Fazer logout
   async logout(): Promise<{ success: boolean; message: string }> {
     const response = await api.post('/logout');
     return response.data;
   },
 
-  // Obter dados do usuário autenticado
   async me(): Promise<{ success: boolean; data: { user: User } }> {
     const response = await api.get('/me');
     return response.data;
   },
 
-  // Atualizar perfil
   async updateProfile(data: UpdateProfileData): Promise<{ success: boolean; message: string; data: { user: User } }> {
     const response = await api.put('/profile', data);
     return response.data;
   },
 
-  // Atualizar tipo de perfil
   async updateProfileType(profileType: 'client' | 'provider', serviceCategories?: string[]): Promise<{ success: boolean; message: string; data: { user: User } }> {
     const data: any = { profile_type: profileType };
     if (serviceCategories) {
@@ -272,7 +252,6 @@ export const authService = {
     return response.data;
   },
 
-  // Salvar token FCM
   async saveFcmToken(fcmToken: string, devicePlatform?: string): Promise<{ success: boolean; message: string }> {
     const response = await api.post('/fcm-token', {
       fcm_token: fcmToken,
@@ -281,35 +260,39 @@ export const authService = {
     return response.data;
   },
 
-  // Atualizar foto de perfil
   async updateAvatar(avatar_base64: string): Promise<{ success: boolean; message: string; data: { avatar_base64: string } }> {
     const response = await api.put('/auth/avatar', { avatar_base64 });
     return response.data;
   },
 
+  async requestOtp(): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/request-otp');
+    return response.data;
+  },
+
+  async changePasswordWithOtp(otp: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/change-password', { otp, new_password: newPassword });
+    return response.data;
+  },
+
 };
 
-// Serviços de Pedidos
 export const orderService = {
-  // Listar pedidos
   async getOrders(params?: { status?: string; category?: string }): Promise<{ success: boolean; data: { data: Order[]; current_page: number; total: number } }> {
     const response = await api.get('/orders', { params });
     return response.data;
   },
 
-  // Obter pedidos recentes
   async getRecentOrders(): Promise<{ success: boolean; data: Order[] }> {
     const response = await api.get('/orders/recent');
     return response.data;
   },
 
-  // Obter estatísticas
   async getStats(): Promise<{ success: boolean; data: { total_orders: number; open_orders: number; completed_orders: number; total_spent: number } }> {
     const response = await api.get('/orders/stats');
     return response.data;
   },
 
-  // Criar pedido
   async createOrder(data: {
     title: string;
     description: string;
@@ -330,7 +313,6 @@ export const orderService = {
   }): Promise<{ success: boolean; message: string; data: Order }> {
     const formData = new FormData();
 
-    // Adicionar campos do pedido
     formData.append('title', data.title);
     formData.append('description', data.description);
     formData.append('category', data.category);
@@ -338,7 +320,6 @@ export const orderService = {
     formData.append('deadline', data.deadline.toString());
     formData.append('address', data.address);
 
-    // Campos de endereço estruturado
     if (data.street) formData.append('street', data.street);
     if (data.number) formData.append('number', data.number);
     if (data.complement) formData.append('complement', data.complement);
@@ -349,19 +330,15 @@ export const orderService = {
     if (data.latitude) formData.append('latitude', data.latitude.toString());
     if (data.longitude) formData.append('longitude', data.longitude.toString());
 
-    // Adicionar anexos se existirem
     if (data.attachments && data.attachments.length > 0) {
       for (let i = 0; i < data.attachments.length; i++) {
         const attachment = data.attachments[i];
 
-        // Normalizar URI
         let uri = attachment.uri;
 
         console.log(`🔍 Verificando arquivo ${i + 1}:`, uri);
 
         try {
-          // Para URIs content:// (document picker), não verificar com RNFS
-          // O FormData do React Native lida com content:// nativamente
           if (uri.startsWith('content://')) {
             const file: any = {
               uri: uri,
@@ -374,7 +351,6 @@ export const orderService = {
             });
             formData.append('attachments', file);
           } else {
-            // Para file:// URIs, decodificar e verificar existência
             const filePath = decodeURIComponent(uri.replace('file://', ''));
 
             const fileExists = await RNFS.exists(filePath);
@@ -383,7 +359,6 @@ export const orderService = {
             if (fileExists) {
               const stat = await RNFS.stat(filePath);
 
-              // Garantir que o URI tenha file://
               if (!uri.startsWith('file://')) {
                 uri = 'file://' + uri;
               }
@@ -403,7 +378,6 @@ export const orderService = {
               formData.append('attachments', file);
             } else {
               console.warn(`⚠️ RNFS.exists falhou, tentando enviar mesmo assim: ${filePath}`);
-              // Tentar enviar mesmo assim — o React Native pode resolver o URI
               const file: any = {
                 uri: uri.startsWith('file://') ? uri : 'file://' + uri,
                 type: attachment.type || 'application/octet-stream',
@@ -414,7 +388,6 @@ export const orderService = {
           }
         } catch (error) {
           console.error(`❌ Erro ao verificar arquivo ${i + 1}:`, error);
-          // Tentar enviar mesmo assim em vez de abortar tudo
           const file: any = {
             uri: uri,
             type: attachment.type || 'application/octet-stream',
@@ -436,8 +409,6 @@ export const orderService = {
     console.log('🌐 URL completa:', `${API_BASE_URL}/orders`);
 
     try {
-      // Usar fetch nativo em vez de axios para upload de arquivos
-      // pois o axios tem problemas com FormData no React Native
       const token = await AsyncStorage.getItem('auth_token');
 
       console.log('🔑 Token obtido, iniciando upload...');
@@ -446,7 +417,6 @@ export const orderService = {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          // NÃO adicionar Content-Type - deixar o fetch definir automaticamente
         },
         body: formData,
       });
@@ -471,13 +441,11 @@ export const orderService = {
     }
   },
 
-  // Obter pedido específico
   async getOrder(id: number): Promise<{ success: boolean; data: Order }> {
     const response = await api.get(`/orders/${id}`);
     return response.data;
   },
 
-  // Atualizar pedido
   async updateOrder(id: number, data: {
     title?: string;
     description?: string;
@@ -499,7 +467,6 @@ export const orderService = {
   }): Promise<{ success: boolean; message: string; data: Order }> {
     const formData = new FormData();
 
-    // Adicionar campos que foram fornecidos
     if (data.title) formData.append('title', data.title);
     if (data.description) formData.append('description', data.description);
     if (data.category) formData.append('category', data.category);
@@ -516,20 +483,16 @@ export const orderService = {
     if (data.latitude) formData.append('latitude', data.latitude.toString());
     if (data.longitude) formData.append('longitude', data.longitude.toString());
 
-    // Enviar lista de anexos removidos
     if (data.removedAttachments && data.removedAttachments.length > 0) {
       formData.append('removedAttachments', JSON.stringify(data.removedAttachments));
     }
 
-    // Adicionar novos anexos se houver
     if (data.attachments && data.attachments.length > 0) {
       for (let i = 0; i < data.attachments.length; i++) {
         const attachment = data.attachments[i];
         let uri = attachment.uri;
 
-        // Normalizar URI
         try {
-          // Para URIs content:// (document picker), não verificar com RNFS
           if (uri.startsWith('content://')) {
             const file: any = {
               uri: uri,
@@ -619,40 +582,33 @@ export const orderService = {
     }
   },
 
-  // Excluir pedido
   async deleteOrder(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.delete(`/orders/${id}`);
     return response.data;
   },
 
-  // Pausar/Retomar pedido (toggle stopped <-> open)
   async toggleStopOrder(id: number): Promise<{ success: boolean; message: string; data: Order }> {
     const response = await api.post(`/orders/${id}/toggle-stop`);
     return response.data;
   },
 
-  // Iniciar leilão
   async startAuction(id: number): Promise<{ success: boolean; message: string; data: Order }> {
     const response = await api.post(`/orders/${id}/start-auction`);
     return response.data;
   },
 
-  // Listar pedidos disponíveis para prestadores
-  async getAvailableOrders(params?: { category?: string; cep?: string; search?: string }): Promise<{ success: boolean; data: { data: Order[]; current_page: number; total: number } }> {
+  async getAvailableOrders(params?: { category?: string; cep?: string; search?: string; latitude?: number; longitude?: number }): Promise<{ success: boolean; data: { data: Order[]; current_page: number; total: number } }> {
     const response = await api.get('/orders/available', { params });
     return response.data;
   },
 };
 
-// Serviços de Propostas
 export const proposalService = {
-  // Listar propostas
   async getProposals(params?: { status?: string; order_id?: number }): Promise<{ success: boolean; data: { data: Proposal[]; current_page: number; total: number } }> {
     const response = await api.get('/proposals', { params });
     return response.data;
   },
 
-  // Criar proposta
   async createProposal(data: {
     order_id: number;
     price: number;
@@ -663,46 +619,38 @@ export const proposalService = {
     return response.data;
   },
 
-  // Obter proposta específica
   async getProposal(id: number): Promise<{ success: boolean; data: Proposal }> {
     const response = await api.get(`/proposals/${id}`);
     return response.data;
   },
 
-  // Atualizar proposta
   async updateProposal(id: number, data: Partial<Proposal>): Promise<{ success: boolean; message: string; data: Proposal }> {
     const response = await api.put(`/proposals/${id}`, data);
     return response.data;
   },
 
-  // Aceitar proposta
   async acceptProposal(id: number): Promise<{ success: boolean; message: string; data: Proposal }> {
     const response = await api.post(`/proposals/${id}/accept`);
     return response.data;
   },
 
-  // Rejeitar proposta
   async rejectProposal(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.post(`/proposals/${id}/reject`);
     return response.data;
   },
 
-  // Cancelar proposta (prestador)
   async withdrawProposal(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.post(`/proposals/${id}/withdraw`);
     return response.data;
   },
 };
 
-// Serviços de Serviços
 export const serviceService = {
-  // Listar serviços
   async getServices(params?: { status?: string; category?: string }): Promise<{ success: boolean; data: { data: Service[]; current_page: number; total: number } }> {
     const response = await api.get('/services', { params });
     return response.data;
   },
 
-  // Criar serviço
   async createService(data: {
     title: string;
     description: string;
@@ -715,46 +663,37 @@ export const serviceService = {
     return response.data;
   },
 
-  // Obter serviço específico
   async getService(id: number): Promise<{ success: boolean; data: Service }> {
     const response = await api.get(`/services/${id}`);
     return response.data;
   },
 
-  // Atualizar serviço
   async updateService(id: number, data: Partial<Service> & { images?: string[] }): Promise<{ success: boolean; message: string; data: Service }> {
     const response = await api.put(`/services/${id}`, data);
     return response.data;
   },
 
-  // Excluir serviço
   async deleteService(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.delete(`/services/${id}`);
     return response.data;
   },
 
-  // Listar serviços disponíveis
   async getAvailableServices(params?: { category?: string; provider_id?: number }): Promise<{ success: boolean; data: { data: Service[]; current_page: number; total: number } }> {
     const response = await api.get('/services/available', { params });
     return response.data;
   },
 
-  // Buscar prestadores por categoria
   async searchProviders(params: { category: string; search?: string }): Promise<{ success: boolean; data: { data: User[]; current_page: number; total: number } }> {
     const response = await api.get('/services/search-providers', { params });
     return response.data;
   },
 
-  // Listar meus serviços (do usuário autenticado)
   async getMyServices(): Promise<{ success: boolean; message: string; data: Service[] }> {
     const response = await api.get('/services/my-services');
     return response.data;
   },
 };
 
-
-
-// Tipos para Mensagens
 export interface Message {
   id: number;
   order_id: number;
@@ -768,7 +707,6 @@ export interface Message {
   receiver?: { id: string; name: string; avatar_base64?: string };
 }
 
-// Serviço de Chat
 export const chatService = {
   async getMessages(orderId: number, page = 1): Promise<{ success: boolean; data: { messages: Message[]; total: number } }> {
     const response = await api.get(`/chat/${orderId}/messages`, { params: { page } });
@@ -786,7 +724,6 @@ export const chatService = {
   },
 };
 
-// Serviço de Cancelamento e Agendamento
 export const orderActionService = {
   async cancelOrder(orderId: number, reason: string): Promise<{ success: boolean; message: string }> {
     const response = await api.post(`/orders/${orderId}/cancel`, { reason });
@@ -843,7 +780,6 @@ export const providerService={
   }
 };
 
-// Tipos para Endereço Geocodificado
 export interface GeocodedAddress {
   street: string;
   number: string;
@@ -860,30 +796,47 @@ export interface GeocodedAddress {
 
 export default api;
 
-// Serviço de Geocoding (Nominatim + ViaCEP)
 export const geocodingService = {
-  // Reverse geocode: coordenadas → endereço
   async reverseGeocode(lat: number, lng: number): Promise<{ success: boolean; data: GeocodedAddress }> {
     const response = await api.get('/geocoding/reverse', { params: { lat, lng } });
     return response.data;
   },
 
-  // Forward geocode: endereço → coordenadas
   async forwardGeocode(address: string): Promise<{ success: boolean; data: GeocodedAddress }> {
     const response = await api.get('/geocoding/forward', { params: { address } });
     return response.data;
   },
 
-  // Buscar endereços (autocomplete)
   async searchAddress(query: string, lat?: number, lng?: number): Promise<{ success: boolean; data: GeocodedAddress[] }> {
     const response = await api.get('/geocoding/search', { params: { q: query, lat, lng } });
     return response.data;
   },
 
-  // Consultar CEP → endereço (ViaCEP)
   async lookupCep(cep: string): Promise<{ success: boolean; data: GeocodedAddress }> {
     const cleanCep = cep.replace(/[^0-9]/g, '');
     const response = await api.get(`/geocoding/cep/${cleanCep}`);
+    return response.data;
+  },
+};
+
+export const walletService = {
+  async createWallet(): Promise<any> {
+    const response = await api.post('/wallet');
+    return response.data;
+  },
+
+  async getWallet(): Promise<any> {
+    const response = await api.get('/wallet');
+    return response.data;
+  },
+
+  async createSetupIntent(): Promise<{ success: boolean; data: { client_secret: string; setup_intent_id: string } }> {
+    const response = await api.post('/wallet/setup-intent');
+    return response.data;
+  },
+
+  async removeCard(paymentMethodId: string): Promise<any> {
+    const response = await api.delete(`/wallet/cards/${paymentMethodId}`);
     return response.data;
   },
 };

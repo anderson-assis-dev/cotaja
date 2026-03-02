@@ -91,7 +91,7 @@ export default function ProviderHomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fundo azul fixo apenas no topo (50% da tela) */}
+      
       <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
@@ -99,8 +99,8 @@ export default function ProviderHomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#4f46e5']} // Android
-            tintColor="#ffffff" // iOS
+            colors={['#4f46e5']}
+            tintColor="#ffffff"
             progressViewOffset={top40}
           />
         }
@@ -143,7 +143,6 @@ export default function ProviderHomeScreen() {
               style={styles.serviceCard}
               onPress={() => {
                 if (service.screen === 'AuctionsTab') {
-                  // Reseta a navegação para a tela de leilões sem filtros
                   navigation.navigate('AuctionsTab', {
                     screen: 'ProviderAuction',
                     params: { selectedCategory: undefined, fromSearch: false },
@@ -262,7 +261,7 @@ export default function ProviderHomeScreen() {
       </View>
     </ScrollView>
 
-    {/* Status Bar Overlay */}
+    
     <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
   </View>
   );

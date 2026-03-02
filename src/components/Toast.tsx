@@ -22,7 +22,6 @@ export function Toast({ message, type, visible, onHide, duration = 4000 }: Toast
 
   useEffect(() => {
     if (visible) {
-      // Animação de entrada
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
@@ -36,7 +35,6 @@ export function Toast({ message, type, visible, onHide, duration = 4000 }: Toast
         }),
       ]).start();
 
-      // Auto-hide após duration
       const timer = setTimeout(() => {
         hideToast();
       }, duration);

@@ -10,13 +10,11 @@ interface DeviceInfo {
 }
 
 interface PushNotificationContextData {
-  // State
   isInitialized: boolean;
   deviceToken: string | null;
   permissionStatus: string;
   isLoading: boolean;
 
-  // Methods
   initializeService: () => Promise<void>;
   sendTestNotification: () => Promise<void>;
   refreshToken: () => Promise<void>;
@@ -36,21 +34,17 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
   const [permissionStatus, setPermissionStatus] = useState<string>('unknown');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize service on mount
   useEffect(() => {
     initializeService();
   }, []);
 
-  // Update token on app foreground (when user returns to app)
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active') {
         console.log('📱 [AppState] App voltou para foreground, verificando token...');
 
-        // Check if user is logged in
         const authToken = await AsyncStorage.getItem('auth_token');
         if (authToken) {
-          // Get current token
           const storedToken = await AsyncStorage.getItem('device_token');
           if (storedToken) {
             console.log('🔄 [AppState] Atualizando token no backend...');
@@ -70,9 +64,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     };
   }, []);
 
-  /**
-   * Initialize push notification service
-   */
+  
   const initializeService = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -80,7 +72,6 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
 
       await pushNotificationService.initialize();
 
-      // Update state
       setIsInitialized(pushNotificationService.isServiceInitialized());
       setDeviceToken(pushNotificationService.getDeviceToken());
 
@@ -95,9 +86,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     }
   };
 
-  /**
-   * Send test notification
-   */
+  
   const sendTestNotification = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -109,9 +98,7 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     }
   };
 
-  /**
-   * Refresh device token
-   */
+  
   const refreshToken = async (): Promise<void> => {
     try {
       setIsLoading(true);
@@ -127,22 +114,17 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
     }
   };
 
-  /**
-   * Get device info
-   */
+  
   const getDeviceInfo = (): DeviceInfo | null => {
     return pushNotificationService.getDeviceInfo();
   };
 
-  /**
-   * Clear all push notification data
-   */
+  
   const clearData = async (): Promise<void> => {
     try {
       setIsLoading(true);
       await pushNotificationService.clearStoredData();
 
-      // Reset state
       setIsInitialized(false);
       setDeviceToken(null);
       setPermissionStatus('unknown');
@@ -154,13 +136,11 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
   };
 
   const value: PushNotificationContextData = {
-    // State
     isInitialized,
     deviceToken,
     permissionStatus,
     isLoading,
 
-    // Methods
     initializeService,
     sendTestNotification,
     refreshToken,
@@ -175,9 +155,6 @@ export const PushNotificationProvider: React.FC<PushNotificationProviderProps> =
   );
 };
 
-/**
- * Hook to use push notification context
- */
 export const usePushNotification = (): PushNotificationContextData => {
   const context = useContext(PushNotificationContext);
 

@@ -2,7 +2,6 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Dados mockados para exemplo
 const mockDemands = [
   {
     id: '1',

@@ -14,7 +14,6 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { compressImage, compressVideo } from '../../utils/fileCompressor';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 
-// Tipos de anexos
 type AttachmentType = 'image' | 'video' | 'document';
 
 interface Attachment {
@@ -22,8 +21,8 @@ interface Attachment {
   name: string;
   type: string;
   fileType: AttachmentType;
-  isExisting?: boolean; // Flag para anexos que já existem no servidor
-  serverPath?: string; // Caminho no servidor
+  isExisting?: boolean;
+  serverPath?: string;
 }
 
 interface ExistingAttachment {
@@ -37,7 +36,6 @@ interface ExistingAttachment {
   original_name: string;
 }
 
-// Limites de anexos
 const LIMITS = {
   image: 5,
   video: 1,
@@ -59,7 +57,6 @@ export default function CreateOrderScreen() {
   const route = useRoute();
   const params = route.params as any;
 
-  // Modo de edição
   const editMode = params?.editMode || false;
   const orderId = params?.orderId;
   const orderData = params?.orderData;
@@ -84,14 +81,13 @@ export default function CreateOrderScreen() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [removedAttachments, setRemovedAttachments] = useState<string[]>([]); // Paths dos anexos removidos
+  const [removedAttachments, setRemovedAttachments] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressionType, setCompressionType] = useState<'image' | 'video'>('image');
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
 
-  // Preencher formulário em modo de edição
   useEffect(() => {
     if (editMode && orderData) {
       console.log('📝 Modo de edição ativado para pedido:', orderId);
@@ -101,15 +97,12 @@ export default function CreateOrderScreen() {
       setCategory(orderData.category || '');
       setDescription(orderData.description || '');
 
-      // Formatar budget (remover "R$ " e formatar)
       const budgetValue = orderData.budget?.replace('R$ ', '').replace(',', '.');
       setBudget(formatCurrency(budgetValue || '0'));
 
-      // Formatar deadline (remover " dias")
       const deadlineValue = orderData.deadline?.replace(' dias', '');
       setDeadline(formatDeadline(deadlineValue || '0'));
 
-      // Carregar campos de endereço estruturado
       setStreet(orderData.street || '');
       setAddressNumber(orderData.number || '');
       setComplement(orderData.complement || '');
@@ -120,13 +113,10 @@ export default function CreateOrderScreen() {
       if (orderData.latitude) setLatitude(parseFloat(orderData.latitude));
       if (orderData.longitude) setLongitude(parseFloat(orderData.longitude));
 
-      // Carregar anexos existentes
       if (orderData.attachments && Array.isArray(orderData.attachments)) {
         const existingAttachments: Attachment[] = orderData.attachments.map((att: ExistingAttachment) => {
-          // Resolve URL using shared helper (supports file paths and legacy base64)
           const imageUrl = getAttachmentUrl(att);
 
-          // Determinar tipo de arquivo
           let fileType: AttachmentType = 'document';
           if (isImageAttachment(att)) {
             fileType = 'image';
@@ -150,24 +140,20 @@ export default function CreateOrderScreen() {
     }
   }, [editMode, orderData, orderId]);
 
-  // Contador de anexos por tipo
   const getAttachmentCount = (fileType: AttachmentType) => {
     return attachments.filter(att => att.fileType === fileType).length;
   };
 
-  // Handler para orçamento com formatação
   const handleBudgetChange = (value: string) => {
     const formatted = formatCurrency(value);
     setBudget(formatted);
   };
 
-  // Handler para prazo com validação
   const handleDeadlineChange = (value: string) => {
     const formatted = formatDeadline(value);
     setDeadline(formatted);
   };
 
-  // Handler para CEP com formatação e auto-preenchimento via ViaCEP
   const [isLoadingCep, setIsLoadingCep] = useState(false);
 
   const handleZipCodeChange = async (value: string) => {
@@ -178,7 +164,6 @@ export default function CreateOrderScreen() {
       setZipCode(`${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`);
     }
 
-    // Quando completar 8 dígitos, buscar endereço automaticamente
     if (numbers.length === 8) {
       setIsLoadingCep(true);
       try {
@@ -199,11 +184,9 @@ export default function CreateOrderScreen() {
     }
   };
 
-  // Buscar endereço por texto (autocomplete com debounce)
   const handleStreetChange = (text: string) => {
     setStreet(text);
 
-    // Limpar timeout anterior
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -214,7 +197,6 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    // Debounce: esperar 500ms após parar de digitar
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await geocodingService.searchAddress(
@@ -232,7 +214,6 @@ export default function CreateOrderScreen() {
     }, 500);
   };
 
-  // Selecionar endereço dos resultados de busca
   const handleSelectAddress = (address: GeocodedAddress) => {
     setStreet(address.street || '');
     setAddressNumber(address.number || '');
@@ -246,12 +227,10 @@ export default function CreateOrderScreen() {
     setAddressSearchResults([]);
   };
 
-  // Obter localização GPS do dispositivo
   const handleGetLocation = async () => {
     setIsLoadingLocation(true);
 
     try {
-      // Solicitar permissão no Android
       if (Platform.OS === 'android') {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -278,7 +257,6 @@ export default function CreateOrderScreen() {
           setLongitude(lng);
 
           try {
-            // Reverse geocode via backend
             const response = await geocodingService.reverseGeocode(lat, lng);
             if (response.success && response.data) {
               const addr = response.data;
@@ -319,7 +297,6 @@ export default function CreateOrderScreen() {
     }
   };
 
-  // Construir endereço completo a partir dos campos
   const buildFullAddress = () => {
     const parts = [];
     if (street) {
@@ -338,7 +315,6 @@ export default function CreateOrderScreen() {
     return parts.join(', ');
   };
 
-  // Adicionar imagem (câmera ou galeria)
   const handleAddImage = async (useCamera: boolean = false) => {
     const imageCount = getAttachmentCount('image');
     if (imageCount >= LIMITS.image) {
@@ -363,10 +339,8 @@ export default function CreateOrderScreen() {
       for (let i = 0; i < result.assets.length; i++) {
         const asset = result.assets[i];
         try {
-          // Simular progresso para imagens (são rápidas)
           setCompressionProgress((i / result.assets.length) * 100);
 
-          // Comprimir imagem
           const compressed = await compressImage(asset.uri!, asset.fileName || 'image.jpg');
           compressedAssets.push({
             uri: compressed.uri,
@@ -376,7 +350,6 @@ export default function CreateOrderScreen() {
           });
         } catch (error) {
           console.error('Erro ao comprimir imagem:', error);
-          // Em caso de erro, adiciona imagem original
           compressedAssets.push({
             uri: asset.uri!,
             name: asset.fileName!,
@@ -395,7 +368,6 @@ export default function CreateOrderScreen() {
     }
   };
 
-  // Adicionar vídeo
   const handleAddVideo = async () => {
     const videoCount = getAttachmentCount('video');
     if (videoCount >= LIMITS.video) {
@@ -417,7 +389,6 @@ export default function CreateOrderScreen() {
       setCompressionProgress(0);
 
       try {
-        // Comprimir vídeo com callback de progresso
         const compressed = await compressVideo(
           asset.uri!,
           asset.fileName || 'video.mp4',
@@ -434,7 +405,6 @@ export default function CreateOrderScreen() {
         setAttachments([...attachments, newVideo]);
       } catch (error) {
         console.error('Erro ao comprimir vídeo:', error);
-        // Em caso de erro, adiciona vídeo original
         const newVideo: Attachment = {
           uri: asset.uri!,
           name: asset.fileName!,
@@ -451,7 +421,6 @@ export default function CreateOrderScreen() {
     }
   };
 
-  // Adicionar documento
   const handleAddDocument = async () => {
     const docCount = getAttachmentCount('document');
     if (docCount >= LIMITS.document) {
@@ -489,7 +458,6 @@ export default function CreateOrderScreen() {
   const removeAttachment = (index: number) => {
     const attachment = attachments[index];
 
-    // Se for um anexo existente no servidor, adicionar à lista de removidos
     if (attachment.isExisting && attachment.serverPath) {
       console.log('🗑️ Marcando anexo para remoção:', attachment.serverPath);
       setRemovedAttachments([...removedAttachments, attachment.serverPath]);
@@ -500,7 +468,6 @@ export default function CreateOrderScreen() {
     setAttachments(newAttachments);
   };
 
-  // Renderizar ícone baseado no tipo de anexo
   const getAttachmentIcon = (attachment: Attachment) => {
     if (attachment.fileType === 'image') return 'image';
     if (attachment.fileType === 'video') return 'videocam';
@@ -512,7 +479,6 @@ export default function CreateOrderScreen() {
     const fullAddress = buildFullAddress();
     console.log('Valores:', { title, category, description, budget, deadline, fullAddress });
 
-    // Verificar se há propostas e está em modo de edição
     if (editMode && hasProposals) {
       Alert.alert(
         'Não é possível editar',
@@ -528,14 +494,12 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    // Validar anexos - pelo menos 1 arquivo é obrigatório (apenas para novo pedido)
     if (!editMode && attachments.length === 0) {
       console.log('❌ Erro: Adicione pelo menos 1 imagem, vídeo ou documento');
       Alert.alert('Erro', 'Adicione pelo menos 1 imagem, vídeo ou documento ao pedido');
       return;
     }
 
-    // Validar orçamento
     const budgetValue = extractNumericValue(budget);
     console.log('💰 Budget value:', budgetValue);
     if (budgetValue <= 0) {
@@ -544,7 +508,6 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    // Validar prazo
     const deadlineDays = parseInt(deadline, 10);
     console.log('📅 Deadline days:', deadlineDays);
     if (!validateDeadline(deadline)) {
@@ -555,7 +518,6 @@ export default function CreateOrderScreen() {
 
     console.log('✅ Validações passaram, mostrando alerta de confirmação');
 
-    // Mostrar aviso importante antes de iniciar
     Alert.alert(
       editMode ? 'Atualizando Pedido' : 'Criando Pedido',
       'Por favor, não feche ou minimize o app até completar a operação. Isso pode levar alguns segundos.',
@@ -571,7 +533,6 @@ export default function CreateOrderScreen() {
             setIsLoading(true);
 
             try {
-              // Filtrar apenas novos anexos (não os que já existem no servidor)
               const newAttachments = attachments
                 .filter(att => !att.isExisting)
                 .map(attachment => ({
@@ -624,7 +585,6 @@ export default function CreateOrderScreen() {
                     {
                       text: 'OK',
                       onPress: () => {
-                        // Voltar para a tela anterior (ou duas telas se estiver editando)
                         if (editMode) {
                           navigation.navigate('OrderDetails');
                         } else {
@@ -669,7 +629,7 @@ export default function CreateOrderScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.content, { paddingTop: insets.top + 16, marginTop: 0 }]}>
-            {/* Header com botão voltar */}
+            
             <View style={styles.headerRow}>
               <TouchableOpacity
                 style={styles.backButton}
@@ -729,7 +689,7 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Endereço do Serviço</Text>
 
-              {/* Botão de Geolocalização */}
+              
               <TouchableOpacity
                 style={[styles.locationButton, isLoadingLocation && styles.locationButtonDisabled]}
                 onPress={handleGetLocation}
@@ -858,12 +818,12 @@ export default function CreateOrderScreen() {
 
               <Text style={styles.label}>Anexos</Text>
 
-              {/* Botões para Imagens */}
+              
               <Text style={styles.attachmentSectionTitle}>
                 Imagens ({getAttachmentCount('image')}/{LIMITS.image})
               </Text>
 
-              {/* Indicador de Compressão para Imagens */}
+              
               {isCompressing && compressionType === 'image' && (
                 <View style={styles.compressingContainer}>
                   <View style={styles.compressingHeader}>
@@ -904,7 +864,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Preview de Imagens */}
+              
               {attachments.filter(att => att.fileType === 'image').length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreviewContainer}>
                   {attachments.map((file, index) => (
@@ -924,12 +884,12 @@ export default function CreateOrderScreen() {
                 </ScrollView>
               )}
 
-              {/* Botão para Vídeo */}
+              
               <Text style={styles.attachmentSectionTitle}>
                 Vídeo ({getAttachmentCount('video')}/{LIMITS.video})
               </Text>
 
-              {/* Indicador de Compressão para Vídeo */}
+              
               {isCompressing && compressionType === 'video' && (
                 <View style={styles.compressingContainer}>
                   <View style={styles.compressingHeader}>
@@ -963,7 +923,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Lista de Vídeos */}
+              
               {attachments.filter(att => att.fileType === 'video').length > 0 && (
                 <View style={styles.attachmentsContainer}>
                   {attachments.map((file, index) => (
@@ -980,7 +940,7 @@ export default function CreateOrderScreen() {
                 </View>
               )}
 
-              {/* Botão para Documentos */}
+              
               <Text style={styles.attachmentSectionTitle}>
                 Documentos ({getAttachmentCount('document')}/{LIMITS.document})
               </Text>
@@ -995,7 +955,7 @@ export default function CreateOrderScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Lista de Documentos */}
+              
               {attachments.filter(att => att.fileType === 'document').length > 0 && (
                 <View style={styles.attachmentsContainer}>
                   {attachments.map((file, index) => (
@@ -1298,7 +1258,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginLeft: 8,
   },
-  // Estilos de endereço estruturado
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,5 +1,4 @@
 import { Platform, DeviceEventEmitter } from 'react-native';
-// @ts-ignore
 import PushNotification from 'react-native-push-notification';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,8 +29,6 @@ class PushNotificationService {
 
   private async initializeIOS() {
     return new Promise<void>((resolve, reject) => {
-      // Setup event listeners FIRST - before requesting permissions
-      // These need to be active when the token arrives
       const onRegistered = (token: string) => {
         console.log('[iOS] Token FCM obtido:', token);
         this.deviceToken = token;
@@ -51,8 +48,6 @@ class PushNotificationService {
         const data = notification._data || notification.data || {};
         const getDataResult = notification.getData ? notification.getData() : {};
 
-        // Check userInteraction in ALL possible locations
-        // RNCPushNotificationIOS can set it at different levels depending on version
         const isUserTap =
           notification.userInteraction === true ||
           notification.userInteraction === 1 ||
@@ -64,11 +59,9 @@ class PushNotificationService {
         console.log('[iOS] userInteraction detected:', isUserTap, '| data:', JSON.stringify(data));
 
         if (isUserTap) {
-          // User tapped the notification - navigate to chat
           console.log('[iOS] User tapped notification, navigating...');
           this.handleNotificationTap(data);
         } else {
-          // Foreground: show in-app toast
           const title = notification._alert?.title || notification.title || data.title || 'Cotaja';
           const body = notification._alert?.body || notification.message || notification.body || data.body || '';
           if (title || body) {
@@ -81,19 +74,14 @@ class PushNotificationService {
           }
         }
 
-        // Required for iOS
         notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
       };
 
-      // Handler specifically for notification TAPS
-      // In RNCPushNotificationIOS v1.11.0, didReceiveNotificationResponse posts to
-      // 'localNotificationReceived' channel, so taps arrive as 'localNotification' events
       const onLocalNotification = (notification: any) => {
         console.log('[iOS] localNotification event (TAP):', JSON.stringify(notification));
         const data = notification._data || notification.data || {};
         const getDataResult = notification.getData ? notification.getData() : {};
 
-        // localNotification from didReceiveNotificationResponse always has userInteraction=1
         const isUserTap =
           notification.userInteraction === true ||
           notification.userInteraction === 1 ||
@@ -106,7 +94,6 @@ class PushNotificationService {
 
         if (isUserTap) {
           console.log('[iOS] TAP detected via localNotification, navigating...');
-          // The payload from APNs is inside the notification data
           const navData = {
             type: data.type || getDataResult.type,
             order_id: data.order_id || getDataResult.order_id,
@@ -117,13 +104,11 @@ class PushNotificationService {
         notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
       };
 
-      // Add event listeners
       PushNotificationIOS.addEventListener('register', onRegistered);
       PushNotificationIOS.addEventListener('registrationError', onRegistrationError);
       PushNotificationIOS.addEventListener('notification', onRemoteNotification);
       PushNotificationIOS.addEventListener('localNotification', onLocalNotification);
 
-      // Handle cold start: app was killed and user tapped a notification to open it
       PushNotificationIOS.getInitialNotification().then((notification) => {
         if (notification) {
           console.log('[iOS] Initial notification found (cold start tap):', JSON.stringify(notification));
@@ -136,7 +121,6 @@ class PushNotificationService {
         console.log('[iOS] getInitialNotification error:', err);
       });
 
-      // NOW request permissions - this will trigger the 'register' event
       PushNotificationIOS.requestPermissions({
         alert: true,
         badge: true,
@@ -162,7 +146,6 @@ class PushNotificationService {
 
   private async initializeAndroid() {
     try {
-      // Request Android 13+ notification permission
       if (Platform.OS === 'android' && Platform.Version >= 33) {
         const PermissionsAndroid = require('react-native').PermissionsAndroid;
         const granted = await PermissionsAndroid.request(
@@ -174,7 +157,6 @@ class PushNotificationService {
       console.warn('[Android] Erro ao solicitar permissao:', err);
     }
 
-    // Configure Firebase Cloud Messaging para Android
     console.log('[Android] Configurando Firebase Cloud Messaging...');
 
     PushNotification.configure({
@@ -190,13 +172,11 @@ class PushNotificationService {
       onNotification: (notification: any) => {
         console.log('[Android] Notificacao recebida:', JSON.stringify(notification));
 
-        // If user tapped the notification (userInteraction = true), navigate
         if (notification.userInteraction) {
           this.handleNotificationTap(notification.data || notification);
         } else if (notification.foreground) {
           const data = notification.data || {};
 
-          // Skip if this is our own local notification copy (avoid infinite loop)
           if (data._isLocalCopy) {
             notification.finish(PushNotificationIOS.FetchResult.NoData);
             return;
@@ -205,7 +185,6 @@ class PushNotificationService {
           const title = notification.title || data.title || 'Cotaja';
           const message = notification.message || data.body || '';
           if (title || message) {
-            // Show in-app toast
             DeviceEventEmitter.emit('in_app_notification', {
               title,
               message,
@@ -213,7 +192,6 @@ class PushNotificationService {
               order_id: data.order_id ? parseInt(data.order_id) : undefined,
             });
 
-            // Also show in notification center so it appears in the status bar
             PushNotification.localNotification({
               channelId: 'cotaja-default',
               title: title,
@@ -231,7 +209,6 @@ class PushNotificationService {
       },
       onAction: (notification: any) => {
         console.log('[Android] Acao:', notification.action);
-        // When user taps the local notification, navigate
         this.handleNotificationTap(notification.data || notification.userInfo || {});
       },
       onRegistrationError: (err: any) => {
@@ -242,7 +219,6 @@ class PushNotificationService {
       requestPermissions: true,
     });
 
-    // Create notification channel for Android 8+
     PushNotification.createChannel(
       {
         channelId: 'cotaja-default',
@@ -250,7 +226,7 @@ class PushNotificationService {
         channelDescription: 'Notificacoes do aplicativo Cotaja',
         playSound: true,
         soundName: 'default',
-        importance: 4, // IMPORTANCE_HIGH
+        importance: 4,
         vibrate: true,
       },
       (created: boolean) => console.log(`[Android] Canal de notificacao ${created ? 'criado' : 'ja existia'}`)
@@ -290,13 +266,33 @@ class PushNotificationService {
           }
         });
       }
+
+      if (type === 'schedule_reminder' && orderId) {
+        AsyncStorage.getItem('user').then(json => {
+          const profile = json ? JSON.parse(json)?.profile_type : null;
+          try {
+            if (profile === 'provider') {
+              (navigationRef as any).navigate('Provider', {
+                screen: 'MyServicesTab',
+                params: { screen: 'AcceptedOrder', params: { orderId } },
+              });
+            } else {
+              (navigationRef as any).navigate('Client', {
+                screen: 'MyOrdersTab',
+                params: { screen: 'AcceptedOrder', params: { orderId } },
+              });
+            }
+          } catch (e) {
+            console.log('[Push] Erro ao navegar para agendamento:', e);
+          }
+        });
+      }
     };
 
     attemptNavigate();
   }
 
   async sendTokenToBackend(token: string, retryCount = 0) {
-    // Evitar envios duplicados simultâneos
     if (this.isSendingToken) {
       console.log('⏸️ [sendTokenToBackend] Envio já em andamento, pulando...');
       return;
@@ -309,7 +305,6 @@ class PushNotificationService {
       const { authService } = require('./api');
       const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
-      // Verificar se usuário está autenticado
       const authToken = await AsyncStorage.getItem('auth_token');
       console.log('🔑 [sendTokenToBackend] Auth token:', authToken ? 'ENCONTRADO' : 'NÃO ENCONTRADO');
 
@@ -319,8 +314,6 @@ class PushNotificationService {
         console.log('✅ [sendTokenToBackend] Token FCM enviado com sucesso!', response);
         this.isSendingToken = false;
       } else {
-        // Se não encontrou o auth_token, pode ser que ainda não tenha sido salvo
-        // Tentar novamente após um delay (máximo 2 tentativas para evitar 429)
         if (retryCount < 2) {
           console.log('⏳ [sendTokenToBackend] Auth token não encontrado, tentando novamente em 2s...');
           this.isSendingToken = false;
@@ -354,10 +347,7 @@ class PushNotificationService {
 
   async clearToken() {
     try {
-      // NÃO remover o device_token do AsyncStorage - ele é independente da sessão do usuário
-      // Apenas limpar a referência interna (que será recarregada do AsyncStorage quando necessário)
       console.log('ℹ️ [clearToken] Mantendo FCM token no AsyncStorage (independente de logout)');
-      // this.deviceToken = null; // Manter também a referência interna
     } catch (error) {
       console.error('❌ Erro ao limpar token:', error);
     }
@@ -396,7 +386,6 @@ class PushNotificationService {
     return this.isInitialized;
   }
 
-  // Método para forçar o envio do token para o backend
   async forceSendTokenToBackend(): Promise<void> {
     const token = await this.getStoredToken();
     if (token) {
@@ -415,7 +404,7 @@ class PushNotificationService {
         });
       });
     }
-    return { alert: true, badge: true, sound: true }; // Android doesn't have granular permission check
+    return { alert: true, badge: true, sound: true };
   }
 
   async getBadgeCount(): Promise<number> {
@@ -435,7 +424,6 @@ class PushNotificationService {
     }
   }
 
-  // Compatibility methods for existing code
   async sendTestNotification() {
     try {
       if (!this.deviceToken) {
@@ -443,7 +431,6 @@ class PushNotificationService {
         return;
       }
 
-      // Send a local notification for testing
       await this.sendLocalNotification(
         'Teste de Notificação',
         'Esta é uma notificação de teste!',
@@ -468,7 +455,6 @@ class PushNotificationService {
   }
 
   async refreshToken(): Promise<string | null> {
-    // For community version, just get the current token
     return this.getDeviceToken();
   }
 
@@ -488,7 +474,6 @@ class PushNotificationService {
     await this.clearToken();
   }
 
-  // Additional community-specific methods
   async sendScheduledNotification(title: string, message: string, date: Date, data?: any) {
     if (Platform.OS === 'ios') {
       PushNotificationIOS.scheduleLocalNotification({

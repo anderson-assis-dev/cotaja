@@ -10,7 +10,6 @@ import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType, Photo
 import { formatPrice } from '../../utils/formatters';
 import React from 'react';
 
-// Categorias disponíveis
 const categories = [
   'Limpeza', 'Reparos', 'Tecnologia', 'Aulas', 'Design', 'Eventos',
   'Pintura', 'Elétrica', 'Encanamento', 'Jardinagem', 'Transporte', 'Outros'
@@ -27,7 +26,6 @@ export default function MyServicesScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [extraScrollHeight, setExtraScrollHeight] = useState(0);
 
-  // Estados para o modal de novo serviço
   const [showNewServiceModal, setShowNewServiceModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingServiceId, setEditingServiceId] = useState<number>(0);
@@ -42,13 +40,11 @@ export default function MyServicesScreen() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
 
-  // Carregar serviços do usuário
   useEffect(() => {
     loadMyServices();
     loadActiveOrders();
   }, []);
 
-  // Refresh active orders when screen gains focus
   useFocusEffect(
     React.useCallback(() => {
       loadActiveOrders();
@@ -199,16 +195,16 @@ export default function MyServicesScreen() {
   const openImagePreview = (imageUri: string) => {
     console.log('Opening image preview for:', imageUri);
     setPreviewImage(imageUri);
-    setShowNewServiceModal(false); // Hide the form modal
+    setShowNewServiceModal(false);
     setPreviewModalVisible(true);
   };
 
   const closeImagePreview = () => {
     setPreviewModalVisible(false);
-    setShowNewServiceModal(true); // Restore the form modal
+    setShowNewServiceModal(true);
     setTimeout(() => {
       setPreviewImage(null);
-    }, 300); // Delay to allow animation to complete
+    }, 300);
   };
 
   const getStatusBadgeStyle = (status: string) => {
@@ -312,7 +308,6 @@ export default function MyServicesScreen() {
   };
 
   const editService = (service: Service) => {
-    // Preencher o modal com os dados do serviço para edição
     setNewService({
       title: service.title,
       description: service.description,
@@ -320,7 +315,6 @@ export default function MyServicesScreen() {
       category: service.category,
       status: service.status
     });
-    // Load existing images if they exist
     setServiceImages(service.images || []);
     setEditingServiceId(service.id);
     setIsEditing(true);
@@ -341,7 +335,6 @@ export default function MyServicesScreen() {
 
     try {
       if (isEditing) {
-        // Atualizar serviço existente usando a API
         await serviceService.updateService(editingServiceId, {
           title: newService.title,
           description: newService.description,
@@ -368,10 +361,8 @@ export default function MyServicesScreen() {
         );
 
         Alert.alert('Sucesso', 'Serviço atualizado com sucesso!');
-        // Reload services to ensure we have the latest data
         await loadMyServices();
       } else {
-        // Criar novo serviço usando a API
         const response = await serviceService.createService({
           title: newService.title,
           description: newService.description,
@@ -406,7 +397,6 @@ export default function MyServicesScreen() {
     setServiceImages([]);
     setIsEditing(false);
     setEditingServiceId(0);
-    // Close any open preview modal
     setPreviewModalVisible(false);
     setPreviewImage(null);
   };
@@ -419,7 +409,7 @@ export default function MyServicesScreen() {
       onScroll={handleScroll}
       scrollEventThrottle={16}
     >
-      {/* Header */}
+      
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View>
           <Text style={styles.title}>Meus Serviços</Text>
@@ -434,7 +424,7 @@ export default function MyServicesScreen() {
       </View>
 
       <View style={styles.content}>
-        {/* Stats */}
+        
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>Resumo</Text>
           <View style={styles.statsRow}>
@@ -459,7 +449,7 @@ export default function MyServicesScreen() {
           </View>
         </View>
 
-        {/* Active Orders Section */}
+        
         {activeOrders.length > 0 && (
           <View style={{ marginBottom: 20 }}>
             <Text style={styles.sectionTitle}>
@@ -502,7 +492,7 @@ export default function MyServicesScreen() {
           </View>
         )}
 
-        {/* Services List */}
+        
         <View style={styles.servicesList}>
           {services.map((service) => (
             <View key={service.id} style={[styles.serviceCard, { borderLeftColor: getStatusBorderColor(service.status) }]}>
@@ -525,7 +515,7 @@ export default function MyServicesScreen() {
                 </Text>
               </View>
 
-              {/* Action Icons */}
+              
               <View style={styles.actionButtons}>
                 <TouchableOpacity
                   style={styles.editButton}
@@ -556,7 +546,7 @@ export default function MyServicesScreen() {
           ))}
         </View>
 
-        {/* Empty State */}
+        
         {services.length === 0 && (
           <View style={styles.emptyState}>
             <Text style={styles.emptyTitle}>Nenhum serviço cadastrado</Text>
@@ -567,7 +557,7 @@ export default function MyServicesScreen() {
         )}
       </View>
 
-      {/* Modal para Novo Serviço */}
+      
       <Modal
         visible={showNewServiceModal}
         animationType="slide"
@@ -598,9 +588,9 @@ export default function MyServicesScreen() {
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: extraScrollHeight }}
           >
-            {/* Informações do Serviço */}
+            
             <View style={styles.formSection}>
-              {/* Imagens do Serviço */}
+              
               <Text style={[styles.fieldLabel, { marginBottom: 0 }]}>Fotos do Serviço ({serviceImages.length}/5)</Text>
               <Text style={styles.imageHint}>
                 Adicione fotos para mostrar melhor seu serviço
@@ -753,7 +743,7 @@ export default function MyServicesScreen() {
               </View>
             </View>
 
-            {/* Botões de Ação */}
+            
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -779,7 +769,7 @@ export default function MyServicesScreen() {
       </Modal>
     </ScrollView>
 
-    {/* Image Preview Modal */}
+    
     <Modal
       visible={previewModalVisible}
       transparent={true}
@@ -803,7 +793,7 @@ export default function MyServicesScreen() {
                   const imageIndex = serviceImages.findIndex(img => img === previewImage);
                   if (imageIndex !== -1) {
                     setPreviewModalVisible(false);
-                    setShowNewServiceModal(true); // Restore the form modal
+                    setShowNewServiceModal(true);
                     setTimeout(() => {
                       setPreviewImage(null);
                       removeImage(imageIndex);
@@ -827,7 +817,7 @@ export default function MyServicesScreen() {
       </View>
     </Modal>
 
-    {/* Status Bar Overlay */}
+    
     <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
     </View>
   );

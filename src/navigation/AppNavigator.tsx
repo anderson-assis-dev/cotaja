@@ -18,7 +18,6 @@ import ProfileSelectionScreen from '../screens/auth/ProfileSelectionScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
 
-// Telas do Cliente
 import ClientHomeScreen from '../screens/client/HomeScreen';
 import CreateOrderScreen from '../screens/client/CreateOrderScreen';
 import OrderDetailsScreen from '../screens/client/OrderDetailsScreen';
@@ -30,7 +29,6 @@ import SearchScreen from '../screens/client/SearchScreen';
 import MyOrdersHomeScreen from '../screens/client/MyOrdersHomeScreen';
 import AcceptedOrderScreen from '../screens/client/AcceptedOrderScreen';
 
-// Telas do Prestador
 import ProviderHomeScreen from '../screens/provider/HomeScreen';
 import AvailableDemandsScreen from '../screens/provider/AvailableDemandsScreen';
 import SendProposalScreen from '../screens/provider/SendProposalScreen';
@@ -39,13 +37,16 @@ import RateClientScreen from '../screens/provider/RateClientScreen';
 import MyServicesScreen from '../screens/provider/MyServicesScreen';
 import ProviderSearchScreen from '../screens/provider/SearchScreen';
 
-// Telas de Gerenciamento
 import ProfileScreen from '../screens/management/ProfileScreen';
+import WalletScreen from '../screens/management/WalletScreen';
+import TermsOfUseScreen from '../screens/management/TermsOfUseScreen';
+import PrivacyPolicyScreen from '../screens/management/PrivacyPolicyScreen';
+import MyDataScreen from '../screens/management/MyDataScreen';
+import SecurityScreen from '../screens/management/SecurityScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// --- Pilhas de Navegação para as Abas ---
 const ClientHomeStack = createNativeStackNavigator();
 function ClientHomeStackNavigator({ route }: any) {
   const clientInfo = route?.params?.clientInfo || {};
@@ -241,7 +242,6 @@ function SearchStackNavigator() {
     );
 }
 
-// --- Navegador de Abas do Cliente ---
 function ClientTabNavigator({ route }: any) {
   const clientInfo = route?.params?.clientInfo || {};
   const clientId = route?.params?.clientId || null;
@@ -313,7 +313,6 @@ function ClientTabNavigator({ route }: any) {
   );
 }
 
-// --- Navegador de Abas do Prestador ---
 function ProviderTabNavigator() {
   return (
     <Tab.Navigator
@@ -354,9 +353,8 @@ function ProviderTabNavigator() {
   );
 }
 
-// --- Navegador Principal (Stack) ---
 export default function AppNavigator() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isInitializing } = useAuth();
   const [currentRouteName, setCurrentRouteName] = useState<string>('');
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
   const [cachedProfileType, setCachedProfileType] = useState<string | null>(null);
@@ -379,7 +377,6 @@ export default function AppNavigator() {
 
   useEffect(() => {
     checkOnboardingStatus();
-    // Ler tipo de perfil do cache para mostrar skeleton correto
     AsyncStorage.getItem('user').then(saved => {
       if (saved) {
         try { setCachedProfileType(JSON.parse(saved).profile_type); } catch {}
@@ -387,12 +384,11 @@ export default function AppNavigator() {
     });
   }, []);
 
-  // Recheck onboarding status when user changes
   useEffect(() => {
-    if (!isLoading) {
+    if (!isInitializing) {
       checkOnboardingStatus();
     }
-  }, [user, isLoading]);
+  }, [user, isInitializing]);
 
   const getActiveRouteName = (state: any): string => {
     const route = state.routes[state.index];
@@ -409,14 +405,12 @@ export default function AppNavigator() {
     }
   };
 
-  // Telas com fundo claro → dark-content (texto escuro)
-  // Todas as outras (header azul, auth, perfil) → light-content (texto branco)
   const darkContentScreens = [
     'AvailableDemands', 'ProviderSearch', 'SendProposal',
   ];
   const isDarkStatus = darkContentScreens.includes(currentRouteName);
 
-  if (isLoading || onboardingCompleted === null) {
+  if (isInitializing || onboardingCompleted === null) {
     return (
       <>
         <StatusBar barStyle="light-content" backgroundColor="#4f46e5" translucent={false} />
@@ -457,7 +451,7 @@ export default function AppNavigator() {
         )}
         {!user && onboardingCompleted && (
           <>
-            {/* Telas de Autenticação */}
+
             <Stack.Screen name="Splash" component={SplashScreen} />
             <Stack.Screen name="Initial" component={InitialScreen} />
             <Stack.Screen name="ProfileSelection" component={ProfileSelectionScreen} />
@@ -472,8 +466,32 @@ export default function AppNavigator() {
         {user && user.profile_type === 'client' && (
           <Stack.Screen name="Client" component={ClientTabNavigator} />
         )}
+        {user && user.profile_type === 'client' && (
+          <Stack.Screen name="Wallet" component={WalletScreen} options={{ headerShown: false }} />
+        )}
+        {user && user.profile_type === 'client' && (
+          <Stack.Screen name="MyData" component={MyDataScreen} options={{ headerShown: false }} />
+        )}
+        {user && user.profile_type === 'client' && (
+          <Stack.Screen name="Security" component={SecurityScreen} options={{ headerShown: false }} />
+        )}
         {user && user.profile_type === 'provider' && (
           <Stack.Screen name="Provider" component={ProviderTabNavigator} />
+        )}
+        {user && user.profile_type === 'provider' && (
+          <Stack.Screen name="Wallet" component={WalletScreen} options={{ headerShown: false }} />
+        )}
+        {user && user.profile_type === 'provider' && (
+          <Stack.Screen name="MyData" component={MyDataScreen} options={{ headerShown: false }} />
+        )}
+        {user && user.profile_type === 'provider' && (
+          <Stack.Screen name="Security" component={SecurityScreen} options={{ headerShown: false }} />
+        )}
+        {user && (
+          <Stack.Screen name="TermsOfUse" component={TermsOfUseScreen} options={{ headerShown: false }} />
+        )}
+        {user && (
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ headerShown: false }} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

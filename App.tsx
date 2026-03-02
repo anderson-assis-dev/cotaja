@@ -10,12 +10,10 @@ import { ToastProvider } from './src/contexts/ToastContext';
 
 export default function App() {
   useEffect(() => {
-    // Reset badge number when app opens (iOS only)
     if (Platform.OS === 'ios') {
       PushNotificationIOS.setApplicationIconBadgeNumber(0);
     }
 
-    // Reset badge when app comes to foreground
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (nextAppState === 'active' && Platform.OS === 'ios') {
         PushNotificationIOS.setApplicationIconBadgeNumber(0);
