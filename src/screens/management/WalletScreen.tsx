@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Platform, KeyboardAvoidingView } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, CreditCard, Trash2, Plus, RefreshCw, Wallet, Megaphone, Calendar, Clock, Target, Globe, Zap, X, ChevronRight, Ban } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, Trash2, Plus, RefreshCw, Wallet, Megaphone, Calendar, Clock, Target, Globe, Zap, X, ChevronRight, Ban, Link, FileText, CheckCircle } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useStripe, CardField } from '@stripe/stripe-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { walletService, adService, AdPackage, AdItem } from '../../services/api';
+import { walletService, adService, AdPackage, AdItem, orderService, serviceService, Order, Service } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -77,6 +77,21 @@ export default function WalletScreen() {
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<number | null>(null);
   const [schedulingAd, setSchedulingAd] = useState(false);
   const [cancellingAdId, setCancellingAdId] = useState<number | null>(null);
+
+  const [linkedPostId, setLinkedPostId] = useState<number | null>(null);
+  const [linkedPostType, setLinkedPostType] = useState<'order' | 'service' | null>(null);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [userServices, setUserServices] = useState<Service[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const scheduleScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', (e) => { setKeyboardVisible(true); setKeyboardHeight(e.endCoordinates.height); });
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => { setKeyboardVisible(false); setKeyboardHeight(0); });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   const fetchWallet = useCallback(async () => {
     setLoading(true);
@@ -237,15 +252,39 @@ export default function WalletScreen() {
     );
   };
 
+  const fetchUserPosts = async () => {
+    setLoadingPosts(true);
+    try {
+      if (user?.profile_type === 'provider') {
+        const res = await serviceService.getMyServices();
+        if (res.success) setUserServices(res.data || []);
+      } else {
+        const res = await orderService.getOrders();
+        if (res.success) setUserOrders(res.data?.data || []);
+      }
+    } catch {} finally {
+      setLoadingPosts(false);
+    }
+  };
+
   const openScheduleModal = (purchaseId: number) => {
     setSelectedPurchaseId(purchaseId);
     setScheduleTitle('');
     setScheduleMessage('');
     setScheduleDate(new Date(Date.now() + 3600000));
+    setLinkedPostId(null);
+    setLinkedPostType(null);
     setShowScheduleModal(true);
+    fetchUserPosts();
   };
 
   const handleScheduleAd = async () => {
+    if (!linkedPostId) {
+      showError(user?.profile_type === 'provider'
+        ? 'Selecione um serviço para vincular ao anúncio.'
+        : 'Selecione um pedido para vincular ao anúncio.');
+      return;
+    }
     if (!scheduleTitle.trim() || !scheduleMessage.trim()) {
       showError('Preencha o título e a mensagem do anúncio.');
       return;
@@ -265,6 +304,9 @@ export default function WalletScreen() {
         message: scheduleMessage.trim(),
         scheduled_date: dateStr,
         scheduled_time: timeStr,
+        ...(user?.profile_type === 'provider'
+          ? { linked_service_id: linkedPostId }
+          : { linked_order_id: linkedPostId }),
       });
       if (res.success) {
         showSuccess(res.message || 'Anúncio agendado!');
@@ -564,7 +606,96 @@ export default function WalletScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scheduleScrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.scheduleLabel}>
+                {user?.profile_type === 'provider' ? 'Vincular Serviço *' : 'Vincular Pedido *'}
+              </Text>
+              {loadingPosts ? (
+                <ActivityIndicator size="small" color="#4f46e5" style={{ marginVertical: 12 }} />
+              ) : (
+                <View style={styles.linkedPostList}>
+                  {user?.profile_type === 'provider' ? (
+                    userServices.filter(s => s.status === 'active').length > 0 ? (
+                      userServices.filter(s => s.status === 'active').map(svc => {
+                        const isSelected = linkedPostId === svc.id;
+                        return (
+                          <TouchableOpacity
+                            key={svc.id}
+                            style={[styles.linkedPostItem, isSelected && styles.linkedPostItemSelected]}
+                            onPress={() => {
+                              setLinkedPostId(isSelected ? null : svc.id);
+                              setLinkedPostType(isSelected ? null : 'service');
+                              if (!isSelected && !scheduleTitle.trim()) setScheduleTitle(svc.title);
+                              if (!isSelected && !scheduleMessage.trim()) setScheduleMessage(svc.description);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={styles.linkedPostIcon}>
+                              <FileText size={18} color={isSelected ? '#4f46e5' : '#6b7280'} />
+                            </View>
+                            <View style={styles.linkedPostInfo}>
+                              <Text style={[styles.linkedPostTitle, isSelected && { color: '#4f46e5' }]} numberOfLines={1}>{svc.title}</Text>
+                              <Text style={styles.linkedPostMeta}>{svc.category} · R$ {Number(svc.price).toFixed(2)}</Text>
+                            </View>
+                            {isSelected && <CheckCircle size={20} color="#4f46e5" />}
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={styles.linkedPostEmpty}>
+                        <FileText size={24} color="#d1d5db" />
+                        <Text style={styles.linkedPostEmptyText}>Você não possui nenhum serviço ativo. Cadastre ao menos um para anunciar.</Text>
+                        <TouchableOpacity
+                          style={styles.linkedPostCreateBtn}
+                          onPress={() => { setShowScheduleModal(false); navigation.navigate('MyServicesTab'); }}
+                        >
+                          <Text style={styles.linkedPostCreateText}>Cadastrar Serviço</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )
+                  ) : (
+                    userOrders.filter(o => o.status === 'open').length > 0 ? (
+                      userOrders.filter(o => o.status === 'open').map(order => {
+                        const isSelected = linkedPostId === order.id;
+                        return (
+                          <TouchableOpacity
+                            key={order.id}
+                            style={[styles.linkedPostItem, isSelected && styles.linkedPostItemSelected]}
+                            onPress={() => {
+                              setLinkedPostId(isSelected ? null : order.id);
+                              setLinkedPostType(isSelected ? null : 'order');
+                              if (!isSelected && !scheduleTitle.trim()) setScheduleTitle(order.title);
+                              if (!isSelected && !scheduleMessage.trim()) setScheduleMessage(order.description);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={styles.linkedPostIcon}>
+                              <FileText size={18} color={isSelected ? '#4f46e5' : '#6b7280'} />
+                            </View>
+                            <View style={styles.linkedPostInfo}>
+                              <Text style={[styles.linkedPostTitle, isSelected && { color: '#4f46e5' }]} numberOfLines={1}>{order.title}</Text>
+                              <Text style={styles.linkedPostMeta}>{order.category} · R$ {Number(order.budget).toFixed(2)}</Text>
+                            </View>
+                            {isSelected && <CheckCircle size={20} color="#4f46e5" />}
+                          </TouchableOpacity>
+                        );
+                      })
+                    ) : (
+                      <View style={styles.linkedPostEmpty}>
+                        <FileText size={24} color="#d1d5db" />
+                        <Text style={styles.linkedPostEmptyText}>Você não possui nenhum pedido aberto. Cadastre ao menos um para anunciar.</Text>
+                        <TouchableOpacity
+                          style={styles.linkedPostCreateBtn}
+                          onPress={() => { setShowScheduleModal(false); navigation.navigate('Home', { screen: 'CreateOrder' }); }}
+                        >
+                          <Text style={styles.linkedPostCreateText}>Cadastrar Pedido</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )
+                  )}
+                </View>
+              )}
+
               <Text style={styles.scheduleLabel}>Título</Text>
               <TextInput
                 style={styles.scheduleInput}
@@ -573,6 +704,7 @@ export default function WalletScreen() {
                 value={scheduleTitle}
                 onChangeText={setScheduleTitle}
                 maxLength={100}
+                onFocus={(e) => { (e.target as any).measureLayout?.( scheduleScrollRef.current, (_x: number, y: number) => { scheduleScrollRef.current?.scrollTo({ y: y - 10, animated: true }); }, () => {} ); setTimeout(() => scheduleScrollRef.current?.scrollToEnd({ animated: true }), 300); }}
               />
 
               <Text style={styles.scheduleLabel}>Mensagem</Text>
@@ -584,6 +716,7 @@ export default function WalletScreen() {
                 onChangeText={setScheduleMessage}
                 multiline
                 maxLength={300}
+                onFocus={() => { setTimeout(() => scheduleScrollRef.current?.scrollToEnd({ animated: true }), 100); setTimeout(() => scheduleScrollRef.current?.scrollToEnd({ animated: true }), 400); }}
               />
 
               <Text style={styles.scheduleLabel}>Data e Horário</Text>
@@ -697,19 +830,22 @@ export default function WalletScreen() {
                   />
                 )
               )}
+              {keyboardVisible && <View style={{ height: keyboardHeight }} />}
             </ScrollView>
 
-            <TouchableOpacity
-              style={[styles.scheduleConfirmBtn, schedulingAd && { opacity: 0.7 }]}
-              onPress={handleScheduleAd}
-              disabled={schedulingAd}
-            >
-              {schedulingAd ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.scheduleConfirmText}>Agendar Anúncio</Text>
-              )}
-            </TouchableOpacity>
+            {!keyboardVisible && (
+              <TouchableOpacity
+                style={[styles.scheduleConfirmBtn, schedulingAd && { opacity: 0.7 }]}
+                onPress={handleScheduleAd}
+                disabled={schedulingAd}
+              >
+                {schedulingAd ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.scheduleConfirmText}>Agendar Anúncio</Text>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
@@ -1015,6 +1151,52 @@ const styles = StyleSheet.create({
     borderColor: '#fecaca',
   },
   adCancelText: { fontSize: 13, fontWeight: '600', color: '#ef4444' },
+  linkedPostList: {
+    gap: 8,
+    marginBottom: 4,
+  },
+  linkedPostItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+  },
+  linkedPostItemSelected: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#f5f3ff',
+  },
+  linkedPostIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#e0e7ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  linkedPostInfo: { flex: 1, marginRight: 8 },
+  linkedPostTitle: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  linkedPostMeta: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  linkedPostEmpty: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  linkedPostEmptyText: { fontSize: 13, color: '#9ca3af', marginTop: 8, textAlign: 'center' },
+  linkedPostCreateBtn: {
+    marginTop: 12,
+    backgroundColor: '#4f46e5',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  linkedPostCreateText: { fontSize: 14, fontWeight: '600', color: '#fff' },
   scheduleModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

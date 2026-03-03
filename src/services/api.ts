@@ -919,6 +919,8 @@ export const adService = {
     scheduled_time: string;
     target_categories?: string[];
     target_radius_km?: number;
+    linked_order_id?: number;
+    linked_service_id?: number;
   }): Promise<any> {
     const response = await api.post('/ads/schedule', data);
     return response.data;

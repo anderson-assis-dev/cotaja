@@ -6,12 +6,15 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ratingService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
+import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 
 export default function RateProviderScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError } = useToast();
+  const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
   const { companyToRate } = (route.params as any) || {};
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -71,7 +74,7 @@ export default function RateProviderScreen() {
   return (
     <View style={styles.outer}>
       <View style={styles.headerBackground} />
-      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>Avaliar Empresa</Text>
           <Text style={styles.headerSubtitle}>Envie sua nota e experiência</Text>
@@ -129,6 +132,7 @@ export default function RateProviderScreen() {
           <View style={{ height: insets.bottom + 16 }} />
         </View>
       </ScrollView>
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" forceLight />
     </View>
   );
 }

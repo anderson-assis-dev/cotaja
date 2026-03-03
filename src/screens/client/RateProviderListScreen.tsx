@@ -29,17 +29,32 @@ const normalizeAvatarUri = (avatar?: string) => {
 };
 
 const CompanyCard = ({ company, onPress }: { company: Company; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} style={styles.companyCard}>
-    <View style={styles.companyInfo}>
+  <TouchableOpacity onPress={onPress} style={styles.companyCard} activeOpacity={0.85}>
+    <View style={styles.companyCardInner}>
       <Image source={company.image} style={styles.companyAvatar} />
-      <View style={styles.companyDetails}>
-        <Text style={styles.companyName}>{company.name}</Text>
-        <Text style={styles.companyCategory}>{company.category}</Text>
+      <View style={styles.companyCardBody}>
+        <Text style={styles.companyName} numberOfLines={1}>{company.name}</Text>
+        <View style={styles.companyBadgesRow}>
+          <View style={styles.companyStatusBadge}>
+            <Icon name="star" size={14} color="#f59e0b" />
+            <Text style={styles.companyStatusText}>{Number(company.rating || 0).toFixed(1)} ({company.ratingsCount || 0})</Text>
+          </View>
+          <View style={styles.companyCategoryBadge}>
+            <Text style={styles.companyCategoryText}>{company.category}</Text>
+          </View>
+        </View>
+        {company.description ? (
+          <View style={styles.companyLocationRow}>
+            <Icon name="place" size={14} color="#6b7280" />
+            <Text style={styles.companyLocationText} numberOfLines={1}>{company.description}</Text>
+          </View>
+        ) : null}
       </View>
     </View>
-    <View style={styles.ratingContainer}>
-      <Icon name="star" size={18} color="#f59e0b" />
-      <Text style={styles.ratingText}>{Number(company.rating || 0).toFixed(1)}</Text>
+    <View style={styles.companyCardFooter}>
+      <Text style={styles.companyCardAction}>
+        <Icon name="star-border" size={14} color="#4f46e5" /> Avaliar
+      </Text>
     </View>
   </TouchableOpacity>
 );
@@ -101,9 +116,6 @@ export default function RateProviderListScreen() {
       <View style={styles.headerBackground} />
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
         <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Avaliar Prestador</Text>
           <Text style={styles.headerSubtitle}>Avalie prestadores que já realizaram serviços</Text>
         </View>
@@ -222,46 +234,90 @@ const styles = StyleSheet.create({
   companyCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
     elevation: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: 12,
+    overflow: 'hidden',
   },
-  companyInfo: {
+  companyCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    padding: 14,
+    gap: 12,
   },
   companyAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 16,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#e0e7ff',
   },
-  companyDetails: {
+  companyCardBody: {
     flex: 1,
   },
   companyName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#374151',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 6,
   },
-  companyCategory: {
-    color: '#6b7280',
-  },
-  ratingContainer: {
+  companyBadgesRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
   },
-  ratingText: {
-    marginLeft: 4,
-    fontWeight: 'bold',
+  companyStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  companyStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#d97706',
+  },
+  companyCategoryBadge: {
+    backgroundColor: '#e0e7ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  companyCategoryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4338ca',
+  },
+  companyLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  companyLocationText: {
+    fontSize: 12,
+    color: '#6b7280',
+    flex: 1,
+  },
+  companyCardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'flex-end',
+  },
+  companyCardAction: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#4f46e5',
   },
   emptyState: {
     backgroundColor: 'white',
