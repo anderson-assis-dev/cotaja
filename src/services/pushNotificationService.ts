@@ -9,6 +9,21 @@ class PushNotificationService {
   private isInitialized = false;
   private isSendingToken = false;
 
+  private isOnChatScreen(orderId?: number | string): boolean {
+    if (!orderId || !navigationRef.isReady()) return false;
+    const state = navigationRef.getState();
+    const findRoute = (s: any): any => {
+      if (!s) return null;
+      if (s.name === 'AcceptedOrder') return s;
+      if (s.state) return findRoute(s.state.routes?.[s.state.index ?? 0]);
+      if (s.routes) return findRoute(s.routes[s.index ?? 0]);
+      return null;
+    };
+    const route = findRoute(state);
+    if (!route) return false;
+    return String(route.params?.orderId) === String(orderId);
+  }
+
   async initialize() {
     try {
       console.log('Inicializando Push Notifications...');
@@ -65,12 +80,16 @@ class PushNotificationService {
           const title = notification._alert?.title || notification.title || data.title || 'Cotaja';
           const body = notification._alert?.body || notification.message || notification.body || data.body || '';
           if (title || body) {
-            DeviceEventEmitter.emit('in_app_notification', {
-              title,
-              message: body,
-              type: data.type,
-              order_id: data.order_id ? parseInt(data.order_id) : undefined,
-            });
+            if (data.type === 'chat_message') {
+              if (!this.isOnChatScreen(data.order_id)) {
+                DeviceEventEmitter.emit('in_app_notification', {
+                  title,
+                  message: body,
+                  type: data.type,
+                  order_id: data.order_id ? parseInt(data.order_id) : undefined,
+                });
+              }
+            }
           }
         }
 
@@ -185,23 +204,29 @@ class PushNotificationService {
           const title = notification.title || data.title || 'Cotaja';
           const message = notification.message || data.body || '';
           if (title || message) {
-            DeviceEventEmitter.emit('in_app_notification', {
-              title,
-              message,
-              type: data.type,
-              order_id: data.order_id ? parseInt(data.order_id) : undefined,
-            });
+            if (data.type === 'chat_message') {
+              if (!this.isOnChatScreen(data.order_id)) {
+                DeviceEventEmitter.emit('in_app_notification', {
+                  title,
+                  message,
+                  type: data.type,
+                  order_id: data.order_id ? parseInt(data.order_id) : undefined,
+                });
+              }
+            }
 
-            PushNotification.localNotification({
-              channelId: 'cotaja-default',
-              title: title,
-              message: message,
-              smallIcon: 'ic_notification',
-              color: '#4f46e5',
-              playSound: true,
-              soundName: 'default',
-              userInfo: { ...data, _isLocalCopy: true },
-            });
+            if (!this.isOnChatScreen(data.order_id)) {
+              PushNotification.localNotification({
+                channelId: 'cotaja-default',
+                title: title,
+                message: message,
+                smallIcon: 'ic_notification',
+                color: '#4f46e5',
+                playSound: true,
+                soundName: 'default',
+                userInfo: { ...data, _isLocalCopy: true },
+              });
+            }
           }
         }
 
@@ -253,12 +278,12 @@ class PushNotificationService {
             if (profile === 'provider') {
               (navigationRef as any).navigate('Provider', {
                 screen: 'MyServicesTab',
-                params: { screen: 'AcceptedOrder', params: { orderId } },
+                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
               });
             } else {
               (navigationRef as any).navigate('Client', {
                 screen: 'MyOrdersTab',
-                params: { screen: 'AcceptedOrder', params: { orderId } },
+                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
               });
             }
           } catch (e) {
@@ -274,12 +299,12 @@ class PushNotificationService {
             if (profile === 'provider') {
               (navigationRef as any).navigate('Provider', {
                 screen: 'MyServicesTab',
-                params: { screen: 'AcceptedOrder', params: { orderId } },
+                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
               });
             } else {
               (navigationRef as any).navigate('Client', {
                 screen: 'MyOrdersTab',
-                params: { screen: 'AcceptedOrder', params: { orderId } },
+                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
               });
             }
           } catch (e) {

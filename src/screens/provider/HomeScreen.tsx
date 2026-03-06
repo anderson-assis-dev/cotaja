@@ -91,7 +91,7 @@ export default function ProviderHomeScreen() {
 
   return (
     <View style={styles.container}>
-      
+
       <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
@@ -195,6 +195,7 @@ export default function ProviderHomeScreen() {
                   navigation.navigate('MyServicesTab', {
                     screen: 'AcceptedOrder',
                     params: { orderId: order.id },
+                    initial: false,
                   })
                 }
               >
@@ -261,7 +262,7 @@ export default function ProviderHomeScreen() {
       </View>
     </ScrollView>
 
-    
+
     <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
   </View>
   );

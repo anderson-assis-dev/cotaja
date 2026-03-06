@@ -240,7 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number): Promise<boolean> => {
+  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', cpf?: string, motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number): Promise<boolean> => {
     try {
       let fcm_token = null;
       let device_platform = null;
@@ -264,6 +264,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (profileType) {
         registerData.profile_type = profileType;
+      }
+
+      if (cpf) {
+        registerData.cpf = cpf;
       }
 
       if (profileType === 'provider') {

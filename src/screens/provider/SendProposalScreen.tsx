@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Image, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -116,11 +116,8 @@ export default function SendProposalScreen() {
     return d;
   });
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
   const scrollViewRef = useRef<ScrollView>(null);
-  const descriptionInputRef = useRef<TextInput>(null);
-  const updateDescriptionInputRef = useRef<TextInput>(null);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -174,52 +171,10 @@ export default function SendProposalScreen() {
     }
   }, [demand?.id, route.params]);
 
-  useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (event) => {
-        setKeyboardHeight(event.endCoordinates.height);
-      }
-    );
-
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        setKeyboardHeight(0);
-      }
-    );
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, []);
-
-  const scrollToInput = useCallback((inputRef: React.RefObject<TextInput | null>) => {
-    if (!inputRef.current || !scrollViewRef.current) return;
-
-    setTimeout(() => {
-      inputRef.current?.measureInWindow((x, y, width, height) => {
-        const screenHeight = require('react-native').Dimensions.get('window').height;
-        const availableHeight = screenHeight - keyboardHeight;
-        const inputBottom = y + height;
-
-        const targetY = availableHeight * 0.33;
-        const currentScrollY = y;
-
-        const scrollTo = Math.max(0, currentScrollY - targetY + 100);
-
-        scrollViewRef.current?.scrollTo({
-          y: scrollTo,
-          animated: true
-        });
-      });
-    }, 100);
-  }, [keyboardHeight]);
-
   useFocusEffect(
     useCallback(() => {
-    }, [])
+      refreshDemandData();
+    }, [refreshDemandData])
   );
 
   const insets = useSafeAreaInsets();
@@ -357,9 +312,8 @@ export default function SendProposalScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView
           ref={scrollViewRef}
@@ -367,11 +321,9 @@ export default function SendProposalScreen() {
           onScroll={handleScroll}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContentContainer,
-            { paddingBottom: keyboardHeight > 0 ? keyboardHeight + 20 : 100 }
-          ]}
+          contentContainerStyle={styles.scrollContentContainer}
         >
         <View style={styles.content}>
 
@@ -701,14 +653,12 @@ export default function SendProposalScreen() {
 
             <Text style={styles.formLabel}>Descrição da Proposta</Text>
             <TextInput
-              ref={descriptionInputRef}
               style={[styles.formInput, styles.textAreaInput]}
               placeholder="Descreva como você pretende executar o serviço"
               value={description}
               onChangeText={setDescription}
               multiline
               textAlignVertical="top"
-              onFocus={() => scrollToInput(descriptionInputRef)}
             />
 
             <TouchableOpacity
@@ -760,14 +710,12 @@ export default function SendProposalScreen() {
 
             <Text style={styles.formLabel}>Nova Descrição da Proposta</Text>
             <TextInput
-              ref={updateDescriptionInputRef}
               style={[styles.formInput, styles.textAreaInput]}
               placeholder="Descreva como você pretende executar o serviço"
               value={description}
               onChangeText={setDescription}
               multiline
               textAlignVertical="top"
-              onFocus={() => scrollToInput(updateDescriptionInputRef)}
             />
 
             <TouchableOpacity
@@ -845,10 +793,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#f3f4f6',
   },
   scrollContentContainer: {
-    flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   header: {
     paddingHorizontal: 24,
@@ -871,11 +819,8 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: '#f3f4f6',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 32,
-    minHeight: 500,
   },
   errorContainer: {
     flex: 1,

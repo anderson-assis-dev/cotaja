@@ -63,12 +63,12 @@ const InAppNotification: React.FC<{ children: React.ReactNode }> = ({ children }
         if (user?.profile_type === 'provider') {
           (navigationRef as any).navigate('Provider', {
             screen: 'MyServicesTab',
-            params: { screen: 'AcceptedOrder', params: { orderId } },
+            params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
           });
         } else {
           (navigationRef as any).navigate('Client', {
             screen: 'MyOrdersTab',
-            params: { screen: 'AcceptedOrder', params: { orderId } },
+            params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
           });
         }
       } catch (e) {
@@ -88,7 +88,7 @@ const InAppNotification: React.FC<{ children: React.ReactNode }> = ({ children }
   return (
     <View style={{ flex: 1 }}>
       {children}
-      
+
       <Animated.View
         pointerEvents={notification ? 'box-none' : 'none'}
         style={[

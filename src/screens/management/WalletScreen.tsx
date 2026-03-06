@@ -8,6 +8,7 @@ import { useStripe, CardField } from '@stripe/stripe-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { walletService, adService, AdPackage, AdItem, orderService, serviceService, Order, Service } from '../../services/api';
+import { formatPrice } from '../../utils/formatters';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SkeletonBlock } from '../../components/Skeleton';
@@ -298,12 +299,21 @@ export default function WalletScreen() {
     try {
       const dateStr = scheduleDate.toISOString().split('T')[0];
       const timeStr = scheduleDate.toTimeString().slice(0, 5);
+      let targetCategories: string[] | undefined;
+      if (user?.profile_type === 'provider') {
+        const selectedService = userServices.find(s => s.id === linkedPostId);
+        if (selectedService?.category) targetCategories = [selectedService.category];
+      } else {
+        const selectedOrder = userOrders.find(o => o.id === linkedPostId);
+        if (selectedOrder?.category) targetCategories = [selectedOrder.category];
+      }
       const res = await adService.scheduleAd({
         purchase_id: selectedPurchaseId,
         title: scheduleTitle.trim(),
         message: scheduleMessage.trim(),
         scheduled_date: dateStr,
         scheduled_time: timeStr,
+        ...(targetCategories ? { target_categories: targetCategories } : {}),
         ...(user?.profile_type === 'provider'
           ? { linked_service_id: linkedPostId }
           : { linked_order_id: linkedPostId }),
@@ -635,7 +645,7 @@ export default function WalletScreen() {
                             </View>
                             <View style={styles.linkedPostInfo}>
                               <Text style={[styles.linkedPostTitle, isSelected && { color: '#4f46e5' }]} numberOfLines={1}>{svc.title}</Text>
-                              <Text style={styles.linkedPostMeta}>{svc.category} · R$ {Number(svc.price).toFixed(2)}</Text>
+                              <Text style={styles.linkedPostMeta}>{svc.category} · R$ {formatPrice(Number(svc.price))}</Text>
                             </View>
                             {isSelected && <CheckCircle size={20} color="#4f46e5" />}
                           </TouchableOpacity>
@@ -674,7 +684,7 @@ export default function WalletScreen() {
                             </View>
                             <View style={styles.linkedPostInfo}>
                               <Text style={[styles.linkedPostTitle, isSelected && { color: '#4f46e5' }]} numberOfLines={1}>{order.title}</Text>
-                              <Text style={styles.linkedPostMeta}>{order.category} · R$ {Number(order.budget).toFixed(2)}</Text>
+                              <Text style={styles.linkedPostMeta}>{order.category} · R$ {formatPrice(Number(order.budget))}</Text>
                             </View>
                             {isSelected && <CheckCircle size={20} color="#4f46e5" />}
                           </TouchableOpacity>
@@ -686,7 +696,7 @@ export default function WalletScreen() {
                         <Text style={styles.linkedPostEmptyText}>Você não possui nenhum pedido aberto. Cadastre ao menos um para anunciar.</Text>
                         <TouchableOpacity
                           style={styles.linkedPostCreateBtn}
-                          onPress={() => { setShowScheduleModal(false); navigation.navigate('Home', { screen: 'CreateOrder' }); }}
+                          onPress={() => { setShowScheduleModal(false); navigation.navigate('Client', { screen: 'Home', params: { screen: 'CreateOrder' } }); }}
                         >
                           <Text style={styles.linkedPostCreateText}>Cadastrar Pedido</Text>
                         </TouchableOpacity>

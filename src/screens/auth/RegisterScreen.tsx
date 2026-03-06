@@ -33,7 +33,26 @@ export default function RegisterScreen() {
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
 
   const [motherName, setMotherName] = useState('');
+
+  const capitalizeWords = (text: string) =>
+    text.replace(/(?:^|\s)\S/g, (match) => match.toUpperCase());
+
+  const maskCpfCnpj = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 14);
+    if (digits.length <= 11) {
+      return digits
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    }
+    return digits
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  };
   const [birthDate, setBirthDate] = useState('');
+  const [cpf, setCpf] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categorySearch, setCategorySearch] = useState('');
 
@@ -54,6 +73,7 @@ export default function RegisterScreen() {
   const confirmarSenhaInputRef = useRef<TextInput>(null);
   const motherNameInputRef = useRef<TextInput>(null);
   const birthDateInputRef = useRef<any>(null);
+  const cpfInputRef = useRef<any>(null);
   const cepInputRef = useRef<any>(null);
   const streetInputRef = useRef<TextInput>(null);
   const neighborhoodInputRef = useRef<TextInput>(null);
@@ -138,6 +158,12 @@ export default function RegisterScreen() {
       return;
     }
 
+    const cpfDigits = cpf.replace(/\D/g, '');
+    if (!cpfDigits || (cpfDigits.length !== 11 && cpfDigits.length !== 14)) {
+      showError('CPF ou CNPJ inválido');
+      return;
+    }
+
     if (senha !== confirmarSenha) {
       showError('As senhas não coincidem');
       return;
@@ -175,6 +201,7 @@ export default function RegisterScreen() {
       await register(
         nome, email, phone, senha, confirmarSenha,
         profileType as 'client' | 'provider',
+        cpf.replace(/\D/g, ''),
         profileType === 'provider' ? motherName : undefined,
         profileType === 'provider' ? parseBirthDate(birthDate) : undefined,
         profileType === 'provider' ? selectedCategories : undefined,
@@ -222,7 +249,7 @@ export default function RegisterScreen() {
               <Text style={styles.label}>Nome completo</Text>
               <View style={styles.inputRow}>
                 <Icon name="person-outline" size={20} color="#6b7280" />
-                <TextInput ref={nomeInputRef} style={styles.input} placeholder="Digite seu nome completo" placeholderTextColor="#9ca3af" value={nome} onChangeText={setNome} editable={!registering} returnKeyType="next" onSubmitEditing={() => emailInputRef.current?.focus()} />
+                <TextInput ref={nomeInputRef} style={styles.input} placeholder="Digite seu nome completo" placeholderTextColor="#9ca3af" value={nome} onChangeText={(t) => setNome(capitalizeWords(t))} autoCapitalize="words" editable={!registering} returnKeyType="next" onSubmitEditing={() => emailInputRef.current?.focus()} />
               </View>
               <Text style={styles.label}>Email</Text>
               <View style={styles.inputRow}>
@@ -244,6 +271,27 @@ export default function RegisterScreen() {
                   </View>
                 </TouchableOpacity>
               </View>
+              {profileType !== '' && (
+                <>
+                  <Text style={styles.label}>CPF / CNPJ</Text>
+                  <View style={styles.inputRow}>
+                    <Icon name="badge" size={20} color="#6b7280" />
+                    <TextInput
+                      ref={cpfInputRef}
+                      value={cpf}
+                      onChangeText={(t) => setCpf(maskCpfCnpj(t))}
+                      placeholder="000.000.000-00"
+                      placeholderTextColor="#9ca3af"
+                      style={styles.input}
+                      keyboardType="numeric"
+                      maxLength={18}
+                      editable={!registering}
+                      returnKeyType="next"
+                      onSubmitEditing={() => phoneInputRef.current?.getElement()?.focus()}
+                    />
+                  </View>
+                </>
+              )}
               <Text style={styles.label}>Telefone</Text>
               <View style={styles.inputRow}>
                 <Icon name="phone" size={20} color="#6b7280" />
@@ -255,7 +303,7 @@ export default function RegisterScreen() {
                   <Text style={styles.label}>Nome da mãe</Text>
                   <View style={styles.inputRow}>
                     <Icon name="person-outline" size={20} color="#6b7280" />
-                    <TextInput ref={motherNameInputRef} style={styles.input} placeholder="Nome completo da sua mãe" placeholderTextColor="#9ca3af" value={motherName} onChangeText={setMotherName} editable={!registering} returnKeyType="next" onSubmitEditing={() => birthDateInputRef.current?.getElement()?.focus()} />
+                    <TextInput ref={motherNameInputRef} style={styles.input} placeholder="Nome completo da sua mãe" placeholderTextColor="#9ca3af" value={motherName} onChangeText={(t) => setMotherName(capitalizeWords(t))} autoCapitalize="words" editable={!registering} returnKeyType="next" onSubmitEditing={() => birthDateInputRef.current?.getElement()?.focus()} />
                   </View>
                   <Text style={styles.label}>Data de nascimento</Text>
                   <View style={styles.inputRow}>

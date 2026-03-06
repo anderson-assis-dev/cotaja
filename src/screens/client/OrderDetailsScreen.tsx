@@ -267,7 +267,7 @@ export default function OrderDetailsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (user?.id && !loading) {
+      if (user?.id) {
         fetchOrders();
       }
     }, [user?.id, fromLeiloes, selectedCategory])

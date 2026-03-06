@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
-import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Trophy, Target, Hourglass } from 'lucide-react-native';
@@ -177,93 +177,77 @@ export default function AuctionScreen() {
   const selectedCategory = routeParams?.selectedCategory;
   const fromSearch = routeParams?.fromSearch || false;
 
-  useEffect(() => {
-    const fetchAuctions = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchAuctions = useCallback(async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
 
-        let params: Record<string, any> = {};
+      let params: Record<string, any> = {};
 
-        if (selectedCategory) {
-          params.category = selectedCategory;
-        }
-
-        if (providerLocation) {
-          params.latitude = providerLocation.latitude;
-          params.longitude = providerLocation.longitude;
-        }
-
-        const response = await orderService.getAvailableOrders(params);
-
-        if (response.success) {
-          console.log('📦 Dados recebidos da API:', JSON.stringify(response.data, null, 2));
-
-          if (!response.data.data || !Array.isArray(response.data.data)) {
-            console.warn('⚠️ Estrutura de dados inesperada:', response.data);
-            setAuctions([]);
-            return;
-          }
-
-          const convertedAuctions = response.data.data.map((apiOrder: any, index: number) => {
-            console.log(`🔄 Convertendo demanda ${index + 1}:`, {
-              id: apiOrder.id,
-              title: apiOrder.title,
-              budget: apiOrder.budget,
-              budgetType: typeof apiOrder.budget,
-              deadline: apiOrder.deadline,
-              deadlineType: typeof apiOrder.deadline,
-              status: apiOrder.status,
-              category: apiOrder.category,
-              address: apiOrder.address,
-              attachments: apiOrder.attachments,
-              attachmentsType: typeof apiOrder.attachments,
-              attachmentsIsArray: Array.isArray(apiOrder.attachments),
-              attachmentsLength: Array.isArray(apiOrder.attachments) ? apiOrder.attachments.length : 'N/A'
-            });
-
-            try {
-              return convertApiOrderToAuction(apiOrder);
-            } catch (error) {
-              console.error(`❌ Erro ao converter demanda ${apiOrder.id}:`, error);
-              return {
-                id: apiOrder.id?.toString() || '0',
-                title: apiOrder.title || 'Demanda sem título',
-                category: apiOrder.category || 'Sem categoria',
-                budget: 'R$ 0,00',
-                deadline: '0 dias',
-                status: 'Aguardando propostas',
-                description: apiOrder.description || 'Sem descrição',
-                location: apiOrder.address || 'Local não informado',
-                clientRating: 4.8,
-                proposals: [],
-                insights: ['Dados incompletos'],
-                clientId: apiOrder.client_id?.toString() || '0',
-                hasActiveAuction: false,
-                isNewDemand: false,
-              } as Auction;
-            }
-          });
-
-          console.log('✅ Demandas carregadas:', convertedAuctions.length);
-          setAuctions(convertedAuctions);
-        } else {
-          throw new Error('Erro ao carregar demandas');
-        }
-      } catch (error: any) {
-        console.error('❌ Erro ao buscar demandas:', error);
-        setError(error.message || 'Erro ao carregar demandas');
-      } finally {
-        setLoading(false);
+      if (selectedCategory) {
+        params.category = selectedCategory;
       }
-    };
 
-    if (user?.id) {
-      fetchAuctions();
-    } else {
+      if (providerLocation) {
+        params.latitude = providerLocation.latitude;
+        params.longitude = providerLocation.longitude;
+      }
+
+      const response = await orderService.getAvailableOrders(params);
+
+      if (response.success) {
+        if (!response.data.data || !Array.isArray(response.data.data)) {
+          setAuctions([]);
+          return;
+        }
+
+        const convertedAuctions = response.data.data.map((apiOrder: any) => {
+          try {
+            return convertApiOrderToAuction(apiOrder);
+          } catch (error) {
+            return {
+              id: apiOrder.id?.toString() || '0',
+              title: apiOrder.title || 'Demanda sem título',
+              category: apiOrder.category || 'Sem categoria',
+              budget: 'R$ 0,00',
+              deadline: '0 dias',
+              status: 'Aguardando propostas',
+              description: apiOrder.description || 'Sem descrição',
+              location: apiOrder.address || 'Local não informado',
+              clientRating: 4.8,
+              proposals: [],
+              insights: ['Dados incompletos'],
+              clientId: apiOrder.client_id?.toString() || '0',
+              hasActiveAuction: false,
+              isNewDemand: false,
+            } as Auction;
+          }
+        });
+
+        setAuctions(convertedAuctions);
+      } else {
+        throw new Error('Erro ao carregar demandas');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Erro ao carregar demandas');
+    } finally {
       setLoading(false);
     }
   }, [selectedCategory, user?.id, providerLocation]);
+
+  useEffect(() => {
+    fetchAuctions();
+  }, [fetchAuctions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAuctions();
+    }, [fetchAuctions])
+  );
 
   const fetchAvailableCategories = async () => {
     try {
