@@ -1,13 +1,20 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, User, Phone, Mail, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, User, Phone, Mail, RefreshCw, X, Calendar, Heart } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+
+const maskDate = (text: string) => {
+  const digits = text.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
 
 export default function MyDataScreen() {
   const navigation = useNavigation<any>();
@@ -20,6 +27,10 @@ export default function MyDataScreen() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [saving, setSaving] = useState(false);
   const [changingType, setChangingType] = useState(false);
+
+  const [showProviderModal, setShowProviderModal] = useState(false);
+  const [motherName, setMotherName] = useState('');
+  const [birthDate, setBirthDate] = useState('');
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -43,6 +54,13 @@ export default function MyDataScreen() {
     const nextType = isClient ? 'provider' : 'client';
     const nextLabel = isClient ? 'Prestador' : 'Cliente';
 
+    if (isClient && !user?.mother_name && !user?.birth_date) {
+      setMotherName('');
+      setBirthDate('');
+      setShowProviderModal(true);
+      return;
+    }
+
     Alert.alert(
       'Alterar tipo de conta',
       `Deseja alterar sua conta para ${nextLabel}?${isClient ? '\n\nVocê poderá oferecer serviços na plataforma.' : '\n\nVocê passará a buscar serviços como cliente.'}`,
@@ -50,21 +68,45 @@ export default function MyDataScreen() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: `Tornar-se ${nextLabel}`,
-          onPress: async () => {
-            try {
-              setChangingType(true);
-              await authService.updateProfileType(nextType);
-              await refreshUser();
-              showSuccess(`Conta alterada para ${nextLabel}!`);
-            } catch (error: any) {
-              showError(error.response?.data?.message || 'Erro ao alterar tipo de conta.');
-            } finally {
-              setChangingType(false);
-            }
-          },
+          onPress: () => doChangeProfileType(nextType),
         },
       ],
     );
+  };
+
+  const doChangeProfileType = async (nextType: 'client' | 'provider', extraData?: { mother_name: string; birth_date: string }) => {
+    try {
+      setChangingType(true);
+      await authService.updateProfileType(nextType, undefined, extraData);
+      await refreshUser();
+      showSuccess(`Conta alterada para ${nextType === 'provider' ? 'Prestador' : 'Cliente'}!`);
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Erro ao alterar tipo de conta.');
+    } finally {
+      setChangingType(false);
+    }
+  };
+
+  const handleConfirmProvider = async () => {
+    if (!motherName.trim()) {
+      showError('Informe o nome da mãe.');
+      return;
+    }
+    const dateDigits = birthDate.replace(/\D/g, '');
+    if (dateDigits.length !== 8) {
+      showError('Informe a data de nascimento completa (DD/MM/AAAA).');
+      return;
+    }
+    const day = parseInt(dateDigits.slice(0, 2), 10);
+    const month = parseInt(dateDigits.slice(2, 4), 10);
+    const year = parseInt(dateDigits.slice(4, 8), 10);
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2010) {
+      showError('Data de nascimento inválida.');
+      return;
+    }
+    const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    setShowProviderModal(false);
+    await doChangeProfileType('provider', { mother_name: motherName.trim(), birth_date: isoDate });
   };
 
   return (
@@ -179,6 +221,72 @@ export default function MyDataScreen() {
         backgroundColor="#4f46e5"
         forceLight
       />
+
+      <Modal visible={showProviderModal} transparent animationType="fade" onRequestClose={() => setShowProviderModal(false)}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Dados obrigatórios</Text>
+              <TouchableOpacity onPress={() => setShowProviderModal(false)} activeOpacity={0.7}>
+                <X size={22} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.modalDesc}>
+              Para se tornar prestador de serviço, preencha os dados abaixo:
+            </Text>
+
+            <View style={styles.modalField}>
+              <View style={styles.modalFieldIcon}>
+                <Heart size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.modalFieldBody}>
+                <Text style={styles.modalFieldLabel}>Nome da mãe</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={motherName}
+                  onChangeText={setMotherName}
+                  placeholder="Nome completo da mãe"
+                  placeholderTextColor="#9ca3af"
+                  autoCapitalize="words"
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalFieldSep} />
+
+            <View style={styles.modalField}>
+              <View style={styles.modalFieldIcon}>
+                <Calendar size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.modalFieldBody}>
+                <Text style={styles.modalFieldLabel}>Data de nascimento</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={birthDate}
+                  onChangeText={(t) => setBirthDate(maskDate(t))}
+                  placeholder="DD/MM/AAAA"
+                  placeholderTextColor="#9ca3af"
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.modalConfirmBtn, changingType && styles.saveBtnDisabled]}
+              onPress={handleConfirmProvider}
+              activeOpacity={0.8}
+              disabled={changingType}
+            >
+              {changingType ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.modalConfirmBtnText}>Tornar-se Prestador</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -336,5 +444,85 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#4f46e5',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalBox: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    width: '100%',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalDesc: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  modalField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  modalFieldIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalFieldBody: {
+    flex: 1,
+  },
+  modalFieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  modalInput: {
+    fontSize: 15,
+    color: '#111827',
+    padding: 0,
+    paddingVertical: 6,
+  },
+  modalFieldSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
+    marginLeft: 50,
+    marginVertical: 8,
+  },
+  modalConfirmBtn: {
+    backgroundColor: '#4f46e5',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    minHeight: 52,
+  },
+  modalConfirmBtnText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

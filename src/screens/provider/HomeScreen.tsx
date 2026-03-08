@@ -108,7 +108,7 @@ export default function ProviderHomeScreen() {
         scrollEventThrottle={16}
       >
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={styles.welcomeText}>Olá, {user?.name || 'Usuário'}!</Text>
+        <Text style={styles.welcomeText}>Olá, {(user?.name || 'Usuário').split(' ')[0]}!</Text>
         <Text style={styles.subtitleText}>
           Como vai seu trabalho hoje?
         </Text>

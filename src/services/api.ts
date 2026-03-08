@@ -95,6 +95,8 @@ export interface User {
   completed_services?: number;
   avatar_base64?: string;
   activate?: number;
+  mother_name?: string;
+  birth_date?: string;
 }
 
 export interface AuthResponse {
@@ -243,10 +245,13 @@ export const authService = {
     return response.data;
   },
 
-  async updateProfileType(profileType: 'client' | 'provider', serviceCategories?: string[]): Promise<{ success: boolean; message: string; data: { user: User } }> {
+  async updateProfileType(profileType: 'client' | 'provider', serviceCategories?: string[], extraData?: { mother_name?: string; birth_date?: string }): Promise<{ success: boolean; message: string; data: { user: User } }> {
     const data: any = { profile_type: profileType };
     if (serviceCategories) {
       data.service_categories = serviceCategories;
+    }
+    if (extraData) {
+      Object.assign(data, extraData);
     }
     const response = await api.put('/profile-type', data);
     return response.data;

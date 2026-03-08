@@ -657,7 +657,7 @@ export default function WalletScreen() {
                         <Text style={styles.linkedPostEmptyText}>Você não possui nenhum serviço ativo. Cadastre ao menos um para anunciar.</Text>
                         <TouchableOpacity
                           style={styles.linkedPostCreateBtn}
-                          onPress={() => { setShowScheduleModal(false); navigation.navigate('MyServicesTab'); }}
+                          onPress={() => { setShowScheduleModal(false); setTimeout(() => navigation.navigate('Provider', { screen: 'MyServicesTab' }), 350); }}
                         >
                           <Text style={styles.linkedPostCreateText}>Cadastrar Serviço</Text>
                         </TouchableOpacity>
@@ -696,7 +696,7 @@ export default function WalletScreen() {
                         <Text style={styles.linkedPostEmptyText}>Você não possui nenhum pedido aberto. Cadastre ao menos um para anunciar.</Text>
                         <TouchableOpacity
                           style={styles.linkedPostCreateBtn}
-                          onPress={() => { setShowScheduleModal(false); navigation.navigate('Client', { screen: 'Home', params: { screen: 'CreateOrder' } }); }}
+                          onPress={() => { setShowScheduleModal(false); setTimeout(() => navigation.navigate('Client', { screen: 'Home', params: { screen: 'CreateOrder' } }), 350); }}
                         >
                           <Text style={styles.linkedPostCreateText}>Cadastrar Pedido</Text>
                         </TouchableOpacity>
