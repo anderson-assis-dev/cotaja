@@ -357,7 +357,11 @@ export default function WalletScreen() {
   };
 
   const formatAdDate = (date: string, time: string) => {
-    const d = new Date(`${date}T${time}`);
+    const datePart = date ? date.split('T')[0] : '';
+    const timePart = time ? time.substring(0, 5) : '';
+    if (!datePart || !timePart) return '—';
+    const d = new Date(`${datePart}T${timePart}:00`);
+    if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
