@@ -15,6 +15,7 @@ import {
   Message, Order
 } from '../../services/api';
 import { SkeletonBlock } from '../../components/Skeleton';
+import { OrderTimeline } from '../../components/OrderTimeline';
 
 type RouteParams = {
   AcceptedOrder: { orderId: number };
@@ -656,6 +657,15 @@ export default function AcceptedOrderScreen() {
 
   const renderInfoTab = () => (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+
+      <OrderTimeline
+        apiStatus={(order?.status as any) || 'in_progress'}
+        hasProposals={(order?.proposals?.length || 0) > 0}
+        hasAcceptedProposal={!!order?.accepted_proposal_id}
+        hasScheduledDate={!!order?.scheduled_date}
+        bothScheduleConfirmed={!!(order?.schedule_confirmed_by_client && order?.schedule_confirmed_by_provider)}
+        createdAt={order?.created_at}
+      />
 
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>{order?.title}</Text>

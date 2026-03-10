@@ -35,6 +35,7 @@ import AvailableDemandsScreen from '../screens/provider/AvailableDemandsScreen';
 import SendProposalScreen from '../screens/provider/SendProposalScreen';
 import AuctionScreen from '../screens/provider/ProviderAuctionScreen';
 import RateClientScreen from '../screens/provider/RateClientScreen';
+import ProviderVisibilityScreen from '../screens/provider/ProviderVisibilityScreen';
 import MyServicesScreen from '../screens/provider/MyServicesScreen';
 import ProviderSearchScreen from '../screens/provider/SearchScreen';
 
@@ -203,6 +204,16 @@ function MyOrdersStackNavigator({ route }: any) {
   );
 }
 
+const ProviderHomeStack = createNativeStackNavigator();
+function ProviderHomeStackNavigator() {
+  return (
+    <ProviderHomeStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProviderHomeStack.Screen name="ProviderHome" component={ProviderHomeScreen} />
+      <ProviderHomeStack.Screen name="ProviderVisibility" component={ProviderVisibilityScreen} />
+    </ProviderHomeStack.Navigator>
+  );
+}
+
 const MyServicesStack = createNativeStackNavigator();
 function MyServicesStackNavigator({ route }: any) {
     const initialRouteName = route?.params?.initialScreen || 'MyServices';
@@ -348,7 +359,7 @@ function ProviderTabNavigator() {
         tabBarInactiveTintColor: 'gray',
         })}
     >
-        <Tab.Screen name="Home" component={ProviderHomeScreen} options={{ title: 'Início' }} />
+        <Tab.Screen name="Home" component={ProviderHomeStackNavigator} options={{ title: 'Início' }} />
         <Tab.Screen
             name="MyServicesTab"
             component={MyServicesStackNavigator}

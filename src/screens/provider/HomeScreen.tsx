@@ -135,6 +135,20 @@ export default function ProviderHomeScreen() {
           </View>
         </View>
 
+        <TouchableOpacity
+          style={styles.visibilityCard}
+          onPress={() => navigation.navigate('ProviderVisibility')}
+        >
+          <View style={styles.visibilityLeft}>
+            <Icon name="visibility" size={22} color="#4f46e5" />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
+              <Text style={styles.visibilitySubtitle}>Veja quantas vezes suas propostas foram visualizadas</Text>
+            </View>
+          </View>
+          <Icon name="chevron-right" size={22} color="#9ca3af" />
+        </TouchableOpacity>
+
         <Text style={styles.sectionTitle}>Serviços</Text>
         <View style={styles.servicesGrid}>
           {services.map((service) => (
@@ -513,5 +527,36 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  visibilityCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderLeftWidth: 4,
+    borderLeftColor: '#4f46e5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  visibilityLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  visibilityTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  visibilitySubtitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
   },
 });

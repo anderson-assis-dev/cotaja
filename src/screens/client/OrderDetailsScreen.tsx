@@ -4,9 +4,8 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
-import Config from 'react-native-config';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
+import { orderService, proposalService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
@@ -15,6 +14,7 @@ import { ImageViewer } from '../../components/ImageViewer';
 import { FileViewer } from '../../components/FileViewer';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 import { OrderListSkeleton } from '../../components/Skeleton';
+import { OrderTimeline } from '../../components/OrderTimeline';
 
 interface Proposal {
   id: string;
@@ -41,6 +41,8 @@ interface Attachment {
   uploaded_at: string;
 }
 
+type ApiOrderStatus = 'open' | 'in_progress' | 'completed' | 'cancelled' | 'stopped';
+
 interface Order {
   id: string;
   title: string;
@@ -57,6 +59,12 @@ interface Order {
   hasActiveAuction: boolean;
   isNewDemand: boolean;
   attachments?: Attachment[];
+  apiStatus: ApiOrderStatus;
+  created_at?: string;
+  acceptedProposalId?: number | null;
+  scheduledDate?: string | null;
+  scheduleConfirmedByClient?: number | null;
+  scheduleConfirmedByProvider?: number | null;
 }
 
 const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
@@ -161,6 +169,12 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     hasActiveAuction,
     isNewDemand,
     attachments,
+    apiStatus: (apiOrder.status || 'open') as ApiOrderStatus,
+    created_at: apiOrder.created_at,
+    acceptedProposalId: (apiOrder as any).accepted_proposal_id ?? null,
+    scheduledDate: (apiOrder as any).scheduled_date ?? null,
+    scheduleConfirmedByClient: (apiOrder as any).schedule_confirmed_by_client ?? null,
+    scheduleConfirmedByProvider: (apiOrder as any).schedule_confirmed_by_provider ?? null,
   };
 
   return convertedOrder;
@@ -181,6 +195,7 @@ export default function OrderDetailsScreen() {
   const [closedOrders, setClosedOrders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCancellingAcceptance, setIsCancellingAcceptance] = useState(false);
 
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -242,6 +257,8 @@ export default function OrderDetailsScreen() {
               hasActiveAuction: false,
               isNewDemand: false,
               attachments: [],
+              apiStatus: (apiOrder.status || 'open') as ApiOrderStatus,
+              created_at: apiOrder.created_at,
             };
           }
         });
@@ -360,6 +377,40 @@ export default function OrderDetailsScreen() {
               showError(error.message || 'Erro ao excluir pedido');
             }
           }
+        }
+      ]
+    );
+  };
+
+  const handleCancelAcceptance = (acceptedProposalId: number) => {
+    if (isCancellingAcceptance) return;
+    Alert.alert(
+      'Cancelar aceitação',
+      'Deseja cancelar a aceitação desta proposta? O pedido voltará para aberto e você poderá selecionar outra proposta.',
+      [
+        { text: 'Não', style: 'cancel' },
+        {
+          text: 'Cancelar aceitação',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setIsCancellingAcceptance(true);
+              try {
+                const response = await proposalService.cancelAcceptance(acceptedProposalId);
+                if (response.success) {
+                  showSuccess('Aceitação cancelada. Selecione outra proposta.');
+                  setShowDetails(false);
+                  setSelectedOrder(null);
+                  void fetchOrders();
+                }
+              } catch (error: any) {
+                const msg = error?.response?.data?.message || error?.message || 'Erro ao cancelar aceitação.';
+                showError(msg);
+              } finally {
+                setIsCancellingAcceptance(false);
+              }
+            })();
+          },
         }
       ]
     );
@@ -652,6 +703,14 @@ export default function OrderDetailsScreen() {
                   <Text style={styles.sectionLabel}>Descrição do Serviço</Text>
                   <Text style={styles.sectionText}>{selectedOrder.description}</Text>
                 </View>
+                <OrderTimeline
+                  apiStatus={selectedOrder.apiStatus}
+                  hasProposals={selectedOrder.proposals.length > 0}
+                  hasAcceptedProposal={!!selectedOrder.acceptedProposalId}
+                  hasScheduledDate={!!selectedOrder.scheduledDate}
+                  bothScheduleConfirmed={!!(selectedOrder.scheduleConfirmedByClient && selectedOrder.scheduleConfirmedByProvider)}
+                  createdAt={selectedOrder.created_at}
+                />
                 {(() => {
                   const docs=(selectedOrder.attachments||[]).filter((att:any)=>!isImageAttachment(att));
                   if(docs.length===0)return null;
@@ -706,23 +765,38 @@ export default function OrderDetailsScreen() {
 
 
               {selectedOrder.status === 'Em andamento' ? (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#4f46e5', borderRadius: 12, padding: 16,
-                    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                    gap: 10, marginTop: 16,
-                  }}
-                  onPress={() => {
-                    setShowDetails(false);
-                    navigation.navigate('AcceptedOrder', { orderId: parseInt(selectedOrder.id) });
-                  }}
-                >
-                  <MessageSquare size={22} color="#ffffff" />
-                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>
-                    Gerenciar Pedido
-                  </Text>
-                  <ChevronRight size={22} color="#ffffff" />
-                </TouchableOpacity>
+                <>
+                  {profileType === 'client' && !selectedOrder.scheduledDate && !!selectedOrder.acceptedProposalId && (
+                    <TouchableOpacity
+                      style={styles.cancelAcceptanceBtn}
+                      onPress={() => handleCancelAcceptance(selectedOrder.acceptedProposalId as number)}
+                      disabled={isCancellingAcceptance}
+                      activeOpacity={0.8}
+                    >
+                      <Icon name="undo" size={20} color="#d97706" />
+                      <Text style={styles.cancelAcceptanceBtnText}>
+                        {isCancellingAcceptance ? 'Cancelando...' : 'Escolher outra proposta'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#4f46e5', borderRadius: 12, padding: 16,
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+                      gap: 10, marginTop: 16,
+                    }}
+                    onPress={() => {
+                      setShowDetails(false);
+                      navigation.navigate('AcceptedOrder', { orderId: parseInt(selectedOrder.id) });
+                    }}
+                  >
+                    <MessageSquare size={22} color="#ffffff" />
+                    <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>
+                      Gerenciar Pedido
+                    </Text>
+                    <ChevronRight size={22} color="#ffffff" />
+                  </TouchableOpacity>
+                </>
               ) : selectedOrder.status === 'Cancelado' ? (
                 <View style={{ alignItems: 'center', padding: 20, marginTop: 16 }}>
                   <XCircle size={48} color="#ef4444" />
@@ -1640,6 +1714,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+  cancelAcceptanceBtn:{
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'center',
+    gap:8,
+    backgroundColor:'#fffbeb',
+    borderWidth:1,
+    borderColor:'#fde68a',
+    borderRadius:12,
+    paddingVertical:14,
+    marginTop:16,
+  },
+  cancelAcceptanceBtnText:{fontSize:16,fontWeight:'600',color:'#d97706'},
   attachmentsSection: {
     backgroundColor: 'white',
     borderRadius: 12,

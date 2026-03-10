@@ -182,6 +182,8 @@ export interface Proposal {
   provider_name?: string;
   provider_email?: string;
   provider_avatar_base64?: string;
+  accepted_at?: string;
+  view_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -651,6 +653,25 @@ export const proposalService = {
 
   async withdrawProposal(id: number): Promise<{ success: boolean; message: string }> {
     const response = await api.post(`/proposals/${id}/withdraw`);
+    return response.data;
+  },
+
+  async cancelAcceptance(id: number): Promise<{ success: boolean; message: string }> {
+    const response = await api.post(`/proposals/${id}/cancel-acceptance`);
+    return response.data;
+  },
+
+  async getVisibility(): Promise<{ success: boolean; data: {
+    total_views: number;
+    views_this_week: number;
+    proposals_with_views: number;
+    total_proposals: number;
+    total_pending: number;
+    total_accepted: number;
+    conversion_rate: number;
+    available_orders: number;
+  } }> {
+    const response = await api.get('/proposals/visibility');
     return response.data;
   },
 };
