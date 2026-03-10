@@ -1751,7 +1751,7 @@ PODS:
     - SocketRocket
   - react-native-biometrics (3.0.1):
     - React-Core
-  - react-native-compressor (1.16.0):
+  - react-native-compressor (1.13.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -1922,7 +1922,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context (5.7.0):
+  - react-native-safe-area-context (5.6.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -1940,8 +1940,8 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-safe-area-context/common (= 5.7.0)
-    - react-native-safe-area-context/fabric (= 5.7.0)
+    - react-native-safe-area-context/common (= 5.6.1)
+    - react-native-safe-area-context/fabric (= 5.6.1)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1952,7 +1952,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/common (5.7.0):
+  - react-native-safe-area-context/common (5.6.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -1980,7 +1980,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-safe-area-context/fabric (5.7.0):
+  - react-native-safe-area-context/fabric (5.6.1):
     - boost
     - DoubleConversion
     - fast_float
@@ -2009,7 +2009,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-webview (13.16.1):
+  - react-native-webview (13.16.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2570,7 +2570,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNCPushNotificationIOS (1.12.0):
+  - RNCPushNotificationIOS (1.11.0):
     - React-Core
   - RNDateTimePicker (8.6.0):
     - boost
@@ -2602,7 +2602,7 @@ PODS:
     - Yoga
   - RNFS (2.20.0):
     - React-Core
-  - RNGestureHandler (2.30.0):
+  - RNGestureHandler (2.28.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2722,7 +2722,7 @@ PODS:
     - RNWorklets
     - SocketRocket
     - Yoga
-  - RNScreens (4.24.0):
+  - RNScreens (4.16.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2749,10 +2749,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNScreens/common (= 4.24.0)
+    - RNScreens/common (= 4.16.0)
     - SocketRocket
     - Yoga
-  - RNScreens/common (4.24.0):
+  - RNScreens/common (4.16.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2781,7 +2781,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - RNSVG (15.15.3):
+  - RNSVG (15.13.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2807,10 +2807,10 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNSVG/common (= 15.15.3)
+    - RNSVG/common (= 15.13.0)
     - SocketRocket
     - Yoga
-  - RNSVG/common (15.15.3):
+  - RNSVG/common (15.13.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -3420,14 +3420,14 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 9d2434a42701d6144ca18f0ca1c4507808ca7696
   React-microtasksnativemodule: 75b6604b667d297292345302cc5bfb6b6aeccc1b
   react-native-biometrics: 43ed5b828646a7862dbc7945556446be00798e7d
-  react-native-compressor: 08b383b5cb8511e1c02dd0736b733482d07663ac
+  react-native-compressor: 3e04a6c707791c9731cda048c45d4ee343d7296e
   react-native-config: 2249b7e68644c86ea68358f5a0d746d1c648f900
   react-native-document-picker: dc2d83366e47e89e7c51e8a41eab99c1d54e941c
   react-native-geolocation: 95e48fe2687e5a8280103085372fa62c2297c5d6
   react-native-image-picker: 0314366753615115fa55c3cc937ac44cb7e75702
   react-native-image-resizer: 290b045c34c69db7574e4d08aadfc4abe1ff5a99
-  react-native-safe-area-context: befb5404eb8a16fdc07fa2bebab3568ecabcbb8a
-  react-native-webview: 8407aaaf6b539b1e38b72fabb55d6885de03beaf
+  react-native-safe-area-context: c6e2edd1c1da07bdce287fa9d9e60c5f7b514616
+  react-native-webview: 654f794a7686b47491cf43aa67f7f428bea00eed
   React-NativeModulesApple: 879fbdc5dcff7136abceb7880fe8a2022a1bd7c3
   React-oscompat: 93b5535ea7f7dff46aaee4f78309a70979bdde9d
   React-perflogger: 5536d2df3d18fe0920263466f7b46a56351c0510
@@ -3456,18 +3456,18 @@ SPEC CHECKSUMS:
   React-timing: 1e6a8acb66e2b7ac9d418956617fd1fdb19322fd
   React-utils: 52bbb03f130319ef82e4c3bc7a85eaacdb1fec87
   ReactAppDependencyProvider: 433ddfb4536948630aadd5bd925aff8a632d2fe3
-  ReactCodegen: 687dac436380c7f49d97c8ac3e068f6cde7d14f6
+  ReactCodegen: 1d05923ad119796be9db37830d5e5dc76586aa00
   ReactCommon: 394c6b92765cf6d211c2c3f7f6bc601dffb316a6
   RNCAsyncStorage: 29f0230e1a25f36c20b05f65e2eb8958d6526e82
-  RNCPushNotificationIOS: 85957a0534fd1309b4c028ccbe5b1baf9ab5cf57
+  RNCPushNotificationIOS: 6c4ca3388c7434e4a662b92e4dfeeee858e6f440
   RNDateTimePicker: 97a86d7c8b51f2d51f694a9dddfe5996dfd9a407
   RNFS: 89de7d7f4c0f6bafa05343c578f61118c8282ed8
-  RNGestureHandler: e37bdb684df1ac17c7e1d8f71a3311b2793c186b
-  RNReanimated: c2a05888f881828b22b2281791939e101fca284c
-  RNScreens: 7f643ee0fd1407dc5085c7795460bd93da113b8f
-  RNSVG: c4d5a438a1c96f7ed7dc66349a5b7e97616fd701
+  RNGestureHandler: 3a73f098d74712952870e948b3d9cf7b6cae9961
+  RNReanimated: 28141b41781ded169829afdb6fd80f3498de254e
+  RNScreens: 0bbf16c074ae6bb1058a7bf2d1ae017f4306797c
+  RNSVG: 6c39befcfad06eec55b40c19a030b2d9eca63334
   RNVectorIcons: 791f13226ec4a3fd13062eda9e892159f0981fae
-  RNWorklets: aa05e130cd44eb89a5c71c3fb89faf37ee70a9d2
+  RNWorklets: ca03ce776c15a592ef0700386071466810c41ea0
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Stripe: cba7aef14749955c8bbcbe71ecebd84088c6b364
   stripe-react-native: e2d85dcf0725f54f26fe43f877eb9a48962c2362
