@@ -8,3 +8,31 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# React Native
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keep class com.facebook.jni.** { *; }
+-dontwarn com.facebook.**
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+# Stripe
+-keep class com.stripe.** { *; }
+-dontwarn com.stripe.**
+
+# React Native Push Notifications
+-keep class com.dieam.reactnativepushnotification.** { *; }
+
+# OkHttp
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+
+# Reanimated
+-keep class com.swmansion.reanimated.** { *; }
+
+# React Native Config
+-keep class com.cotaja_rn.BuildConfig { *; }
