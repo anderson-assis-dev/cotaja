@@ -19,6 +19,7 @@ interface AuthContextType {
   loginWithBiometric: () => Promise<boolean>;
   isBiometricAvailable: () => Promise<boolean>;
   hasBiometricCredentials: () => Promise<boolean>;
+  deleteAccount: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -478,6 +479,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const deleteAccount = async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      await authService.deleteAccount();
+      setUser(null);
+      setToken(null);
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('user');
+      await pushNotificationService.clearToken();
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Erro ao excluir conta';
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const isBiometricAvailable = async (): Promise<boolean> => {
     return await biometricService.isBiometricSupported();
   };
@@ -507,6 +526,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loginWithBiometric,
     isBiometricAvailable,
     hasBiometricCredentials,
+    deleteAccount,
   };
 
   return (

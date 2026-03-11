@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch, Alert } from 'react-native';
 import { useNavigation, NavigationProp, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard } from 'lucide-react-native';
+import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard, Trash2 } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
@@ -35,7 +35,7 @@ type ProfileScreenNavigationProp = NavigationProp<RootStackParamList>;
 export default function ProfileScreen() {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
-  const { logout, user, refreshUser } = useAuth();
+  const { logout, user, refreshUser, deleteAccount } = useAuth();
   const { showSuccess, showError } = useToast();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -84,6 +84,28 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     await logout();
     navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Excluir Conta',
+      'Tem certeza que deseja excluir sua conta? Esta ação é irreversível. Você perderá todos os seus dados e não conseguirá acessar com este e-mail.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Login' }] }));
+            } catch (error: any) {
+              showError(error.message || 'Erro ao excluir conta.');
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleChangeAvatar = async () => {
@@ -257,6 +279,11 @@ export default function ProfileScreen() {
 
         <Text style={styles.groupLabel}>Conta</Text>
         <View style={styles.group}>
+          <TouchableOpacity style={styles.item} onPress={handleDeleteAccount} activeOpacity={0.7}>
+            <Trash2 size={22} color="#dc2626" />
+            <Text style={[styles.itemText, { color: '#dc2626' }]}>Excluir Conta</Text>
+          </TouchableOpacity>
+          <View style={styles.sep} />
           <TouchableOpacity style={styles.item} onPress={handleLogout} activeOpacity={0.7}>
             <LogOut size={22} color="#dc2626" />
             <Text style={[styles.itemText, { color: '#dc2626' }]}>Sair</Text>

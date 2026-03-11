@@ -781,12 +781,6 @@ export default function AcceptedOrderScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => { setShowCancelModal(false); setCancelReason(''); }}
-              >
-                <Text style={styles.modalCancelBtnText}>Voltar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.modalConfirmBtn, isCancelling && { opacity: 0.7 }]}
                 onPress={handleCancelOrder}
                 disabled={isCancelling}
@@ -796,6 +790,12 @@ export default function AcceptedOrderScreen() {
                 ) : (
                   <Text style={styles.modalConfirmBtnText}>Confirmar Cancelamento</Text>
                 )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => { setShowCancelModal(false); setCancelReason(''); }}
+              >
+                <Text style={styles.modalCancelBtnText}>Voltar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -992,15 +992,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6', borderRadius: 12, padding: 16,
     fontSize: 15, color: '#1f2937', textAlignVertical: 'top', minHeight: 100,
   },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  modalActions: { flexDirection: 'column', gap: 10, marginTop: 20 },
   modalCancelBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
+    alignItems: 'center', paddingVertical: 14,
     borderRadius: 10, borderWidth: 1, borderColor: '#e5e7eb',
   },
-  modalCancelBtnText: { fontSize: 16, fontWeight: '600', color: '#6b7280' },
+  modalCancelBtnText: { fontSize: 15, fontWeight: '600', color: '#6b7280' },
   modalConfirmBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
+    alignItems: 'center', paddingVertical: 16,
     borderRadius: 10, backgroundColor: '#ef4444',
   },
-  modalConfirmBtnText: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
+  modalConfirmBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
 });

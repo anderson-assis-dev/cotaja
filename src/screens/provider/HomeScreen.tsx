@@ -115,26 +115,6 @@ export default function ProviderHomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.statsCard}>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Avaliação</Text>
-              <View style={styles.ratingContainer}>
-                <Text style={styles.statValue}>{user?.rate || 0}</Text>
-                <Star size={18} color="#f59e0b" fill="#f59e0b" style={{ marginLeft: 4 }} />
-              </View>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Concluídos</Text>
-              <Text style={styles.statValue}>{user?.completed_services || 0}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Ativos</Text>
-              <Text style={styles.statValue}>{user?.active_services || 0}</Text>
-            </View>
-          </View>
-        </View>
-
         <TouchableOpacity
           style={styles.visibilityCard}
           onPress={() => navigation.navigate('ProviderVisibility')}

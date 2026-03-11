@@ -282,6 +282,11 @@ export const authService = {
     return response.data;
   },
 
+  async deleteAccount(): Promise<{ success: boolean; message: string }> {
+    const response = await api.delete('/account');
+    return response.data;
+  },
+
 };
 
 export const orderService = {
