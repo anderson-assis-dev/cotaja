@@ -55,6 +55,7 @@ export default function CreateOrderScreen() {
   const editMode = params?.editMode || false;
   const orderId = params?.orderId;
   const orderData = params?.orderData;
+  const prefillOrderData = params?.prefillOrderData;
   const hasProposals = orderData?.proposals && orderData.proposals.length > 0;
 
   const [title, setTitle] = useState('');
@@ -134,7 +135,25 @@ export default function CreateOrderScreen() {
         setAttachments(existingAttachments);
       }
     }
-  }, [editMode, orderData, orderId]);
+    if (!editMode && prefillOrderData) {
+      setTitle(prefillOrderData.title || '');
+      setCategory(prefillOrderData.category || '');
+      setDescription(prefillOrderData.description || '');
+      const budgetValue = prefillOrderData.budget?.replace('R$ ', '').replace(',', '.');
+      setBudget(formatCurrency(budgetValue || '0'));
+      const deadlineValue = prefillOrderData.deadline?.replace(' dias', '');
+      setDeadline(formatDeadline(deadlineValue || '0'));
+      setStreet(prefillOrderData.street || '');
+      setAddressNumber(prefillOrderData.number || '');
+      setComplement(prefillOrderData.complement || '');
+      setNeighborhood(prefillOrderData.neighborhood || '');
+      setCity(prefillOrderData.city || '');
+      setAddressState((prefillOrderData.state || '').toUpperCase().slice(0, 2));
+      setZipCode(prefillOrderData.zip_code || '');
+      if (prefillOrderData.latitude) setLatitude(prefillOrderData.latitude);
+      if (prefillOrderData.longitude) setLongitude(prefillOrderData.longitude);
+    }
+  }, [editMode, orderData, orderId, prefillOrderData]);
 
   const getAttachmentCount = (fileType: AttachmentType) => {
     return attachments.filter(att => att.fileType === fileType).length;
@@ -599,6 +618,7 @@ export default function CreateOrderScreen() {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
+      <View style={styles.headerBackground}/>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -610,20 +630,16 @@ export default function CreateOrderScreen() {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.content, { paddingTop: insets.top + 16, marginTop: 0 }]}>
-
-            <View style={styles.headerRow}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-                accessibilityLabel="Voltar"
-              >
-                <Icon name="arrow-back" size={24} color="#111827" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>{editMode ? 'Editar Pedido' : 'Criar Novo Pedido'}</Text>
-              <View style={{ width: 40 }} />
+          <View style={[styles.headerSection,{paddingTop:insets.top+16}]}>
+            <TouchableOpacity style={styles.backArrow} onPress={() => navigation.goBack()} accessibilityLabel="Voltar">
+              <Icon name="arrow-back" size={24} color="#ffffff"/>
+            </TouchableOpacity>
+            <View style={styles.headerText}>
+              <Text style={styles.headerTitle}>{editMode?'Editar Pedido':prefillOrderData?'Recriar Pedido':'Criar Novo Pedido'}</Text>
+              <Text style={styles.headerSubtitle}>Preencha os detalhes do seu pedido</Text>
             </View>
-
+          </View>
+          <View style={styles.content}>
             <View style={styles.formCard}>
               <Text style={styles.label}>Título do Serviço</Text>
               <TextInput
@@ -1002,12 +1018,12 @@ export default function CreateOrderScreen() {
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator color="white" size="small" />
                     <Text style={styles.loadingText}>
-                      Criando Pedido...
+                      {editMode?'Atualizando Pedido...':prefillOrderData?'Recriando Pedido...':'Criando Pedido...'}
                     </Text>
                   </View>
                 ) : (
                   <Text style={styles.submitButtonText}>
-                    Criar Pedido
+                    {editMode?'Atualizar Pedido':prefillOrderData?'Recriar Pedido':'Criar Pedido'}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -1020,6 +1036,7 @@ export default function CreateOrderScreen() {
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
         backgroundColor="#4f46e5"
+        forceLight
       />
     </View>
   );
@@ -1030,44 +1047,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
+  headerBackground:{
+    position:'absolute',
+    top:0,
+    left:0,
+    right:0,
+    height:'50%',
+    backgroundColor:'#4f46e5',
+  },
   keyboardView: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
   },
-  content: {
-    padding: 24,
+  headerSection:{
+    flexDirection:'row',
+    alignItems:'center',
+    paddingHorizontal:24,
+    paddingBottom:18,
+    backgroundColor:'#4f46e5',
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+  backArrow:{
+    width:40,
+    height:40,
+    borderRadius:20,
+    backgroundColor:'rgba(255,255,255,0.2)',
+    alignItems:'center',
+    justifyContent:'center',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+  headerText:{
+    flex:1,
+    marginLeft:12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
+    fontSize:24,
+    fontWeight:'bold',
+    color:'#ffffff',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 24,
-    color: '#111827',
+  headerSubtitle:{
+    color:'rgba(255,255,255,0.8)',
+    fontSize:14,
+    marginTop:4,
+  },
+  content:{
+    backgroundColor:'#f3f4f6',
+    borderTopLeftRadius:24,
+    borderTopRightRadius:24,
+    padding:20,
+    paddingTop:24,
   },
   formCard: {
     backgroundColor: '#ffffff',

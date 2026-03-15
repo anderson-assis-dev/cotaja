@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService, proposalService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
+import { orderService, orderActionService, proposalService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
@@ -52,6 +52,15 @@ interface Order {
   status: string;
   description: string;
   location: string;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   clientRating: number;
   proposals: Proposal[];
   insights: string[];
@@ -162,6 +171,15 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
     location: apiOrder.address || 'Local não informado',
+    street: (apiOrder as any).street ?? null,
+    number: (apiOrder as any).number ?? null,
+    complement: (apiOrder as any).complement ?? null,
+    neighborhood: (apiOrder as any).neighborhood ?? null,
+    city: (apiOrder as any).city ?? null,
+    state: (apiOrder as any).state ?? null,
+    zip_code: (apiOrder as any).zip_code ?? null,
+    latitude: (apiOrder as any).latitude ?? null,
+    longitude: (apiOrder as any).longitude ?? null,
     clientRating: 4.8,
     proposals,
     insights: generateInsights(apiOrder, proposals),
@@ -205,6 +223,12 @@ export default function OrderDetailsScreen() {
   const [fileViewerUrl, setFileViewerUrl] = useState('');
   const [fileViewerTitle, setFileViewerTitle] = useState('');
   const [fileViewerMime, setFileViewerMime] = useState('');
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+
+  const handleRecreateOrder = (order: Order) => {
+    setShowDetails(false);
+    navigation.navigate('CreateOrder', { prefillOrderData: order });
+  };
 
   const profileType = (route.params as any)?.profileType || 'client';
   const clientId = user?.id?.toString() || (route.params as any)?.clientId || '1';
@@ -250,6 +274,15 @@ export default function OrderDetailsScreen() {
               status: 'Aguardando propostas',
               description: apiOrder.description || 'Sem descrição',
               location: apiOrder.address || 'Local não informado',
+              street: (apiOrder as any).street ?? null,
+              number: (apiOrder as any).number ?? null,
+              complement: (apiOrder as any).complement ?? null,
+              neighborhood: (apiOrder as any).neighborhood ?? null,
+              city: (apiOrder as any).city ?? null,
+              state: (apiOrder as any).state ?? null,
+              zip_code: (apiOrder as any).zip_code ?? null,
+              latitude: (apiOrder as any).latitude ?? null,
+              longitude: (apiOrder as any).longitude ?? null,
               clientRating: 4.8,
               proposals: [],
               insights: ['Dados incompletos'],
@@ -274,21 +307,29 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [fromLeiloes, selectedCategory, user?.id]);
-
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
         fetchOrders();
+      } else {
+        setLoading(false);
       }
     }, [user?.id, fromLeiloes, selectedCategory])
   );
+
+  const STATUS_FILTER_OPTIONS = [
+    { label: 'Aguardando', value: 'Aguardando propostas', color: '#4f46e5' },
+    { label: 'Em andamento', value: 'Em andamento', color: '#059669' },
+    { label: 'Concluído', value: 'Concluído', color: '#22c55e' },
+    { label: 'Cancelado', value: 'Cancelado', color: '#ef4444' },
+    { label: 'Pausado', value: 'Pausado', color: '#f59e0b' },
+  ];
+
+  const toggleStatusFilter = (value: string) => {
+    setSelectedStatuses(prev =>
+      prev.includes(value) ? prev.filter(s => s !== value) : [...prev, value]
+    );
+  };
 
   let filteredOrders = profileType === 'client'
     ? orders.filter(o => o.clientId === clientId)
@@ -297,6 +338,10 @@ export default function OrderDetailsScreen() {
   filteredOrders = filteredOrders.filter(
     (order) => !closedOrders.includes(order.id)
   );
+
+  if (selectedStatuses.length > 0) {
+    filteredOrders = filteredOrders.filter(o => selectedStatuses.includes(o.status));
+  }
 
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
@@ -352,34 +397,20 @@ export default function OrderDetailsScreen() {
     });
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    Alert.alert(
-      'Excluir Pedido',
-      'Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir', style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await orderService.deleteOrder(parseInt(orderId));
-
-              if (response.success) {
-                setShowDetails(false);
-                setSelectedOrder(null);
-                showSuccess('Pedido excluído com sucesso');
-                setClosedOrders((prev) => [...prev, orderId]);
-                fetchOrders();
-              } else {
-                showError(response.message || 'Erro ao excluir pedido');
-              }
-            } catch (error: any) {
-              showError(error.message || 'Erro ao excluir pedido');
-            }
-          }
-        }
-      ]
-    );
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const response = await orderActionService.cancelOrder(parseInt(orderId), 'Cancelado pelo cliente');
+      if (response.success) {
+        setShowDetails(false);
+        setSelectedOrder(null);
+        showSuccess('Pedido cancelado com sucesso');
+        fetchOrders();
+      } else {
+        showError(response.message || 'Erro ao cancelar pedido');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Erro ao cancelar pedido');
+    }
   };
 
   const handleCancelAcceptance = (acceptedProposalId: number) => {
@@ -513,7 +544,40 @@ export default function OrderDetailsScreen() {
           <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
         </View>
 
+        {!fromLeiloes && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.statusFilterBar}
+            contentContainerStyle={styles.statusFilterBarContent}
+          >
+            {STATUS_FILTER_OPTIONS.map((opt) => {
+              const isSelected = selectedStatuses.includes(opt.value);
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.statusFilterChip,
+                    isSelected
+                      ? { backgroundColor: opt.color, borderColor: opt.color }
+                      : { backgroundColor: '#fff', borderColor: '#e5e7eb' },
+                  ]}
+                  onPress={() => toggleStatusFilter(opt.value)}
+                >
+                  <Text style={[
+                    styles.statusFilterChipText,
+                    isSelected ? { color: '#fff' } : { color: '#374151' },
+                  ]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
         <View style={styles.content}>
+
           {filteredOrders.map((order) => (
             <TouchableOpacity
               key={order.id}
@@ -596,11 +660,13 @@ export default function OrderDetailsScreen() {
                 Nenhum pedido encontrado
               </Text>
               <Text style={styles.emptyStateMessage}>
-                {selectedCategory
-                  ? `Não há pedidos na categoria "${selectedCategory}" no momento.`
-                  : fromLeiloes
-                    ? 'Não há leilões em andamento no momento.'
-                    : 'Você ainda não possui pedidos. Crie seu primeiro pedido!'
+                {selectedStatuses.length > 0
+                  ? 'Nenhum pedido com o status selecionado.'
+                  : selectedCategory
+                    ? `Não há pedidos na categoria "${selectedCategory}" no momento.`
+                    : fromLeiloes
+                      ? 'Não há leilões em andamento no momento.'
+                      : 'Você ainda não possui pedidos. Crie seu primeiro pedido!'
                 }
               </Text>
             </View>
@@ -731,36 +797,6 @@ export default function OrderDetailsScreen() {
                     </View>
                   );
                 })()}
-                <View style={styles.orderActionsContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.editOrderButton,
-                      (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonDisabled
-                    ]}
-                    onPress={() => {
-                      if (selectedOrder.proposals && selectedOrder.proposals.length > 0) {
-                        showError('Não é possível editar pedidos que já receberam propostas');
-                        return;
-                      }
-                      setShowDetails(false);
-                      navigation.navigate('CreateOrder', {
-                        editMode: true,
-                        orderId: selectedOrder.id,
-                        orderData: selectedOrder
-                      });
-                    }}
-                  >
-                    <Icon name="edit" size={20} color={(selectedOrder.proposals && selectedOrder.proposals.length > 0) ? "#9ca3af" : "#4f46e5"} />
-                    <Text style={[
-                      styles.editOrderButtonText,
-                      (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonTextDisabled
-                    ]}>Editar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteOrderButton} onPress={() => handleDeleteOrder(selectedOrder.id)}>
-                    <Icon name="delete" size={20} color="#ef4444" />
-                    <Text style={styles.deleteOrderButtonText}>Excluir</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
 
 
@@ -802,6 +838,13 @@ export default function OrderDetailsScreen() {
                   <XCircle size={48} color="#ef4444" />
                   <Text style={{ fontSize: 16, fontWeight: '700', color: '#ef4444', marginTop: 8 }}>
                     Pedido Cancelado
+                  </Text>
+                </View>
+              ) : selectedOrder.status === 'Concluído' ? (
+                <View style={{ alignItems: 'center', padding: 20, marginTop: 16 }}>
+                  <Icon name="check-circle" size={48} color="#22c55e" />
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#22c55e', marginTop: 8 }}>
+                    Pedido Concluído
                   </Text>
                 </View>
               ) : selectedOrder.status === 'Pausado' ? (
@@ -910,21 +953,51 @@ export default function OrderDetailsScreen() {
               )}
 
 
-              {(selectedOrder.status === 'Aguardando propostas' || selectedOrder.status === 'Pausado') && (
-                <TouchableOpacity
-                  style={styles.closeOrderButton}
-                  onPress={() => handleToggleStopOrder(selectedOrder.id)}
-                  accessibilityLabel={selectedOrder.status === 'Pausado' ? 'Ativar pedido' : 'Pausar pedido'}
-                >
-                  <View style={[styles.closeOrderIcon, selectedOrder.status === 'Pausado' && { backgroundColor: '#dcfce7' }]}>
-                    <Icon
-                      name={selectedOrder.status === 'Pausado' ? 'play-circle-filled' : 'pause-circle-filled'}
-                      size={28}
-                      color={selectedOrder.status === 'Pausado' ? '#22c55e' : '#f59e0b'}
-                    />
-                  </View>
-                </TouchableOpacity>
-              )}
+              <View style={styles.floatingActions}>
+                {(selectedOrder.status==='Aguardando propostas'||selectedOrder.status==='Pausado')&&(
+                  <TouchableOpacity style={styles.floatingActionBtn} onPress={() => handleToggleStopOrder(selectedOrder.id)} accessibilityLabel={selectedOrder.status==='Pausado'?'Ativar pedido':'Pausar pedido'}>
+                    <View style={[styles.closeOrderIcon,selectedOrder.status==='Pausado'&&{backgroundColor:'#dcfce7'}]}>
+                      <Icon name={selectedOrder.status==='Pausado'?'play-circle-filled':'pause-circle-filled'} size={22} color={selectedOrder.status==='Pausado'?'#22c55e':'#f59e0b'} />
+                    </View>
+                  </TouchableOpacity>
+                )}
+                {(selectedOrder.apiStatus!=='cancelled'&&selectedOrder.apiStatus!=='completed')&&(
+                  <>
+                    <TouchableOpacity
+                      style={[styles.floatingActionBtn,(selectedOrder.proposals&&selectedOrder.proposals.length>0)&&styles.floatingActionBtnDisabled]}
+                      accessibilityLabel="Editar pedido"
+                      disabled={!!(selectedOrder.proposals&&selectedOrder.proposals.length>0)}
+                      onPress={() => {
+                        if (selectedOrder.proposals && selectedOrder.proposals.length > 0) {
+                          showError('Não é possível editar pedidos que já receberam propostas');
+                          return;
+                        }
+                        setShowDetails(false);
+                        navigation.navigate('CreateOrder', { editMode: true, orderId: selectedOrder.id, orderData: selectedOrder });
+                      }}
+                    >
+                      <Icon name="edit" size={18} color={(selectedOrder.proposals&&selectedOrder.proposals.length>0)?"#9ca3af":"#4f46e5"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.floatingActionBtn,styles.floatingActionBtnDanger]}
+                      accessibilityLabel="Cancelar pedido"
+                      onPress={() => {
+                        Alert.alert('Cancelar pedido','Tem certeza que deseja cancelar este pedido? Essa ação não poderá ser desfeita.',[
+                          { text: 'Voltar', style: 'cancel' },
+                          { text: 'Sim, cancelar', style: 'destructive', onPress: () => handleCancelOrder(selectedOrder.id) },
+                        ]);
+                      }}
+                    >
+                      <Icon name="cancel" size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                  </>
+                )}
+                {(selectedOrder.apiStatus==='cancelled'||selectedOrder.apiStatus==='completed')&&(
+                  <TouchableOpacity style={[styles.floatingActionBtn,styles.floatingActionBtnPrimary]} accessibilityLabel="Recriar pedido" onPress={() => handleRecreateOrder(selectedOrder)}>
+                    <Icon name="autorenew" size={18} color="#2563eb" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </ScrollView>
           )}
         </View>
@@ -965,6 +1038,7 @@ export default function OrderDetailsScreen() {
           onClose={() => setFileViewerVisible(false)}
         />
       </Modal>
+
     </View>
   );
 }
@@ -1215,6 +1289,25 @@ const styles = StyleSheet.create({
     color: '#4f46e5',
     marginLeft: 4,
     fontWeight: '600',
+  },
+  statusFilterBar: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 12,
+  },
+  statusFilterBarContent: {
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  statusFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  statusFilterChipText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   emptyState: {
     backgroundColor: 'white',
@@ -1640,6 +1733,37 @@ const styles = StyleSheet.create({
   noProposalsMessage: {
     color: '#b45309',
   },
+  floatingActions:{
+    position:'absolute',
+    right:24,
+    top:24,
+    zIndex:10,
+    flexDirection:'row',
+    alignItems:'center',
+    gap:10,
+  },
+  floatingActionBtn:{
+    width:44,
+    height:44,
+    borderRadius:12,
+    alignItems:'center',
+    justifyContent:'center',
+    backgroundColor:'#ffffff',
+    shadowColor:'#000',
+    shadowOffset:{width:0,height:1},
+    shadowOpacity:0.08,
+    shadowRadius:3,
+    elevation:2,
+  },
+  floatingActionBtnDisabled:{
+    opacity:0.5,
+  },
+  floatingActionBtnDanger:{
+    backgroundColor:'#fee2e2',
+  },
+  floatingActionBtnPrimary:{
+    backgroundColor:'#dbeafe',
+  },
   closeOrderButton: {
     position: 'absolute',
     right: 24,
@@ -1663,7 +1787,7 @@ const styles = StyleSheet.create({
   },
   orderActionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
@@ -1671,14 +1795,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   editOrderButton: {
-    flex: 1,
+    width: 56,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#e0e7ff',
-    padding: 12,
+    padding: 0,
     borderRadius: 8,
-    gap: 8,
   },
   editOrderButtonDisabled: {
     backgroundColor: '#f3f4f6',
@@ -1700,19 +1824,81 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   deleteOrderButton: {
-    flex: 1,
+    width: 56,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fee2e2',
-    padding: 12,
+    padding: 0,
     borderRadius: 8,
-    gap: 8,
+  },
+  recreateOrderButton:{
+    width:56,
+    height:44,
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'center',
+    backgroundColor:'#dbeafe',
+    padding:0,
+    borderRadius:8,
   },
   deleteOrderButtonText: {
     color: '#ef4444',
     fontWeight: '600',
     fontSize: 16,
+  },
+  confirmOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  confirmBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  confirmMessage: {
+    fontSize: 15,
+    color: '#6b7280',
+    marginBottom: 24,
+  },
+  confirmButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  confirmButtonSecondary: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  confirmButtonSecondaryText: {
+    color: '#374151',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  confirmButtonDanger: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+  },
+  confirmButtonDangerText: {
+    color: '#ef4444',
+    fontWeight: '600',
+    fontSize: 15,
   },
   cancelAcceptanceBtn:{
     flexDirection:'row',

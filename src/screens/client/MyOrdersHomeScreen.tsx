@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Image, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Hourglass, MessageSquare, ChevronRight, XCircle } from 'lucide-react-native';
-import Config from 'react-native-config';
 import { useAuth } from '../../contexts/AuthContext';
-import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
+import { orderService, orderActionService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
@@ -50,6 +49,15 @@ interface Order {
   status: string;
   description: string;
   location: string;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   clientRating: number;
   proposals: Proposal[];
   insights: string[];
@@ -139,6 +147,15 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
     status: getStatusInPortuguese(apiOrder.status || 'open'),
     description: apiOrder.description || 'Sem descrição',
     location: apiOrder.address || 'Local não informado',
+    street: (apiOrder as any).street ?? null,
+    number: (apiOrder as any).number ?? null,
+    complement: (apiOrder as any).complement ?? null,
+    neighborhood: (apiOrder as any).neighborhood ?? null,
+    city: (apiOrder as any).city ?? null,
+    state: (apiOrder as any).state ?? null,
+    zip_code: (apiOrder as any).zip_code ?? null,
+    latitude: (apiOrder as any).latitude ?? null,
+    longitude: (apiOrder as any).longitude ?? null,
     clientRating: 4.8,
     proposals,
     insights: generateInsights(apiOrder, proposals),
@@ -172,6 +189,11 @@ export default function MyOrdersHomeScreen() {
   const [fileViewerUrl, setFileViewerUrl] = useState('');
   const [fileViewerTitle, setFileViewerTitle] = useState('');
   const [fileViewerMime, setFileViewerMime] = useState('');
+
+  const handleRecreateOrder = (order: Order) => {
+    setShowDetails(false);
+    navigation.navigate('CreateOrder', { prefillOrderData: order });
+  };
 
   const profileType = (route.params as any)?.profileType || 'client';
   const clientId = user?.id?.toString() || (route.params as any)?.clientId || '1';
@@ -237,18 +259,12 @@ export default function MyOrdersHomeScreen() {
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [fromLeiloes, selectedCategory, user?.id]);
-
   useFocusEffect(
     useCallback(() => {
       if (user?.id && !loading) {
         fetchOrders();
+      } else if (!user?.id) {
+        setLoading(false);
       }
     }, [user?.id, fromLeiloes, selectedCategory])
   );
@@ -314,34 +330,20 @@ export default function MyOrdersHomeScreen() {
     });
   };
 
-  const handleDeleteOrder = (orderId: string) => {
-    Alert.alert(
-      'Excluir Pedido',
-      'Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir', style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await orderService.deleteOrder(parseInt(orderId));
-
-              if (response.success) {
-                setShowDetails(false);
-                setSelectedOrder(null);
-                showSuccess('Pedido excluído com sucesso');
-                setClosedOrders((prev) => [...prev, orderId]);
-                fetchOrders();
-              } else {
-                showError(response.message || 'Erro ao excluir pedido');
-              }
-            } catch (error: any) {
-              showError(error.message || 'Erro ao excluir pedido');
-            }
-          }
-        }
-      ]
-    );
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const response = await orderActionService.cancelOrder(parseInt(orderId), 'Cancelado pelo cliente');
+      if (response.success) {
+        setShowDetails(false);
+        setSelectedOrder(null);
+        showSuccess('Pedido cancelado com sucesso');
+        fetchOrders();
+      } else {
+        showError(response.message || 'Erro ao cancelar pedido');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Erro ao cancelar pedido');
+    }
   };
 
   const getRankingStyle = (ranking: number) => {
@@ -581,42 +583,56 @@ export default function MyOrdersHomeScreen() {
 
                 
                 <View style={styles.orderActionsContainer}>
-                  <TouchableOpacity
-                    style={[
-                      styles.editOrderButton,
-                      (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonDisabled
-                    ]}
-                    onPress={() => {
-                      if (selectedOrder.proposals && selectedOrder.proposals.length > 0) {
-                        showError('Não é possível editar pedidos que já receberam propostas');
-                        return;
-                      }
-                      setShowDetails(false);
-                      navigation.navigate('CreateOrder', {
-                        editMode: true,
-                        orderId: selectedOrder.id,
-                        orderData: selectedOrder
-                      });
-                    }}
-                  >
-                    <Icon
-                      name="edit"
-                      size={20}
-                      color={(selectedOrder.proposals && selectedOrder.proposals.length > 0) ? "#9ca3af" : "#4f46e5"}
-                    />
-                    <Text style={[
-                      styles.editOrderButtonText,
-                      (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonTextDisabled
-                    ]}>Editar</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteOrderButton}
-                    onPress={() => handleDeleteOrder(selectedOrder.id)}
-                  >
-                    <Icon name="delete" size={20} color="#ef4444" />
-                    <Text style={styles.deleteOrderButtonText}>Excluir</Text>
-                  </TouchableOpacity>
+                  {(selectedOrder.status!=='Cancelado'&&selectedOrder.status!=='Concluído')&&(
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.editOrderButton,
+                          (selectedOrder.proposals && selectedOrder.proposals.length > 0) && styles.editOrderButtonDisabled
+                        ]}
+                        accessibilityLabel="Editar pedido"
+                        onPress={() => {
+                          if (selectedOrder.proposals && selectedOrder.proposals.length > 0) {
+                            showError('Não é possível editar pedidos que já receberam propostas');
+                            return;
+                          }
+                          setShowDetails(false);
+                          navigation.navigate('CreateOrder', {
+                            editMode: true,
+                            orderId: selectedOrder.id,
+                            orderData: selectedOrder
+                          });
+                        }}
+                      >
+                        <Icon name="edit" size={18} color={(selectedOrder.proposals && selectedOrder.proposals.length > 0) ? "#9ca3af" : "#4f46e5"} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.deleteOrderButton}
+                        accessibilityLabel="Cancelar pedido"
+                        onPress={() => {
+                          Alert.alert(
+                            'Cancelar pedido',
+                            'Tem certeza que deseja cancelar este pedido? Essa ação não poderá ser desfeita.',
+                            [
+                              { text: 'Voltar', style: 'cancel' },
+                              { text: 'Sim, cancelar', style: 'destructive', onPress: () => handleCancelOrder(selectedOrder.id) },
+                            ]
+                          );
+                        }}
+                      >
+                        <Icon name="cancel" size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  {(selectedOrder.status==='Cancelado'||selectedOrder.status==='Concluído')&&(
+                    <TouchableOpacity
+                      style={styles.recreateOrderButton}
+                      accessibilityLabel="Recriar pedido"
+                      onPress={() => handleRecreateOrder(selectedOrder)}
+                    >
+                      <Icon name="autorenew" size={18} color="#2563eb" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
 
@@ -1302,7 +1318,7 @@ const styles = StyleSheet.create({
   },
   orderActionsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
@@ -1310,14 +1326,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   editOrderButton: {
-    flex: 1,
+    width: 56,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#e0e7ff',
-    padding: 12,
+    padding: 0,
     borderRadius: 8,
-    gap: 8,
   },
   editOrderButtonDisabled: {
     backgroundColor: '#f3f4f6',
@@ -1339,14 +1355,24 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   deleteOrderButton: {
-    flex: 1,
+    width: 56,
+    height: 44,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fee2e2',
-    padding: 12,
+    padding: 0,
     borderRadius: 8,
-    gap: 8,
+  },
+  recreateOrderButton:{
+    width:56,
+    height:44,
+    flexDirection:'row',
+    alignItems:'center',
+    justifyContent:'center',
+    backgroundColor:'#dbeafe',
+    padding:0,
+    borderRadius:8,
   },
   deleteOrderButtonText: {
     color: '#ef4444',
