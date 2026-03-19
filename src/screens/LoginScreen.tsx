@@ -67,13 +67,12 @@ export default function LoginScreen() {
     try {
       await login(email, senha);
     } catch (error: any) {
-      let errorMessage = 'Email ou senha inválidos';
-
-      if (error.message) {
-        errorMessage = error.message;
+      if (error.requiresActivation) {
+        navigation.navigate('EmailVerification', { email: error.email || email });
+        return;
       }
 
-      showError(errorMessage);
+      showError(error.message || 'Email ou senha inválidos');
     }
   };
 

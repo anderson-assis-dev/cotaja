@@ -287,6 +287,16 @@ export const authService = {
     return response.data;
   },
 
+  async resendActivation(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await api.post('/auth/resend-activation', { email });
+    return response.data;
+  },
+
+  async verifyActivation(email: string, token: string): Promise<AuthResponse> {
+    const response = await api.post('/auth/verify-activation', { email, token });
+    return response.data;
+  },
+
 };
 
 export const orderService = {

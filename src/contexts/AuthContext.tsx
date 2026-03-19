@@ -20,6 +20,7 @@ interface AuthContextType {
   isBiometricAvailable: () => Promise<boolean>;
   hasBiometricCredentials: () => Promise<boolean>;
   deleteAccount: () => Promise<boolean>;
+  activateAccount: (email: string, code: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -220,6 +221,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true;
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
+
+      if (error.response?.data?.requiresActivation) {
+        const activationError: any = new Error(error.response.data.message);
+        activationError.requiresActivation = true;
+        activationError.email = error.response.data.email;
+        throw activationError;
+      }
 
       let errorMessage = 'Erro ao fazer login';
 
@@ -497,6 +505,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const activateAccount = async (email: string, code: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const response = await authService.verifyActivation(email, code);
+
+      setUser(response.data.user);
+      setToken(response.data.token);
+      await AsyncStorage.setItem('auth_token', response.data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+
+      if (!pushNotificationService.isServiceInitialized()) {
+        await pushNotificationService.initialize();
+      }
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Código inválido.';
+      throw new Error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const isBiometricAvailable = async (): Promise<boolean> => {
     return await biometricService.isBiometricSupported();
   };
@@ -527,6 +558,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isBiometricAvailable,
     hasBiometricCredentials,
     deleteAccount,
+    activateAccount,
   };
 
   return (

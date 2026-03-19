@@ -17,6 +17,7 @@ import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ProfileSelectionScreen from '../screens/auth/ProfileSelectionScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
+import EmailVerificationScreen from '../screens/auth/EmailVerificationScreen';
 
 import ClientHomeScreen from '../screens/client/HomeScreen';
 import CreateOrderScreen from '../screens/client/CreateOrderScreen';
@@ -467,6 +468,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
           </>
         )}
         {!user && onboardingCompleted && (
@@ -478,6 +480,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
           </>
         )}
         {user && !user.profile_type && (
