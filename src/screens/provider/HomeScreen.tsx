@@ -115,19 +115,35 @@ export default function ProviderHomeScreen() {
       </View>
 
       <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.visibilityCard}
-          onPress={() => navigation.navigate('ProviderVisibility')}
-        >
-          <View style={styles.visibilityLeft}>
-            <Icon name="visibility" size={22} color="#4f46e5" />
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
-              <Text style={styles.visibilitySubtitle}>Veja quantas vezes suas propostas foram visualizadas</Text>
+        {user?.is_premium ? (
+          <TouchableOpacity
+            style={styles.visibilityCard}
+            onPress={() => navigation.navigate('ProviderVisibility')}
+          >
+            <View style={styles.visibilityLeft}>
+              <Icon name="visibility" size={22} color="#4f46e5" />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
+                <Text style={styles.visibilitySubtitle}>Veja quantas vezes suas propostas foram visualizadas</Text>
+              </View>
             </View>
-          </View>
-          <Icon name="chevron-right" size={22} color="#9ca3af" />
-        </TouchableOpacity>
+            <Icon name="chevron-right" size={22} color="#9ca3af" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.visibilityCard, { borderColor: '#e0e7ff', backgroundColor: '#f5f3ff' }]}
+            onPress={() => navigation.navigate('Premium' as never)}
+          >
+            <View style={styles.visibilityLeft}>
+              <Icon name="lock" size={22} color="#4f46e5" />
+              <View style={{ marginLeft: 12 }}>
+                <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
+                <Text style={styles.visibilitySubtitle}>Recurso exclusivo Premium — toque para assinar</Text>
+              </View>
+            </View>
+            <Icon name="chevron-right" size={22} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
 
         <Text style={styles.sectionTitle}>Serviços</Text>
         <View style={styles.servicesGrid}>

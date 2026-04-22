@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, CreditCard, Trash2, Plus, RefreshCw, Wallet, Megaphone, Calendar, Clock, Target, Globe, Zap, X, ChevronRight, Ban, Link, FileText, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, CreditCard, Trash2, Plus, RefreshCw, Wallet, Megaphone, Calendar, Clock, Target, Globe, Zap, X, ChevronRight, Ban, Link, FileText, CheckCircle, Crown } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useStripe, CardField } from '@stripe/stripe-react-native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -410,10 +410,33 @@ export default function WalletScreen() {
                 </Text>
                 <Text style={styles.balanceNote}>
                   {user?.profile_type === 'provider'
-                    ? 'Prestadores terão mensalidade após o período trial.'
+                    ? 'Gerencie seus cartões e assinatura premium.'
                     : 'Use seus créditos para impulsionar pedidos.'}
                 </Text>
               </View>
+
+              {user?.profile_type === 'provider' && (
+                <TouchableOpacity
+                  style={[styles.premiumBanner, user?.is_premium ? styles.premiumBannerActive : null]}
+                  onPress={() => navigation.navigate('Premium')}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.premiumBannerIcon}>
+                    <Crown size={22} color={user?.is_premium ? '#f59e0b' : '#4f46e5'} />
+                  </View>
+                  <View style={styles.premiumBannerInfo}>
+                    <Text style={styles.premiumBannerTitle}>
+                      {user?.is_premium ? '✦ Plano Premium ativo' : 'Seja Premium'}
+                    </Text>
+                    <Text style={styles.premiumBannerSub}>
+                      {user?.is_premium
+                        ? 'Propostas ilimitadas, acesso antecipado e mais'
+                        : 'R$ 9,90/mês — propostas ilimitadas e prioridade no feed'}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
 
               <Text style={styles.sectionTitle}>Seus cartões</Text>
               {wallet.payment_methods.length === 0 ? (
@@ -967,6 +990,18 @@ const styles = StyleSheet.create({
   balanceLabel: { fontSize: 13, color: '#6b7280', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
   balanceValue: { fontSize: 32, fontWeight: '700', color: '#111827', marginTop: 4, marginBottom: 8 },
   balanceNote: { fontSize: 13, color: '#6b7280', textAlign: 'center', lineHeight: 18 },
+  premiumBanner: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f3ff',
+    borderRadius: 14, padding: 14, marginBottom: 20, borderWidth: 1.5, borderColor: '#c7d2fe',
+  },
+  premiumBannerActive: { backgroundColor: '#fffbeb', borderColor: '#fcd34d' },
+  premiumBannerIcon: {
+    width: 40, height: 40, borderRadius: 10, backgroundColor: '#fff',
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  premiumBannerInfo: { flex: 1 },
+  premiumBannerTitle: { fontSize: 14, fontWeight: '700', color: '#1f2937', marginBottom: 2 },
+  premiumBannerSub: { fontSize: 12, color: '#6b7280', lineHeight: 16 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 12 },
   emptyCard: {
     backgroundColor: '#fff',

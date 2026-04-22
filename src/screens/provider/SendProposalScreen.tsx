@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -260,7 +260,18 @@ export default function SendProposalScreen() {
 
       let errorMessage = 'Erro ao enviar proposta';
 
-      if (error.response?.data?.message === 'Você já enviou uma proposta para este pedido') {
+      if (error.response?.data?.upgrade_required) {
+        Alert.alert(
+          'Limite atingido',
+          'Você atingiu o limite de 10 propostas por mês do plano gratuito.\n\nAssine o Premium para enviar propostas ilimitadas.',
+          [
+            { text: 'Agora não', style: 'cancel' },
+            { text: 'Ver Premium', onPress: () => navigation.navigate('Premium' as never) },
+          ]
+        );
+        setLoading(false);
+        return;
+      } else if (error.response?.data?.message === 'Você já enviou uma proposta para este pedido') {
         errorMessage = 'Você já possui uma proposta para este pedido. Atualizando...';
         showError(errorMessage);
         await refreshDemandData();

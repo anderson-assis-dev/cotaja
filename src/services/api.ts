@@ -97,6 +97,11 @@ export interface User {
   activate?: number;
   mother_name?: string;
   birth_date?: string;
+  is_premium?: number;
+  is_verified?: number;
+  premium_since?: string | null;
+  premium_until?: string | null;
+  stripe_subscription_id?: string | null;
 }
 
 export interface AuthResponse {
@@ -974,6 +979,35 @@ export const adService = {
 
   async cancelAd(id: number): Promise<any> {
     const response = await api.post(`/ads/${id}/cancel`);
+    return response.data;
+  },
+};
+
+export interface SubscriptionStatus {
+  is_premium: boolean;
+  is_verified: boolean;
+  premium_since: string | null;
+  premium_until: string | null;
+  subscription: {
+    status: string;
+    cancel_at_period_end: boolean;
+    current_period_end: string;
+  } | null;
+}
+
+export const subscriptionService = {
+  async getStatus(): Promise<{ success: boolean; data: SubscriptionStatus }> {
+    const response = await api.get('/subscriptions/status');
+    return response.data;
+  },
+
+  async subscribe(paymentMethodId: string): Promise<{ success: boolean; message: string; data?: { subscription_id: string; premium_until: string }; requires_action?: boolean; payment_intent_client_secret?: string }> {
+    const response = await api.post('/subscriptions/subscribe', { payment_method_id: paymentMethodId });
+    return response.data;
+  },
+
+  async cancel(): Promise<{ success: boolean; message: string; data?: { premium_until: string } }> {
+    const response = await api.post('/subscriptions/cancel');
     return response.data;
   },
 };

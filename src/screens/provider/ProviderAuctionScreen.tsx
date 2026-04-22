@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Tex
 import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Trophy, Target, Hourglass } from 'lucide-react-native';
+import { Target, Crown, Zap } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { orderService, Order as ApiOrder, Proposal as ApiProposal } from '../../services/api';
@@ -628,6 +628,27 @@ export default function AuctionScreen() {
           </View>
         </View>
 
+        {user?.is_premium ? (
+          <View style={styles.earlyAccessBanner}>
+            <Crown size={16} color="#f59e0b" />
+            <Text style={styles.earlyAccessText}>
+              Você tem acesso antecipado de 30 min às novas demandas
+            </Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.earlyAccessLocked}
+            onPress={() => navigation.navigate('Premium' as never)}
+            activeOpacity={0.85}
+          >
+            <Zap size={16} color="#9ca3af" />
+            <Text style={styles.earlyAccessLockedText}>
+              Premium: veja demandas 30 min antes de todos
+            </Text>
+            <Icon name="chevron-right" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        )}
+
         {filteredAuctions.map((auction) => (
           <TouchableOpacity
             key={auction.id}
@@ -1150,5 +1171,38 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontWeight: '600',
     fontSize: 15,
+  },
+  earlyAccessBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fffbeb',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  earlyAccessText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#92400e',
+  },
+  earlyAccessLocked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f9fafb',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  earlyAccessLockedText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6b7280',
   },
 });

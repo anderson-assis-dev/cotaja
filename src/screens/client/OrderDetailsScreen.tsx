@@ -892,6 +892,18 @@ export default function OrderDetailsScreen() {
                                   </TouchableOpacity>
                                   <View>
                                     <Text style={styles.providerName}>{proposal.provider.name}</Text>
+                                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 3 }}>
+                                      {proposal.provider?.is_premium ? (
+                                        <View style={styles.premiumBadge}>
+                                          <Text style={styles.premiumBadgeText}>⭐ Premium</Text>
+                                        </View>
+                                      ) : null}
+                                      {proposal.provider?.is_verified ? (
+                                        <View style={styles.verifiedBadge}>
+                                          <Text style={styles.verifiedBadgeText}>✓ Verificado</Text>
+                                        </View>
+                                      ) : null}
+                                    </View>
                                   </View>
                                 </View>
                               </View>
@@ -1644,6 +1656,28 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontWeight: '600',
+  },
+  premiumBadge: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  premiumBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400e',
+  },
+  verifiedBadge: {
+    backgroundColor: '#d1fae5',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  verifiedBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#065f46',
   },
   providerRating: {
     flexDirection: 'row',

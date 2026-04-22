@@ -42,6 +42,7 @@ import ProviderSearchScreen from '../screens/provider/SearchScreen';
 
 import ProfileScreen from '../screens/management/ProfileScreen';
 import WalletScreen from '../screens/management/WalletScreen';
+import PremiumScreen from '../screens/management/PremiumScreen';
 import TermsOfUseScreen from '../screens/management/TermsOfUseScreen';
 import PrivacyPolicyScreen from '../screens/management/PrivacyPolicyScreen';
 import MyDataScreen from '../screens/management/MyDataScreen';
@@ -503,6 +504,9 @@ export default function AppNavigator() {
         )}
         {user && user.profile_type === 'provider' && (
           <Stack.Screen name="Wallet" component={WalletScreen} options={{ headerShown: false }} />
+        )}
+        {user && user.profile_type === 'provider' && (
+          <Stack.Screen name="Premium" component={PremiumScreen} options={{ headerShown: false }} />
         )}
         {user && user.profile_type === 'provider' && (
           <Stack.Screen name="MyData" component={MyDataScreen} options={{ headerShown: false }} />
