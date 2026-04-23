@@ -38,7 +38,7 @@ const services = [
     title: 'Enviar Proposta',
     description: 'Proponha seus serviços',
     iconName: 'send',
-    screen: 'SendProposal',
+    screen: 'SearchTab',
   },
 ];
 
