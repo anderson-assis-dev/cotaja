@@ -123,8 +123,8 @@ export default function ProviderHomeScreen() {
             <View style={styles.visibilityLeft}>
               <Icon name="visibility" size={22} color="#4f46e5" />
               <View style={{ marginLeft: 12 }}>
-                <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
-                <Text style={styles.visibilitySubtitle}>Veja quantas vezes suas propostas foram visualizadas</Text>
+                <Text style={styles.visibilityTitle}>Painel Profissional</Text>
+                <Text style={styles.visibilitySubtitle}>Veja seu desempenho e atraia mais clientes</Text>
               </View>
             </View>
             <Icon name="chevron-right" size={22} color="#9ca3af" />
@@ -137,7 +137,7 @@ export default function ProviderHomeScreen() {
             <View style={styles.visibilityLeft}>
               <Icon name="lock" size={22} color="#4f46e5" />
               <View style={{ marginLeft: 12 }}>
-                <Text style={styles.visibilityTitle}>Minha Visibilidade</Text>
+                <Text style={styles.visibilityTitle}>Painel Profissional</Text>
                 <Text style={styles.visibilitySubtitle}>Recurso exclusivo Premium — toque para assinar</Text>
               </View>
             </View>

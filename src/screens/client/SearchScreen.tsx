@@ -194,6 +194,7 @@ export default function SearchScreen() {
 
   const handleCompanyPress = (company: Company) => {
     setSelectedCompany(company);
+    providerService.recordProfileView(Number(company.id)).catch(() => {});
   };
 
   const handleCloseModal = () => {

@@ -681,20 +681,57 @@ export const proposalService = {
     return response.data;
   },
 
-  async getVisibility(): Promise<{ success: boolean; data: {
-    total_views: number;
-    views_this_week: number;
-    proposals_with_views: number;
-    total_proposals: number;
-    total_pending: number;
-    total_accepted: number;
-    conversion_rate: number;
-    available_orders: number;
-  } }> {
+  async getVisibility(): Promise<{ success: boolean; data: VisibilityData }> {
     const response = await api.get('/proposals/visibility');
     return response.data;
   },
 };
+
+export interface ProfileViewer {
+  id: number;
+  viewer_id: number;
+  name: string;
+  avatar_base64: string | null;
+  viewed_at: string;
+  opened_quote: boolean;
+  order_id: number | null;
+}
+
+export interface CategoryBreakdown {
+  category: string;
+  total: number;
+  accepted: number;
+  rate: number;
+}
+
+export interface MonthlyHistory {
+  month: string; // "YYYY-MM"
+  total: number;
+  accepted: number;
+}
+
+export interface VisibilityData {
+  total_views: number;
+  views_this_week: number;
+  proposals_with_views: number;
+  total_proposals: number;
+  total_pending: number;
+  total_accepted: number;
+  conversion_rate: number;
+  is_premium: boolean;
+  profile_views_today: number;
+  no_quote_today: number;
+  profile_viewers: ProfileViewer[];
+  // All users
+  category_breakdown: CategoryBreakdown[];
+  avg_response_hours: number | null;
+  // Premium-only
+  proposals_this_month?: number;
+  avg_rank_position?: number | null;
+  views_last_30d?: number;
+  view_trend_pct?: number | null;
+  monthly_history?: MonthlyHistory[];
+}
 
 export const serviceService = {
   async getServices(params?: { status?: string; category?: string }): Promise<{ success: boolean; data: { data: Service[]; current_page: number; total: number } }> {
@@ -829,11 +866,14 @@ export const ratingService = {
   },
 };
 
-export const providerService={
-  async requestQuote(providerId:string):Promise<{success:boolean;message:string;data:any}>{
-    const response=await api.post(`/providers/${providerId}/request-quote`);
+export const providerService = {
+  async requestQuote(providerId: string): Promise<{ success: boolean; message: string; data: any }> {
+    const response = await api.post(`/providers/${providerId}/request-quote`);
     return response.data;
-  }
+  },
+  async recordProfileView(providerId: number): Promise<void> {
+    await api.post(`/providers/${providerId}/view`);
+  },
 };
 
 export interface GeocodedAddress {
