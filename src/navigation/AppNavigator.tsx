@@ -51,6 +51,34 @@ import SecurityScreen from '../screens/management/SecurityScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+const linking = {
+  prefixes: ['cotaja://'],
+  config: {
+    screens: {
+      Client: {
+        screens: {
+          Home: {
+            screens: {
+              CreateOrder: 'new-order',
+            },
+          },
+          MyOrdersTab: {
+            screens: {
+              OrderDetails: { path: 'order/:order_id', parse: { order_id: Number } },
+              RateProvider:  { path: 'rate/:order_id',  parse: { order_id: Number } },
+            },
+          },
+        },
+      },
+      Provider: {
+        screens: {
+          ProfileTab: 'profile',
+        },
+      },
+    },
+  },
+};
+
 const ClientHomeStack = createNativeStackNavigator();
 function ClientHomeStackNavigator({ route }: any) {
   const clientInfo = route?.params?.clientInfo || {};
@@ -448,7 +476,7 @@ export default function AppNavigator() {
         backgroundColor={isDarkStatus ? "#f3f4f6" : "#4f46e5"}
         translucent={false}
       />
-      <NavigationContainer ref={navigationRef} onStateChange={onNavigationStateChange}>
+      <NavigationContainer ref={navigationRef} linking={linking} onStateChange={onNavigationStateChange}>
         <Stack.Navigator
         initialRouteName={
           !onboardingCompleted ? 'Onboarding'
