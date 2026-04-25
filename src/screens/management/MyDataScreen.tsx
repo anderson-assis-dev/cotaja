@@ -120,7 +120,17 @@ export default function MyDataScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate(user?.profile_type === 'provider' ? 'Provider' : 'Client');
+              }
+            }}
+            activeOpacity={0.8}
+          >
             <ArrowLeft size={22} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Meus Dados</Text>

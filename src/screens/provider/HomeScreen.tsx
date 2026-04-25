@@ -89,6 +89,15 @@ export default function ProviderHomeScreen() {
     }
   };
 
+  const getSubtitle = () => {
+    const hour = new Date().getHours();
+  
+    if (hour >= 5 && hour < 12) return 'Bom dia! Novos pedidos esperando você ☀️';
+    if (hour >= 12 && hour < 18) return 'Boa tarde! Confira as cotações abertas 💼';
+    if (hour >= 18 && hour < 23) return 'Boa noite! Planeje seus serviços de amanhã 🌙';
+    return 'Há oportunidades esperando por você 🔥';
+  };
+
   return (
     <View style={styles.container}>
 
@@ -110,7 +119,7 @@ export default function ProviderHomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.welcomeText}>Olá, {(user?.name || 'Usuário').split(' ')[0]}!</Text>
         <Text style={styles.subtitleText}>
-          Como vai seu trabalho hoje?
+          {getSubtitle()}
         </Text>
       </View>
 

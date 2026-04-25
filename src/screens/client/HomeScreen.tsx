@@ -103,6 +103,14 @@ export default function HomeScreen() {
       setRefreshing(false);
     }
   };
+  const getSubtitle = () => {
+    const hour = new Date().getHours();
+  
+    if (hour >= 5 && hour < 12) return 'Bom dia! Precisa de algum profissional?';
+    if (hour >= 12 && hour < 18) return 'Boa tarde! Encontre o profissional certo';
+    if (hour >= 18 && hour < 23) return 'Boa noite! Resolva o que ficou pendente';
+    return 'Profissionais disponíveis agora para você';
+  };
 
   return (
     <View style={styles.container}>
@@ -125,7 +133,7 @@ export default function HomeScreen() {
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <Text style={styles.welcomeText}>Olá, {(user?.name || 'Usuário').split(' ')[0]}!</Text>
           <Text style={styles.subtitleText}>
-            Como podemos ajudar você hoje?
+            {getSubtitle()}
           </Text>
         </View>
 
