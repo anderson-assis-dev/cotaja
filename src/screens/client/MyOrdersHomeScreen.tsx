@@ -189,6 +189,7 @@ export default function MyOrdersHomeScreen() {
   const [fileViewerUrl, setFileViewerUrl] = useState('');
   const [fileViewerTitle, setFileViewerTitle] = useState('');
   const [fileViewerMime, setFileViewerMime] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
 
   const handleRecreateOrder = (order: Order) => {
     setShowDetails(false);
@@ -269,6 +270,16 @@ export default function MyOrdersHomeScreen() {
     }, [user?.id, fromLeiloes, selectedCategory])
   );
 
+  const STATUS_FILTERS = ['Todos', 'Aguardando', 'Em andamento', 'Concluído', 'Cancelado'];
+
+  const STATUS_FILTER_MAP: Record<string, string> = {
+    'Aguardando': 'Aguardando propostas',
+    'Em andamento': 'Em andamento',
+    'Concluído': 'Concluído',
+    'Cancelado': 'Cancelado',
+    'Pausado': 'Pausado',
+  };
+
   let filteredOrders = profileType === 'client'
     ? orders.filter(o => o.clientId === clientId)
     : orders;
@@ -276,6 +287,12 @@ export default function MyOrdersHomeScreen() {
   filteredOrders = filteredOrders.filter(
     (order) => !closedOrders.includes(order.id)
   );
+
+  if (statusFilter !== 'Todos') {
+    filteredOrders = filteredOrders.filter(
+      (order) => order.status === STATUS_FILTER_MAP[statusFilter]
+    );
+  }
 
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
@@ -382,7 +399,6 @@ export default function MyOrdersHomeScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerBackground} />
         <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>{getPageTitle()}</Text>
           <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
@@ -419,7 +435,6 @@ export default function MyOrdersHomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
@@ -430,17 +445,29 @@ export default function MyOrdersHomeScreen() {
           <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
         </View>
 
+        {/* ── Filter chips ── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterRow}
+          contentContainerStyle={styles.filterRowContent}
+        >
+          {STATUS_FILTERS.map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.filterChip, statusFilter === f && styles.filterChipActive]}
+              onPress={() => setStatusFilter(f)}
+            >
+              <Text style={[styles.filterChipText, statusFilter === f && styles.filterChipTextActive]}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         <View style={styles.content}>
           {filteredOrders.map((order) => (
             <TouchableOpacity
               key={order.id}
-              style={[styles.orderCard, {
-                borderLeftColor:
-                  order.status === 'Em andamento' ? '#059669' :
-                  order.status === 'Concluído' ? '#22c55e' :
-                  order.status === 'Cancelado' ? '#ef4444' :
-                  order.status === 'Pausado' ? '#f59e0b' : '#4f46e5'
-              }]}
+              style={styles.orderCard}
               onPress={() => handleOrderPress(order)}
             >
               <View style={styles.orderHeader}>
@@ -526,8 +553,7 @@ export default function MyOrdersHomeScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#4f46e5"
-        forceLight
+        backgroundColor="#fff"
       />
 
       
@@ -956,46 +982,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: '#4f46e5',
-  },
   scrollView: {
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
     paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   backArrow: {
     marginBottom: 12,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '800',
+    color: '#111827',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6b7280',
     fontSize: 14,
+  },
+  filterRow: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  filterRowContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  filterChipActive: {
+    backgroundColor: '#eef2ff',
+    borderColor: '#4f46e5',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  filterChipTextActive: {
+    color: '#4f46e5',
   },
   content: {
     backgroundColor: '#f3f4f6',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
+    padding: 16,
     paddingBottom: 32,
     minHeight: 500,
   },
@@ -1044,12 +1093,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 2,
     marginBottom: 12,
-    borderLeftWidth: 4,
   },
   orderHeader: {
     flexDirection: 'column',

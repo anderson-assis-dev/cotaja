@@ -456,15 +456,6 @@ export default function OrderDetailsScreen() {
     }
   };
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'Em andamento': return styles.statusInProgress;
-      case 'Concluído': return styles.statusCompleted;
-      case 'Cancelado': return styles.statusCancelled;
-      case 'Pausado': return styles.statusStopped;
-      default: return styles.statusDefault;
-    }
-  };
 
   const getPageTitle = () => {
     if (fromLeiloes) {
@@ -483,7 +474,6 @@ export default function OrderDetailsScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerBackground} />
         <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>{getPageTitle()}</Text>
           <Text style={styles.headerSubtitle}>{getPageSubtitle()}</Text>
@@ -533,7 +523,6 @@ export default function OrderDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
@@ -578,80 +567,81 @@ export default function OrderDetailsScreen() {
 
         <View style={styles.content}>
 
-          {filteredOrders.map((order) => (
-            <TouchableOpacity
-              key={order.id}
-              style={[styles.orderCard, {
-                borderLeftColor:
-                  order.status === 'Em andamento' ? '#059669' :
-                  order.status === 'Concluído' ? '#22c55e' :
-                  order.status === 'Cancelado' ? '#ef4444' :
-                  order.status === 'Pausado' ? '#f59e0b' : '#4f46e5'
-              }]}
-              onPress={() => handleOrderPress(order)}
-            >
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderTitle}>{order.title}</Text>
-                <View style={styles.statusContainer}>
-                  {order.hasActiveAuction && (
-                    <View style={styles.auctionIcon}>
-                      <Icon name="gavel" size={16} color="#f97316" />
+          {filteredOrders.map((order) => {
+            const statusColor =
+              order.status === 'Em andamento' ? '#059669' :
+              order.status === 'Concluído' ? '#22c55e' :
+              order.status === 'Cancelado' ? '#ef4444' :
+              order.status === 'Pausado' ? '#f59e0b' : '#4f46e5';
+            const statusBg =
+              order.status === 'Em andamento' ? '#d1fae5' :
+              order.status === 'Concluído' ? '#dcfce7' :
+              order.status === 'Cancelado' ? '#fee2e2' :
+              order.status === 'Pausado' ? '#fef3c7' : '#eef2ff';
+            return (
+              <TouchableOpacity
+                key={order.id}
+                style={styles.orderCard}
+                onPress={() => handleOrderPress(order)}
+                activeOpacity={0.85}
+              >
+                {/* Status strip top */}
+                <View style={[styles.orderCardStrip, { backgroundColor: statusColor }]} />
+
+                <View style={styles.orderCardBody}>
+                  {/* Row 1: title + badges */}
+                  <View style={styles.orderCardTitleRow}>
+                    <Text style={styles.orderTitle} numberOfLines={1}>{order.title}</Text>
+                    <View style={[styles.statusPill, { backgroundColor: statusBg }]}>
+                      {order.hasActiveAuction && <Icon name="gavel" size={12} color="#f97316" style={{ marginRight: 2 }} />}
+                      {order.isNewDemand && <Icon name="new-releases" size={12} color="#22c55e" style={{ marginRight: 2 }} />}
+                      <Text style={[styles.statusPillText, { color: statusColor }]}>{order.status}</Text>
                     </View>
-                  )}
-                  {order.isNewDemand && (
-                    <View style={styles.newDemandIcon}>
-                      <Icon name="new-releases" size={16} color="#22c55e" />
-                    </View>
-                  )}
-                  <View style={getStatusStyle(order.status)}>
-                    <Text style={styles.statusText}>{order.status}</Text>
                   </View>
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{order.category}</Text>
+
+                  {/* Row 2: category chip + budget */}
+                  <View style={styles.orderCardMeta}>
+                    <View style={styles.categoryChip}>
+                      <Text style={styles.categoryChipText}>{order.category}</Text>
+                    </View>
+                    <Text style={styles.budgetChip}>{order.budget || 'Orçamento não informado'}</Text>
+                  </View>
+
+                  {/* Row 3: location */}
+                  <View style={styles.locationRow}>
+                    <Icon name="location-on" size={14} color="#9ca3af" />
+                    <Text style={styles.locationText} numberOfLines={1}>{order.location}</Text>
+                  </View>
+
+                  {/* Row 4: proposals banner */}
+                  <View style={[styles.proposalBanner, order.proposals.length > 0 ? styles.proposalBannerActive : styles.proposalBannerWaiting]}>
+                    <Icon
+                      name={order.proposals.length > 0 ? 'description' : 'hourglass-empty'}
+                      size={14}
+                      color={order.proposals.length > 0 ? '#1e40af' : '#92400e'}
+                    />
+                    <Text style={[styles.proposalBannerText, { color: order.proposals.length > 0 ? '#1e40af' : '#92400e' }]}>
+                      {order.proposals.length > 0
+                        ? `${order.proposals.length} ${order.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}`
+                        : 'Aguardando propostas…'}
+                    </Text>
+                  </View>
+
+                  {/* Row 5: footer */}
+                  <View style={styles.orderFooter}>
+                    <View style={styles.deadlineChip}>
+                      <Icon name="schedule" size={13} color="#6b7280" />
+                      <Text style={styles.deadlineText}>Prazo: {order.deadline || '—'}</Text>
+                    </View>
+                    <View style={styles.viewDetailsContainer}>
+                      <Text style={styles.viewDetailsText}>Ver detalhes</Text>
+                      <Icon name="chevron-right" size={18} color="#4f46e5" />
+                    </View>
                   </View>
                 </View>
-              </View>
-
-              <View style={styles.categoryRow}>
-                <Text style={styles.budgetText}>Orçamento: {order.budget || 'Não informado'}</Text>
-              </View>
-
-              <View style={styles.locationRow}>
-                <Icon name="location-on" size={16} color="#6b7280" />
-                <Text style={styles.locationText}>{order.location}</Text>
-              </View>
-
-              <View style={styles.proposalStatusContainer}>
-                {order.proposals.length > 0 ? (
-                  <>
-                    <Text style={styles.proposalStatusTitle}>
-                      {order.proposals.length} {order.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
-                    </Text>
-                    <Text style={styles.proposalStatusDescription}>
-                      Clique para ver detalhes e gerenciar propostas
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.waitingTitle}>
-                      <Hourglass size={16} color="#92400e" /> Aguardando propostas...
-                    </Text>
-                    <Text style={styles.waitingDescription}>
-                      Nenhuma proposta ainda. Seu pedido está sendo divulgado.
-                    </Text>
-                  </>
-                )}
-              </View>
-
-              <View style={styles.orderFooter}>
-                <Text style={styles.deadlineText}>Prazo: {order.deadline || 'Não informado'}</Text>
-                <View style={styles.viewDetailsContainer}>
-                  <Icon name="visibility" size={20} color="#4f46e5" />
-                  <Text style={styles.viewDetailsText}>Ver Detalhes</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+              </TouchableOpacity>
+            );
+          })}
 
           {filteredOrders.length === 0 && (
             <View style={styles.emptyState}>
@@ -678,8 +668,7 @@ export default function OrderDetailsScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#4f46e5"
-        forceLight
+        backgroundColor="#fff"
       />
 
 
@@ -1072,27 +1061,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
     paddingHorizontal: 24,
-    paddingBottom: 28,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   backArrow: {
     marginBottom: 12,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#111827',
     marginBottom: 4,
   },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#6b7280',
     fontSize: 14,
   },
   content: {
@@ -1146,14 +1137,88 @@ const styles = StyleSheet.create({
   orderCard: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 2,
     marginBottom: 12,
-    borderLeftWidth: 4,
+  },
+  orderCardStrip: {
+    height: 4,
+    width: '100%',
+  },
+  orderCardBody: {
+    padding: 16,
+  },
+  orderCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 8,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 3,
+    flexShrink: 0,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  orderCardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+    flexWrap: 'wrap',
+  },
+  categoryChip: {
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  categoryChipText: {
+    color: '#4f46e5',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  budgetChip: {
+    color: '#374151',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  proposalBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  proposalBannerActive: {
+    backgroundColor: '#eff6ff',
+  },
+  proposalBannerWaiting: {
+    backgroundColor: '#fffbeb',
+  },
+  proposalBannerText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  deadlineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   orderHeader: {
     flexDirection: 'column',
@@ -1162,11 +1227,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   orderTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
     flex: 1,
-    width: '100%',
-    marginBottom: 10,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -1246,11 +1310,14 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
+    gap: 2,
   },
   locationText: {
-    color: '#6b7280',
-    marginLeft: 4,
+    color: '#9ca3af',
+    fontSize: 12,
+    flex: 1,
+    marginLeft: 2,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -1289,22 +1356,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
   deadlineText: {
     color: '#6b7280',
+    fontSize: 12,
+    marginLeft: 3,
   },
   viewDetailsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
   },
   viewDetailsText: {
     color: '#4f46e5',
-    marginLeft: 4,
     fontWeight: '600',
+    fontSize: 13,
   },
   statusFilterBar: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   statusFilterBarContent: {
     paddingHorizontal: 16,

@@ -67,7 +67,6 @@ export default function SecurityScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scroll}
         onScroll={handleScroll}
@@ -78,7 +77,7 @@ export default function SecurityScreen() {
       >
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <ArrowLeft size={22} color="#fff" />
+            <ArrowLeft size={22} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Segurança</Text>
         </View>
@@ -222,8 +221,7 @@ export default function SecurityScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#4f46e5"
-        forceLight
+        backgroundColor="#fff"
       />
     </KeyboardAvoidingView>
   );
@@ -234,37 +232,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: '#4f46e5',
-  },
   scroll: {
     flex: 1,
   },
   header: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   backBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#111827',
   },
   content: {
     backgroundColor: '#f3f4f6',

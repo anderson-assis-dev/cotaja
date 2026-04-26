@@ -405,7 +405,6 @@ export default function MyServicesScreen() {
 
   return (
     <View style={styles.container}>
-    <View style={styles.headerBackground} />
     <ScrollView
       style={styles.scrollView}
       onScroll={handleScroll}
@@ -820,7 +819,7 @@ export default function MyServicesScreen() {
     </Modal>
 
 
-    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
     </View>
   );
 }
@@ -832,14 +831,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: '#4f46e5',
-  },
   scrollView: {
     flex: 1,
   },
@@ -848,17 +839,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingBottom: 28,
-    backgroundColor: '#4f46e5',
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#111827',
   },
   subtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: '#6b7280',
     marginTop: 2,
   },
   addButton: {

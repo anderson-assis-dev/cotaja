@@ -57,9 +57,8 @@ const CompanyCard = ({ company, onPress }: { company: Company, onPress: () => vo
       </View>
     </View>
     <View style={styles.companyCardFooter}>
-      <Text style={styles.companyCardAction}>
-        <Icon name="visibility" size={14} color="#4f46e5" /> Ver Detalhes
-      </Text>
+      <Text style={styles.companyCardAction}>Ver Detalhes</Text>
+      <Icon name="chevron-right" size={16} color="#4f46e5" />
     </View>
   </TouchableOpacity>
 );
@@ -307,28 +306,23 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <ScrollView style={styles.scrollView} keyboardShouldPersistTaps="handled" onScroll={handleScroll} scrollEventThrottle={16}>
-        <View style={[styles.headerSection, { paddingTop: insets.top + 16 }]}>
+        <View style={[styles.headerSection, { paddingTop: insets.top + 14 }]}>
           <Text style={styles.headerTitle}>Encontrar Empresas</Text>
           <Text style={styles.headerSubtitle}>Busque prestadores e serviços</Text>
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={20} color="#9ca3af" />
+            <TextInput placeholder="Buscar por nome ou categoria..." style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} placeholderTextColor="#9ca3af" />
+            {searchQuery !== '' && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="close" size={18} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <View style={styles.content}>
-          <View style={styles.searchContainer}>
-            <Icon name="search" size={24} color="#9ca3af" />
-            <TextInput placeholder="Buscar por nome ou categoria..." style={styles.searchInput} value={searchQuery} onChangeText={setSearchQuery} />
-          </View>
           <View style={styles.categoriesSection}>
             <Text style={styles.sectionTitle}>Categorias</Text>
-            <View style={styles.categorySearchRow}>
-              <Icon name="search" size={20} color="#9ca3af" />
-              <TextInput placeholder="Buscar categoria..." style={styles.categorySearchInput} value={categoryFilter} onChangeText={setCategoryFilter} />
-              {categoryFilter !== '' && (
-                <TouchableOpacity onPress={() => setCategoryFilter('')}>
-                  <Icon name="close" size={20} color="#9ca3af" />
-                </TouchableOpacity>
-              )}
-            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryBadgeScroll} contentContainerStyle={styles.categoryBadgeScrollContent}>
               {selectedCategory && (
                 <TouchableOpacity style={[styles.categoryBadge, styles.categoryBadgeSelected]} onPress={() => handleCategoryPress(selectedCategory)}>
@@ -649,7 +643,7 @@ export default function SearchScreen() {
         </View>
       </Modal>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#4f46e5" forceLight />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
     </View>
   );
 }
@@ -659,57 +653,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: '#4f46e5',
-  },
   scrollView: {
     flex: 1,
   },
   headerSection: {
-    backgroundColor: '#4f46e5',
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 2,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
+    color: '#6b7280',
+    fontSize: 13,
+    marginBottom: 14,
   },
   content: {
     backgroundColor: '#f3f4f6',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
+    padding: 16,
     paddingBottom: 32,
     minHeight: 500,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-    marginBottom: 24,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 18,
+    marginLeft: 10,
+    fontSize: 15,
+    color: '#111827',
   },
   loadingBox: {
     backgroundColor: 'white',
@@ -797,13 +783,11 @@ const styles = StyleSheet.create({
 
   companyCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4f46e5',
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 2,
     marginBottom: 12,
     overflow: 'hidden',
@@ -811,13 +795,13 @@ const styles = StyleSheet.create({
   companyCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    gap: 12,
+    padding: 16,
+    gap: 14,
   },
   companyAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     borderWidth: 2,
     borderColor: '#e0e7ff',
   },
@@ -886,8 +870,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
     paddingVertical: 10,
-    paddingHorizontal: 14,
-    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
   },
   companyCardAction: {
     fontSize: 13,

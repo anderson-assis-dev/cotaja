@@ -56,6 +56,7 @@ export default function CreateOrderScreen() {
   const orderId = params?.orderId;
   const orderData = params?.orderData;
   const prefillOrderData = params?.prefillOrderData;
+  const prefillCategory  = params?.prefillCategory;
   const hasProposals = orderData?.proposals && orderData.proposals.length > 0;
 
   const [title, setTitle] = useState('');
@@ -152,8 +153,10 @@ export default function CreateOrderScreen() {
       setZipCode(prefillOrderData.zip_code || '');
       if (prefillOrderData.latitude) setLatitude(prefillOrderData.latitude);
       if (prefillOrderData.longitude) setLongitude(prefillOrderData.longitude);
+    } else if (!editMode && prefillCategory) {
+      setCategory(prefillCategory);
     }
-  }, [editMode, orderData, orderId, prefillOrderData]);
+  }, [editMode, orderData, orderId, prefillOrderData, prefillCategory]);
 
   const getAttachmentCount = (fileType: AttachmentType) => {
     return attachments.filter(att => att.fileType === fileType).length;
@@ -616,9 +619,13 @@ export default function CreateOrderScreen() {
   };
 
   const insets = useSafeAreaInsets();
+
+  let screenTitle = 'Criar Pedido';
+  if (editMode) screenTitle = 'Editar Pedido';
+  else if (prefillOrderData) screenTitle = 'Recriar Pedido';
+
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground}/>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -630,12 +637,12 @@ export default function CreateOrderScreen() {
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.headerSection,{paddingTop:insets.top+16}]}>
+          <View style={[styles.headerSection,{paddingTop:insets.top+12}]}>
             <TouchableOpacity style={styles.backArrow} onPress={() => navigation.goBack()} accessibilityLabel="Voltar">
-              <Icon name="arrow-back" size={24} color="#ffffff"/>
+              <Icon name="arrow-back" size={22} color="#374151"/>
             </TouchableOpacity>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>{editMode?'Editar Pedido':prefillOrderData?'Recriar Pedido':'Criar Novo Pedido'}</Text>
+              <Text style={styles.headerTitle}>{screenTitle}</Text>
               <Text style={styles.headerSubtitle}>Preencha os detalhes do seu pedido</Text>
             </View>
           </View>
@@ -1035,7 +1042,7 @@ export default function CreateOrderScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#4f46e5"
+        backgroundColor="#fff"
         forceLight
       />
     </View>
@@ -1047,14 +1054,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground:{
-    position:'absolute',
-    top:0,
-    left:0,
-    right:0,
-    height:'50%',
-    backgroundColor:'#4f46e5',
-  },
   keyboardView: {
     flex: 1,
   },
@@ -1064,15 +1063,17 @@ const styles = StyleSheet.create({
   headerSection:{
     flexDirection:'row',
     alignItems:'center',
-    paddingHorizontal:24,
-    paddingBottom:18,
-    backgroundColor:'#4f46e5',
+    paddingHorizontal:20,
+    paddingBottom:16,
+    backgroundColor:'#fff',
+    borderBottomWidth:1,
+    borderBottomColor:'#f3f4f6',
   },
   backArrow:{
     width:40,
     height:40,
     borderRadius:20,
-    backgroundColor:'rgba(255,255,255,0.2)',
+    backgroundColor:'#f3f4f6',
     alignItems:'center',
     justifyContent:'center',
   },
@@ -1081,14 +1082,14 @@ const styles = StyleSheet.create({
     marginLeft:12,
   },
   headerTitle: {
-    fontSize:24,
+    fontSize:22,
     fontWeight:'bold',
-    color:'#ffffff',
+    color:'#111827',
   },
   headerSubtitle:{
-    color:'rgba(255,255,255,0.8)',
-    fontSize:14,
-    marginTop:4,
+    color:'#6b7280',
+    fontSize:13,
+    marginTop:2,
   },
   content:{
     backgroundColor:'#f3f4f6',

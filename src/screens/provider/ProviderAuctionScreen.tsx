@@ -478,13 +478,12 @@ export default function AuctionScreen() {
   if (loading && auctions.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerBackground} />
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <View style={styles.headerTop}>
-            <SkeletonBlock width={32} height={32} borderRadius={16} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
-            <SkeletonBlock width={220} height={22} style={{ backgroundColor: 'rgba(255,255,255,0.3)' }} />
+            <SkeletonBlock width={32} height={32} borderRadius={16} />
+            <SkeletonBlock width={220} height={22} />
           </View>
-          <SkeletonBlock width={180} height={14} style={{ marginTop: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} />
+          <SkeletonBlock width={180} height={14} style={{ marginTop: 8 }} />
         </View>
         <View style={styles.content}>
           <SkeletonBlock width="100%" height={100} borderRadius={12} style={{ marginBottom: 16 }} />
@@ -514,7 +513,6 @@ export default function AuctionScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
@@ -525,7 +523,7 @@ export default function AuctionScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButtonHeader} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={22} color="#ffffff" />
+            <Icon name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.title}>{getPageTitle()}</Text>
         </View>
@@ -535,95 +533,67 @@ export default function AuctionScreen() {
       <View style={styles.content}>
 
         <View style={styles.filtersCard}>
-          <Text style={styles.filtersTitle}>Filtros</Text>
-
-
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>CEP</Text>
-            <View style={styles.filterInputContainer}>
-              <Icon name="location-on" size={20} color="#6b7280" style={styles.iconWithMargin} />
-                <TextInput
-                  style={styles.filterInput}
-                  placeholder="Digite o CEP (ex: 40275-190)"
-                  value={cepFilter}
-                  onChangeText={(text) => setCepFilter(formatCep(text))}
-                  keyboardType="numeric"
-                  maxLength={9}
-                />
+          <View style={styles.filterField}>
+            <View style={styles.filterFieldIcon}>
+              <Icon name="location-on" size={18} color="#4f46e5" />
             </View>
-            <Text style={styles.filterHint}>
-              Busca demandas em um raio próximo ao CEP informado
-            </Text>
+            <View style={styles.filterFieldBody}>
+              <Text style={styles.filterFieldLabel}>CEP</Text>
+              <TextInput
+                style={styles.filterInput}
+                placeholder="Ex: 40275-190"
+                placeholderTextColor="#9ca3af"
+                value={cepFilter}
+                onChangeText={(text) => setCepFilter(formatCep(text))}
+                keyboardType="numeric"
+                maxLength={9}
+              />
+            </View>
           </View>
-
-
-          <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>Categoria</Text>
-            <View style={styles.categoryFilterContainer}>
-              <View style={styles.filterInputContainer}>
-                <Icon name="category" size={20} color="#6b7280" style={styles.iconWithMargin} />
+          <View style={styles.filterSep} />
+          <View style={styles.categoryFilterContainer}>
+            <View style={styles.filterField}>
+              <View style={styles.filterFieldIcon}>
+                <Icon name="category" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.filterFieldBody}>
+                <Text style={styles.filterFieldLabel}>Categoria</Text>
                 <TextInput
                   style={styles.filterInput}
-                  placeholder="Digite para buscar categoria..."
+                  placeholder="Ex: Limpeza, Elétrica..."
+                  placeholderTextColor="#9ca3af"
                   value={categoryFilter}
-                  onChangeText={(text) => {
-                    setCategoryFilter(text);
-                    filterCategories(text);
-                  }}
-                  onFocus={() => {
-                    if (categoryFilter) {
-                      filterCategories(categoryFilter);
-                    }
-                  }}
+                  onChangeText={(text) => { setCategoryFilter(text); filterCategories(text); }}
+                  onFocus={() => { if (categoryFilter) filterCategories(categoryFilter); }}
                 />
-                {categoryFilter && (
-                  <TouchableOpacity
-                    onPress={() => setCategoryFilter('')}
-                    style={styles.clearButton}
-                  >
-                    <Icon name="clear" size={20} color="#6b7280" />
-                  </TouchableOpacity>
-                )}
               </View>
-
-
-              {showCategoryAutocomplete && filteredCategories.length > 0 && (
-                <View style={styles.autocompleteContainer}>
-                  <ScrollView
-                    showsVerticalScrollIndicator={false}
-                    nestedScrollEnabled={true}
-                  >
-                    {filteredCategories.map((item) => (
-                      <TouchableOpacity
-                        key={item}
-                        style={styles.autocompleteItem}
-                        onPress={() => selectCategory(item)}
-                      >
-                        <Text style={styles.autocompleteText}>{item}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
+              {categoryFilter && (
+                <TouchableOpacity onPress={() => setCategoryFilter('')} style={styles.clearButton}>
+                  <Icon name="clear" size={18} color="#9ca3af" />
+                </TouchableOpacity>
               )}
             </View>
+            {showCategoryAutocomplete && filteredCategories.length > 0 && (
+              <View style={styles.autocompleteContainer}>
+                <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+                  {filteredCategories.map((item) => (
+                    <TouchableOpacity key={item} style={styles.autocompleteItem} onPress={() => selectCategory(item)}>
+                      <Text style={styles.autocompleteText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
           </View>
-
-
           <View style={styles.filterActions}>
             {(cepFilter || categoryFilter) && (
-              <TouchableOpacity
-                onPress={clearFilters}
-                style={styles.clearFiltersButton}
-              >
+              <TouchableOpacity onPress={clearFilters} style={styles.clearFiltersButton}>
                 <Text style={styles.clearFiltersText}>Limpar</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              onPress={() => applyFilters()}
-              style={styles.searchButton}
-            >
+            <TouchableOpacity onPress={() => applyFilters()} style={styles.searchButton}>
               <Icon name="search" size={18} color="#fff" />
-              <Text style={styles.searchButtonText}>Buscar</Text>
+              <Text style={styles.searchButtonText}>Buscar demandas</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -652,98 +622,90 @@ export default function AuctionScreen() {
         {filteredAuctions.map((auction) => (
           <TouchableOpacity
             key={auction.id}
-            style={[styles.auctionCard, { borderLeftColor: auction.hasMyProposal ? '#f59e0b' : '#4f46e5' }]}
+            style={styles.auctionCard}
             onPress={() => handleAuctionPress(auction)}
+            activeOpacity={0.85}
           >
-            <View style={styles.auctionHeader}>
-            <Text style={styles.auctionTitle}>
-                {auction.title}
-              </Text>
-            </View>
-            <View style={styles.auctionStatusRow}>
-
-              <View style={styles.statusContainer}>
-
-                {auction.hasMyProposal && (
-                  <View style={styles.myProposalBadge}>
-                    <Text style={styles.myProposalText}>
-                      {auction.myProposalRanking}º lugar
-                    </Text>
+            <View style={[styles.auctionCardStrip, { backgroundColor: auction.hasMyProposal ? '#f59e0b' : '#4f46e5' }]} />
+            <View style={styles.auctionCardBody}>
+              <View style={styles.auctionHeader}>
+                <Text style={styles.auctionTitle}>{auction.title}</Text>
+              </View>
+              <View style={styles.auctionStatusRow}>
+                <View style={styles.statusContainer}>
+                  {auction.hasMyProposal && (
+                    <View style={styles.myProposalBadge}>
+                      <Text style={styles.myProposalText}>{auction.myProposalRanking}º lugar</Text>
+                    </View>
+                  )}
+                  {auction.hasActiveAuction && (
+                    <View style={styles.activeAuctionBadge}>
+                      <Icon name="gavel" size={14} color="#f97316" />
+                    </View>
+                  )}
+                  {auction.isNewDemand && (
+                    <View style={styles.newDemandBadge}>
+                      <Icon name="new-releases" size={14} color="#22c55e" />
+                    </View>
+                  )}
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>{auction.status}</Text>
                   </View>
-                )}
-
-                {auction.hasActiveAuction && (
-                  <View style={styles.activeAuctionBadge}>
-                    <Icon name="gavel" size={14} color="#f97316" />
-                  </View>
-                )}
-
-                {auction.isNewDemand && (
-                  <View style={styles.newDemandBadge}>
-                    <Icon name="new-releases" size={14} color="#22c55e" />
-                  </View>
-                )}
-                <View style={styles.statusBadge}>
-                  <Text style={styles.statusText}>{auction.status}</Text>
                 </View>
               </View>
-            </View>
 
-            <View style={styles.auctionMeta}>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{auction.category}</Text>
+              <View style={styles.auctionMeta}>
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>{auction.category}</Text>
+                </View>
+                <Text style={styles.budgetText}>Orçamento: {auction.budget}</Text>
               </View>
-              <Text style={styles.budgetText}>
-                Orçamento: {auction.budget}
-              </Text>
-            </View>
 
-            <View style={styles.locationRatingRow}>
-              <Icon name="location-on" size={14} color="#6b7280" />
-              <Text style={styles.locationText}>{auction.location}</Text>
-            </View>
+              <View style={styles.locationRatingRow}>
+                <Icon name="location-on" size={14} color="#6b7280" />
+                <Text style={styles.locationText}>{auction.location}</Text>
+              </View>
 
+              <View style={styles.statusProposalsContainer}>
+                {auction.proposals.length > 0 && (
+                  <>
+                    <Text style={styles.statusProposalsTitle}>
+                      {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
+                    </Text>
+                    {auction.hasMyProposal ? (
+                      <Text style={styles.statusProposalsText}>
+                        Sua proposta está em {auction.myProposalRanking}º lugar. Clique para ver detalhes.
+                      </Text>
+                    ) : (
+                      <Text style={styles.statusProposalsText}>
+                        Clique para ver detalhes e enviar sua proposta
+                      </Text>
+                    )}
+                  </>
+                )}
+                {auction.proposals.length === 0 && (
+                  <>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Target size={18} color="#059669" />
+                      <Text style={styles.statusProposalsTitleNew}>
+                        Seja o primeiro a enviar uma proposta!
+                      </Text>
+                    </View>
+                    <Text style={styles.statusProposalsTextNew}>
+                      Nenhuma proposta ainda. Aproveite esta oportunidade!
+                    </Text>
+                  </>
+                )}
+              </View>
 
-            <View style={styles.statusProposalsContainer}>
-              {auction.proposals.length > 0 ? (
-                <>
-                  <Text style={styles.statusProposalsTitle}>
-                    {auction.proposals.length} {auction.proposals.length === 1 ? 'proposta recebida' : 'propostas recebidas'}
+              <View style={styles.footerRow}>
+                <Text style={styles.deadlineText}>Prazo: {auction.deadline}</Text>
+                <View style={styles.viewDetailsContainer}>
+                  <Icon name="visibility" size={18} color="#4f46e5" />
+                  <Text style={styles.viewDetailsText}>
+                    {auction.hasMyProposal ? 'Ver Ranking' : 'Ver Detalhes'}
                   </Text>
-                  {auction.hasMyProposal ? (
-                    <Text style={styles.statusProposalsText}>
-                      Sua proposta está em {auction.myProposalRanking}º lugar. Clique para ver detalhes.
-                    </Text>
-                  ) : (
-                    <Text style={styles.statusProposalsText}>
-                      Clique para ver detalhes e enviar sua proposta
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Target size={18} color="#059669" />
-                    <Text style={styles.statusProposalsTitleNew}>
-                      Seja o primeiro a enviar uma proposta!
-                    </Text>
-                  </View>
-                  <Text style={styles.statusProposalsTextNew}>
-                    Nenhuma proposta ainda. Aproveite esta oportunidade!
-                  </Text>
-                </>
-              )}
-            </View>
-
-            <View style={styles.footerRow}>
-              <Text style={styles.deadlineText}>
-                Prazo: {auction.deadline}
-              </Text>
-              <View style={styles.viewDetailsContainer}>
-                <Icon name="visibility" size={18} color="#4f46e5" />
-                <Text style={styles.viewDetailsText}>
-                  {auction.hasMyProposal ? 'Ver Ranking' : 'Ver Detalhes'}
-                </Text>
+                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -768,7 +730,7 @@ export default function AuctionScreen() {
       </ScrollView>
 
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
     </View>
   );
 }
@@ -778,30 +740,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: '-50%',
-    left: 0,
-    right: 0,
-    height: '100%',
-    backgroundColor: '#4f46e5',
-  },
   scrollView: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 28,
-    backgroundColor: '#4f46e5',
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
     marginBottom: 6,
   },
   backButtonHeader: {
-    padding: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     backgroundColor: '#f3f4f6',
@@ -838,66 +799,63 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#111827',
     flex: 1,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.75)',
+    color: '#6b7280',
   },
   filtersCard: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 16,
     marginBottom: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
   },
-  filtersTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  filterSection: {
-    marginBottom: 16,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  filterInputContainer: {
+  filterField: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  filterFieldIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterFieldBody: {
+    flex: 1,
+  },
+  filterFieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  filterSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
+    marginLeft: 66,
   },
   filterInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1f2937',
-  },
-  filterHint: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
+    fontSize: 15,
+    color: '#111827',
+    padding: 0,
   },
   categoryFilterContainer: {
     position: 'relative',
   },
   clearButton: {
-    padding: 4,
+    padding: 6,
   },
   autocompleteContainer: {
     position: 'absolute',
@@ -936,13 +894,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 8,
-    marginTop: 4,
+    padding: 12,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e7eb',
   },
   clearFiltersButton: {
     backgroundColor: '#f3f4f6',
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 16,
-    borderRadius: 6,
+    borderRadius: 10,
   },
   clearFiltersText: {
     fontSize: 14,
@@ -954,9 +915,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: '#4f46e5',
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 20,
-    borderRadius: 6,
+    borderRadius: 10,
   },
   searchButtonText: {
     fontSize: 14,
@@ -966,14 +927,19 @@ const styles = StyleSheet.create({
   auctionCard: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    borderLeftWidth: 4,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+  },
+  auctionCardStrip: {
+    height: 4,
+  },
+  auctionCardBody: {
+    padding: 16,
   },
   auctionHeader: {
     marginBottom: 12,

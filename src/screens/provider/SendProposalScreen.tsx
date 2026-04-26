@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Platform, KeyboardAvoidingView, Image, Dimensions, Alert, Linking } from 'react-native';
 import { useNavigation, useRoute, useFocusEffect, NavigationProp, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -303,9 +303,16 @@ export default function SendProposalScreen() {
     return proposalPrice <= budget;
   };
 
+  const openMaps = () => {
+    const encoded = encodeURIComponent(demand.location);
+    const url = Platform.OS === 'ios' ? `maps:?q=${encoded}` : `geo:0,0?q=${encoded}`;
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://maps.google.com/?q=${encoded}`);
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -313,11 +320,11 @@ export default function SendProposalScreen() {
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <Icon name="arrow-back" size={22} color="#ffffff" />
+            <Icon name="arrow-back" size={22} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.title}>Enviar Proposta</Text>
           {refreshing && (
-            <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+            <ActivityIndicator size="small" color="#4f46e5" />
           )}
         </View>
       </View>
@@ -420,13 +427,16 @@ export default function SendProposalScreen() {
           </View>
 
 
-          <View style={styles.budgetStrip}>
-            <View style={styles.budgetStripLeft}>
-              <Icon name="location-on" size={20} color="#4f46e5" />
-              <Text style={styles.budgetStripLabel}>Endereço</Text>
+          <TouchableOpacity style={styles.budgetStrip} onPress={openMaps} activeOpacity={0.8}>
+            <View style={styles.budgetStripIcon}>
+              <Icon name="location-on" size={18} color="#4f46e5" />
             </View>
-            <Text style={styles.budgetStripValue} numberOfLines={2}>{demand.location}</Text>
-          </View>
+            <View style={styles.budgetStripBody}>
+              <Text style={styles.budgetStripLabel}>Endereço</Text>
+              <Text style={styles.budgetStripValue} numberOfLines={1}>{demand.location}</Text>
+            </View>
+            <Icon name="open-in-new" size={15} color="#93c5fd" />
+          </TouchableOpacity>
 
 
           <View style={styles.sectionBlock}>
@@ -488,34 +498,35 @@ export default function SendProposalScreen() {
           return (
             <View style={styles.insightsCard}>
               <View style={styles.insightsHeader}>
-                <Icon name="lightbulb" size={20} color="#d97706" />
-                <Text style={styles.insightsTitle}>
-                  Insights para sua Proposta
-                </Text>
+                <Icon name="lightbulb" size={16} color="#d97706" />
+                <Text style={styles.insightsTitle}>Insights para sua Proposta</Text>
               </View>
-              <View style={styles.insightItem}>
-                <View style={styles.insightBullet}>
-                  <Icon name="trending-up" size={16} color="#d97706" />
+              <View style={styles.insightsStatsRow}>
+                <View style={styles.insightStat}>
+                  <View style={styles.insightStatIcon}>
+                    <Icon name="trending-up" size={16} color="#d97706" />
+                  </View>
+                  <Text style={styles.insightStatValue}>
+                    R$ {avgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={styles.insightStatLabel}>Preço médio</Text>
                 </View>
-                <Text style={styles.insightText}>
-                  Preço médio das propostas: R$ {avgPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </Text>
-              </View>
-              <View style={styles.insightItem}>
-                <View style={styles.insightBullet}>
-                  <Icon name="schedule" size={16} color="#d97706" />
+                <View style={styles.insightStatDivider} />
+                <View style={styles.insightStat}>
+                  <View style={styles.insightStatIcon}>
+                    <Icon name="schedule" size={16} color="#d97706" />
+                  </View>
+                  <Text style={styles.insightStatValue}>{avgDeadline} dias</Text>
+                  <Text style={styles.insightStatLabel}>Prazo médio</Text>
                 </View>
-                <Text style={styles.insightText}>
-                  Prazo médio de execução: {avgDeadline} dias
-                </Text>
-              </View>
-              <View style={styles.insightItem}>
-                <View style={styles.insightBullet}>
-                  <Icon name="people" size={16} color="#d97706" />
+                <View style={styles.insightStatDivider} />
+                <View style={styles.insightStat}>
+                  <View style={styles.insightStatIcon}>
+                    <Icon name="people" size={16} color="#d97706" />
+                  </View>
+                  <Text style={styles.insightStatValue}>{demand.proposals.length}</Text>
+                  <Text style={styles.insightStatLabel}>Competindo</Text>
                 </View>
-                <Text style={styles.insightText}>
-                  {demand.proposals.length} {demand.proposals.length === 1 ? 'prestador interessado' : 'prestadores interessados'}
-                </Text>
               </View>
             </View>
           );
@@ -596,22 +607,21 @@ export default function SendProposalScreen() {
                   </View>
 
 
-                  <View style={styles.rankingBottomRow}>
+                  <View style={styles.rankingCardSep} />
+                  <View style={styles.rankingPriceRow}>
                     <Text style={styles.rankingPriceValue}>{proposal.price}</Text>
-                    <View style={styles.rankingDeadlineBox}>
-                      <Icon name="schedule" size={14} color="#6b7280" />
-                      <Text style={styles.rankingDeadlineValue}>{proposal.deadline}</Text>
-                    </View>
-                  </View>
-
-
-                  <View style={styles.rankingBottomRow}>
-                    {isWinningProposal && (
-                      <View style={styles.budgetOkPill}>
-                        <Icon name="check" size={12} color="#059669" />
-                        <Text style={styles.budgetOkText}>No orçamento</Text>
+                    <View style={styles.rankingMetaRight}>
+                      <View style={styles.rankingDeadlineBox}>
+                        <Icon name="schedule" size={13} color="#6b7280" />
+                        <Text style={styles.rankingDeadlineValue}>{proposal.deadline}</Text>
                       </View>
-                    )}
+                      {isWinningProposal && (
+                        <View style={styles.budgetOkPill}>
+                          <Icon name="check" size={12} color="#059669" />
+                          <Text style={styles.budgetOkText}>No orçamento</Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
 
@@ -644,48 +654,69 @@ export default function SendProposalScreen() {
 
         {!alreadyProposed && (
           <View style={styles.formCard}>
-            <Text style={styles.formLabel}>Valor da Proposta</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="R$ 0,00"
-              value={priceDisplay}
-              onChangeText={handlePriceChange}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.formLabel}>Prazo de Execução (dias)</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="Ex: 12"
-              value={deadline}
-              onChangeText={handleDeadlineChange}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.formLabel}>Descrição da Proposta</Text>
-            <TextInput
-              style={[styles.formInput, styles.textAreaInput]}
-              placeholder="Descreva como você pretende executar o serviço"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <Send size={18} color="#fff" />
-                  <Text style={styles.submitButtonText}>Enviar Proposta</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.formField}>
+              <View style={styles.formFieldIcon}>
+                <Icon name="attach-money" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Valor da Proposta</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="R$ 0,00"
+                  placeholderTextColor="#9ca3af"
+                  value={priceDisplay}
+                  onChangeText={handlePriceChange}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <View style={styles.formSep} />
+            <View style={styles.formField}>
+              <View style={styles.formFieldIcon}>
+                <Icon name="schedule" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Prazo de Execução (dias)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Ex: 12"
+                  placeholderTextColor="#9ca3af"
+                  value={deadline}
+                  onChangeText={handleDeadlineChange}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <View style={styles.formSep} />
+            <View style={[styles.formField, { alignItems: 'flex-start' }]}>
+              <View style={[styles.formFieldIcon, { marginTop: 2 }]}>
+                <Icon name="description" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Descrição da Proposta</Text>
+                <TextInput
+                  style={[styles.formInput, styles.textAreaInput]}
+                  placeholder="Descreva como você pretende executar o serviço"
+                  placeholderTextColor="#9ca3af"
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+            <View style={styles.formButtonArea}>
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Send size={18} color="#fff" />
+                    <Text style={styles.submitButtonText}>Enviar Proposta</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -693,56 +724,77 @@ export default function SendProposalScreen() {
         {alreadyProposed && myProposal && (
           <View style={styles.formCard}>
             <View style={styles.updateProposalHeader}>
-              <Text style={styles.updateProposalTitle}>
-                <Pencil size={16} color="#4f46e5" /> Atualizar Sua Proposta
-              </Text>
-              <Text style={styles.updateProposalSubtitle}>
-                Você já enviou uma proposta. Pode atualizar os valores para melhorar sua posição no ranking.
-              </Text>
+              <Pencil size={15} color="#1e40af" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.updateProposalTitle}>Atualizar Sua Proposta</Text>
+                <Text style={styles.updateProposalSubtitle}>
+                  Ajuste os valores para melhorar sua posição no ranking.
+                </Text>
+              </View>
             </View>
-
-            <Text style={styles.formLabel}>Novo Valor da Proposta</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="R$ 0,00"
-              value={priceDisplay}
-              onChangeText={handlePriceChange}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.formLabel}>Novo Prazo de Execução (dias)</Text>
-            <TextInput
-              style={styles.formInput}
-              placeholder="Ex: 12"
-              value={deadline}
-              onChangeText={handleDeadlineChange}
-              keyboardType="numeric"
-            />
-
-            <Text style={styles.formLabel}>Nova Descrição da Proposta</Text>
-            <TextInput
-              style={[styles.formInput, styles.textAreaInput]}
-              placeholder="Descreva como você pretende executar o serviço"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={styles.updateButton}
-              onPress={handleSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <RefreshCw size={18} color="#fff" />
-                  <Text style={styles.updateButtonText}>Atualizar Proposta</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.formField}>
+              <View style={styles.formFieldIcon}>
+                <Icon name="attach-money" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Novo Valor da Proposta</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="R$ 0,00"
+                  placeholderTextColor="#9ca3af"
+                  value={priceDisplay}
+                  onChangeText={handlePriceChange}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <View style={styles.formSep} />
+            <View style={styles.formField}>
+              <View style={styles.formFieldIcon}>
+                <Icon name="schedule" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Novo Prazo (dias)</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder="Ex: 12"
+                  placeholderTextColor="#9ca3af"
+                  value={deadline}
+                  onChangeText={handleDeadlineChange}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+            <View style={styles.formSep} />
+            <View style={[styles.formField, { alignItems: 'flex-start' }]}>
+              <View style={[styles.formFieldIcon, { marginTop: 2 }]}>
+                <Icon name="description" size={18} color="#4f46e5" />
+              </View>
+              <View style={styles.formFieldBody}>
+                <Text style={styles.formFieldLabel}>Nova Descrição</Text>
+                <TextInput
+                  style={[styles.formInput, styles.textAreaInput]}
+                  placeholder="Descreva como você pretende executar o serviço"
+                  placeholderTextColor="#9ca3af"
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+            </View>
+            <View style={styles.formButtonArea}>
+              <TouchableOpacity style={styles.updateButton} onPress={handleSubmit} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <RefreshCw size={18} color="#fff" />
+                    <Text style={styles.updateButtonText}>Atualizar Proposta</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -768,7 +820,7 @@ export default function SendProposalScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        forceLight
+        backgroundColor="#fff"
       />
 
 
@@ -791,14 +843,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f3f4f6',
   },
-  headerBackground: {
-    position: 'absolute',
-    top: '-50%',
-    left: 0,
-    right: 0,
-    height: '100%',
-    backgroundColor: '#4f46e5',
-  },
   keyboardView: {
     flex: 1,
   },
@@ -810,22 +854,29 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-    backgroundColor: '#4f46e5',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
   },
   backButtonHeader: {
-    padding: 2,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
     flex: 1,
   },
   content: {
@@ -971,34 +1022,40 @@ const styles = StyleSheet.create({
   },
   budgetStrip: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
     marginHorizontal: 18,
     backgroundColor: '#eff6ff',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#bfdbfe',
   },
-  budgetStripLeft: {
-    flexDirection: 'row',
+  budgetStripIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#dbeafe',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+  },
+  budgetStripBody: {
+    flex: 1,
   },
   budgetStripLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#93c5fd',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  budgetStripValue: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1e40af',
-  },
-  budgetStripValue: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-    textAlign: 'right',
-    marginLeft: 8,
   },
   sectionBlock: {
     paddingHorizontal: 18,
@@ -1101,9 +1158,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   insightsCard: {
-    backgroundColor: '#fefce8',
-    borderRadius: 12,
-    padding: 20,
+    backgroundColor: '#fffbeb',
+    borderRadius: 16,
+    overflow: 'hidden',
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#fef3c7',
@@ -1111,28 +1168,51 @@ const styles = StyleSheet.create({
   insightsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
     gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#fde68a',
   },
   insightsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#92400e',
   },
-  insightItem: {
+  insightsStatsRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+    paddingVertical: 16,
   },
-  insightBullet: {
-    marginRight: 8,
-    marginTop: 2,
-  },
-  insightText: {
-    color: '#78350f',
+  insightStat: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    alignItems: 'center',
+    gap: 4,
+  },
+  insightStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#fef3c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  insightStatValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#78350f',
+    textAlign: 'center',
+  },
+  insightStatLabel: {
+    fontSize: 11,
+    color: '#b45309',
+    textAlign: 'center',
+  },
+  insightStatDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: '#fde68a',
+    marginVertical: 8,
   },
   rankingSection: {
     marginBottom: 24,
@@ -1180,10 +1260,24 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     backgroundColor: '#f8faff',
   },
+  rankingCardSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 12,
+  },
+  rankingPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rankingMetaRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   rankingCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
   },
   positionCircle: {
     width: 40,
@@ -1274,23 +1368,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   rankingPriceValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#059669',
-    marginBottom: 8,
-  },
-  rankingBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 8,
   },
   rankingDeadlineBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f9fafb',
-    paddingVertical: 6,
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
     borderRadius: 8,
     gap: 4,
   },
@@ -1347,78 +1434,107 @@ const styles = StyleSheet.create({
   },
   formCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
     marginBottom: 24,
   },
   updateProposalHeader: {
-    backgroundColor: '#dbeafe',
-    borderColor: '#bfdbfe',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#eff6ff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#bfdbfe',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   updateProposalTitle: {
     color: '#1e40af',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-    fontSize: 16,
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 2,
   },
   updateProposalSubtitle: {
-    color: '#2563eb',
-    textAlign: 'center',
-    fontSize: 14,
+    color: '#3b82f6',
+    fontSize: 12,
+    lineHeight: 17,
   },
-  formLabel: {
-    fontSize: 18,
+  formField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 14,
+  },
+  formFieldIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formFieldBody: {
+    flex: 1,
+  },
+  formFieldLabel: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  formSep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e5e7eb',
+    marginLeft: 66,
   },
   formInput: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-    fontSize: 16,
+    fontSize: 15,
     color: '#111827',
+    padding: 0,
   },
   textAreaInput: {
-    height: 128,
-    marginBottom: 24,
+    height: 72,
+    textAlignVertical: 'top',
+  },
+  formButtonArea: {
+    padding: 16,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#e5e7eb',
   },
   submitButton: {
     backgroundColor: '#4f46e5',
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   submitButtonText: {
-    textAlign: 'center',
     color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 18,
+    fontWeight: '700',
+    fontSize: 16,
   },
   updateButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   updateButtonText: {
-    textAlign: 'center',
     color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 18,
+    fontWeight: '700',
+    fontSize: 16,
   },
   alreadyProposedCard: {
     backgroundColor: '#dbeafe',

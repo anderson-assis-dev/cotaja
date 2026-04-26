@@ -374,7 +374,6 @@ export default function WalletScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerBackground} />
       <ScrollView
         style={styles.scrollView}
         onScroll={handleScroll}
@@ -384,11 +383,11 @@ export default function WalletScreen() {
       >
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-            <ArrowLeft size={22} color="#fff" />
+            <ArrowLeft size={22} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Carteira & Pagamentos</Text>
           <TouchableOpacity style={styles.refreshBtn} onPress={() => { fetchWallet(); fetchAds(); }} activeOpacity={0.8}>
-            <RefreshCw size={18} color="rgba(255,255,255,0.8)" />
+            <RefreshCw size={18} color="#6b7280" />
           </TouchableOpacity>
         </View>
         <View style={styles.content}>
@@ -932,31 +931,33 @@ export default function WalletScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f3f4f6' },
-  headerBackground: {
-    position: 'absolute',
-    top: '-50%',
-    left: 0,
-    right: 0,
-    height: '100%',
-    backgroundColor: '#4f46e5',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
-  backBtn: { padding: 4, marginRight: 12 },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   refreshBtn: { padding: 4, marginLeft: 'auto' as any },
-  headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', color: '#fff' },
+  headerTitle: { flex: 1, fontSize: 20, fontWeight: '700', color: '#111827' },
   scrollView: { flex: 1 },
   content: {
     backgroundColor: '#f3f4f6',

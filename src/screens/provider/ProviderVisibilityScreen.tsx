@@ -151,7 +151,7 @@ export default function ProviderVisibilityScreen() {
               onPress={() => navigation.goBack()}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Icon name="arrow-back" size={22} color="#fff" />
+              <Icon name="arrow-back" size={22} color="#374151" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Painel profissional</Text>
             <View style={{ width: 22 }} />
@@ -175,7 +175,7 @@ export default function ProviderVisibilityScreen() {
         <View style={styles.content}>{renderContent()}</View>
       </ScrollView>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
     </View>
   );
 }
@@ -680,9 +680,11 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
 
   header: {
-    backgroundColor: '#4f46e5',
+    backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   headerRow: {
     flexDirection: 'row',
@@ -693,12 +695,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: '#111827',
   },
 
   periodRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#f3f4f6',
     borderRadius: 10,
     padding: 3,
     gap: 2,
@@ -711,11 +713,16 @@ const styles = StyleSheet.create({
   },
   periodTabActive: {
     backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 1,
   },
   periodTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
+    color: '#6b7280',
   },
   periodTabTextActive: {
     color: '#4f46e5',
