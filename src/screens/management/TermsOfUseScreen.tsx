@@ -37,12 +37,15 @@ export default function TermsOfUseScreen() {
           O uso continuado da Plataforma após a publicação de alterações nestes Termos constitui aceitação das modificações.
         </Text>
 
-        <Text style={styles.h1}>2. Descrição do Serviço</Text>
-        <Text style={styles.p}>
-          O CotaJá é um marketplace de serviços que conecta clientes que precisam contratar serviços a prestadores de serviços qualificados, utilizando um modelo de leilão reverso assistido por inteligência artificial.
+        <Text style={styles.h1}>2. Natureza da Plataforma — Intermediação Tecnológica</Text>
+        <Text style={styles.highlight}>
+          O CotaJá é exclusivamente uma plataforma tecnológica de intermediação. Não somos parte do contrato de serviço celebrado entre cliente e prestador, não executamos serviços, não determinamos como serão executados e não garantimos qualidade, prazo ou resultado.
         </Text>
         <Text style={styles.p}>
-          A Plataforma atua exclusivamente como intermediadora tecnológica. O CotaJá não é parte do contrato de serviço firmado entre cliente e prestador, não se responsabilizando pela execução, qualidade ou resultado dos serviços prestados.
+          O CotaJá conecta clientes que precisam contratar serviços a prestadores qualificados por meio de um modelo de leilão reverso assistido por inteligência artificial. Nossa função é disponibilizar o ambiente tecnológico para que as partes se encontrem e <Text style={styles.bold}>sugerir</Text> prestadores e propostas com base em critérios objetivos — a decisão final de contratação é sempre e exclusivamente do cliente.
+        </Text>
+        <Text style={styles.p}>
+          Não determinamos, não garantimos e não supervisionamos a execução dos serviços. Toda a negociação de escopo, prazo, forma de pagamento e condições de execução é acordada diretamente entre cliente e prestador, sendo de responsabilidade exclusiva das partes envolvidas.
         </Text>
 
         <Text style={styles.h1}>3. Cadastro e Conta</Text>
@@ -61,29 +64,38 @@ export default function TermsOfUseScreen() {
         <Text style={styles.bullet}>• Descrever de forma clara e precisa o serviço desejado, incluindo requisitos, localização, prazo e orçamento estimado.</Text>
         <Text style={styles.bullet}>• Fornecer informações verdadeiras sobre o local de realização do serviço.</Text>
         <Text style={styles.bullet}>• Avaliar de forma justa e honesta os prestadores após a conclusão do serviço.</Text>
-        <Text style={styles.bullet}>• Realizar o pagamento conforme acordado com o prestador, através dos meios disponíveis na Plataforma.</Text>
+        <Text style={styles.bullet}>• O cliente é o <Text style={styles.bold}>único responsável pela escolha do prestador</Text>. O CotaJá apenas apresenta opções — a contratação é decisão autônoma e exclusiva do cliente.</Text>
 
         <Text style={styles.h1}>6. Responsabilidades do Prestador</Text>
-        <Text style={styles.bullet}>• Manter seu cadastro atualizado com informações verídicas sobre suas qualificações e serviços oferecidos.</Text>
-        <Text style={styles.bullet}>• Executar os serviços contratados com qualidade, pontualidade e de acordo com a legislação vigente.</Text>
+        <Text style={styles.bullet}>• Manter cadastro atualizado com informações verídicas sobre qualificações e serviços oferecidos.</Text>
+        <Text style={styles.bullet}>• Executar os serviços contratados com qualidade, pontualidade e em conformidade com a legislação vigente.</Text>
         <Text style={styles.bullet}>• Enviar propostas honestas e realizáveis dentro do prazo e valores informados.</Text>
-        <Text style={styles.bullet}>• O prestador é o único responsável pela legalidade, qualidade e consequências dos serviços prestados.</Text>
-        <Text style={styles.bullet}>• O CotaJá não se responsabiliza por eventuais danos, prejuízos ou inadimplementos causados por prestadores.</Text>
+        <Text style={styles.bullet}>• O prestador é o <Text style={styles.bold}>único responsável pela legalidade, qualidade e consequências</Text> dos serviços prestados, incluindo obrigações trabalhistas, previdenciárias, fiscais e de segurança.</Text>
+        <Text style={styles.bullet}>• O CotaJá não se responsabiliza por danos, prejuízos, acidentes ou inadimplementos causados por prestadores.</Text>
 
-        <Text style={styles.h1}>7. Leilão Reverso e Propostas</Text>
+        <Text style={styles.h1}>7. Execução do Serviço e Pagamento entre as Partes</Text>
+        <Text style={styles.highlight}>
+          A execução do serviço e as condições de pagamento são acordadas exclusivamente entre cliente e prestador. O CotaJá não é responsável por disputas, inadimplementos, danos materiais ou morais decorrentes da relação entre as partes.
+        </Text>
+        <Text style={styles.bullet}>• Escopo, prazo, preço, forma de pagamento e condições de execução são definidos livremente pelas partes, sem interferência do CotaJá.</Text>
+        <Text style={styles.bullet}>• O CotaJá poderá disponibilizar meios de pagamento integrados como facilidade operacional, sem ser parte da relação financeira.</Text>
+        <Text style={styles.bullet}>• Eventuais disputas financeiras ou de qualidade devem ser resolvidas diretamente entre cliente e prestador, podendo o CotaJá intermediar quando julgar conveniente, sem obrigação de resultado.</Text>
+        <Text style={styles.bullet}>• O CotaJá não retém, gerencia ou garante valores pagos fora dos meios de pagamento oficiais da Plataforma.</Text>
+
+        <Text style={styles.h1}>8. Leilão Reverso e Propostas</Text>
         <Text style={styles.bullet}>• O leilão reverso é o modelo em que prestadores competem para oferecer o melhor custo-benefício ao cliente.</Text>
         <Text style={styles.bullet}>• A Plataforma utiliza inteligência artificial para classificar e sugerir propostas, mas a decisão final de contratação é sempre do cliente.</Text>
         <Text style={styles.bullet}>• Propostas enviadas são compromissos do prestador e devem ser honradas caso aceitas pelo cliente.</Text>
         <Text style={styles.bullet}>• O CotaJá reserva-se o direito de remover propostas suspeitas, fraudulentas ou que violem estes Termos.</Text>
 
-        <Text style={styles.h1}>8. Cobranças e Pagamentos</Text>
+        <Text style={styles.h1}>9. Cobranças e Pagamentos à Plataforma</Text>
         <Text style={styles.bullet}>• O download e cadastro na Plataforma são gratuitos.</Text>
         <Text style={styles.bullet}>• Prestadores de serviço terão acesso a um período de avaliação gratuito. Após esse período, uma mensalidade poderá ser cobrada para manter o acesso à Plataforma.</Text>
         <Text style={styles.bullet}>• Clientes podem adquirir anúncios e funcionalidades premium para maior visibilidade.</Text>
         <Text style={styles.bullet}>• Os pagamentos são processados de forma segura pela Stripe, Inc., certificada PCI-DSS.</Text>
         <Text style={styles.bullet}>• Eventuais disputas financeiras entre cliente e prestador devem ser resolvidas diretamente entre as partes, podendo o CotaJá intermediar quando julgar necessário.</Text>
 
-        <Text style={styles.h1}>9. Propriedade Intelectual</Text>
+        <Text style={styles.h1}>10. Propriedade Intelectual</Text>
         <Text style={styles.p}>
           Todo o conteúdo da Plataforma, incluindo marca, logotipo, design, textos, código-fonte, algoritmos de inteligência artificial e demais elementos, são de propriedade exclusiva do CotaJá ou licenciados para o mesmo, sendo protegidos pela legislação brasileira de propriedade intelectual.
         </Text>
@@ -91,12 +103,12 @@ export default function TermsOfUseScreen() {
           É proibida a reprodução, distribuição, modificação ou qualquer forma de uso não autorizado do conteúdo da Plataforma.
         </Text>
 
-        <Text style={styles.h1}>10. Conteúdo do Usuário</Text>
+        <Text style={styles.h1}>11. Conteúdo do Usuário</Text>
         <Text style={styles.bullet}>• Ao publicar conteúdo na Plataforma (textos, imagens, avaliações), você declara ser o titular dos direitos sobre esse conteúdo.</Text>
         <Text style={styles.bullet}>• Você concede ao CotaJá uma licença não exclusiva, gratuita e mundial para utilizar, exibir e distribuir esse conteúdo no âmbito da Plataforma.</Text>
         <Text style={styles.bullet}>• É proibido publicar conteúdo ilegal, ofensivo, difamatório, discriminatório ou que viole direitos de terceiros.</Text>
 
-        <Text style={styles.h1}>11. Conduta Proibida</Text>
+        <Text style={styles.h1}>12. Conduta Proibida</Text>
         <Text style={styles.p}>É expressamente proibido:</Text>
         <Text style={styles.bullet}>• Criar contas falsas ou utilizar identidades de terceiros</Text>
         <Text style={styles.bullet}>• Enviar propostas fraudulentas ou com preços abusivos</Text>
@@ -106,29 +118,33 @@ export default function TermsOfUseScreen() {
         <Text style={styles.bullet}>• Assediar, ameaçar ou ofender outros usuários</Text>
         <Text style={styles.bullet}>• Publicar spam, propaganda não autorizada ou conteúdo malicioso</Text>
 
-        <Text style={styles.h1}>12. Suspensão e Cancelamento</Text>
+        <Text style={styles.h1}>13. Suspensão e Cancelamento</Text>
         <Text style={styles.bullet}>• O CotaJá reserva-se o direito de suspender ou cancelar contas que violem estes Termos, sem aviso prévio.</Text>
         <Text style={styles.bullet}>• Você pode cancelar sua conta a qualquer momento através das configurações do aplicativo ou entrando em contato com o suporte.</Text>
         <Text style={styles.bullet}>• O cancelamento não gera reembolso proporcional de mensalidades ou valores já cobrados.</Text>
         <Text style={styles.bullet}>• Após o cancelamento, seus dados serão tratados conforme nossa Política de Privacidade.</Text>
 
-        <Text style={styles.h1}>13. Limitação de Responsabilidade</Text>
+        <Text style={styles.h1}>14. Limitação de Responsabilidade</Text>
+        <Text style={styles.highlight}>
+          O CotaJá é uma plataforma de intermediação tecnológica. Não garantimos a qualidade, execução ou resultado dos serviços contratados entre usuários, nem a solvência ou idoneidade de qualquer das partes.
+        </Text>
         <Text style={styles.bullet}>• O CotaJá não garante a disponibilidade ininterrupta ou livre de erros da Plataforma.</Text>
-        <Text style={styles.bullet}>• Não nos responsabilizamos por decisões tomadas com base nas informações ou classificações da inteligência artificial.</Text>
-        <Text style={styles.bullet}>• A responsabilidade do CotaJá é limitada ao valor efetivamente pago pelo usuário nos últimos 12 meses.</Text>
-        <Text style={styles.bullet}>• Não somos responsáveis por danos indiretos, incidentais, especiais ou consequenciais.</Text>
+        <Text style={styles.bullet}>• Não nos responsabilizamos por decisões tomadas com base nas sugestões ou classificações da inteligência artificial.</Text>
+        <Text style={styles.bullet}>• Não somos responsáveis por danos diretos, indiretos, incidentais ou consequenciais decorrentes da relação entre cliente e prestador.</Text>
+        <Text style={styles.bullet}>• Não nos responsabilizamos por acidentes, danos à propriedade, lesões corporais ou qualquer prejuízo ocorrido durante a execução do serviço.</Text>
+        <Text style={styles.bullet}>• Nossa responsabilidade perante o usuário é limitada ao valor efetivamente pago pelo usuário ao CotaJá nos últimos 12 meses.</Text>
 
-        <Text style={styles.h1}>14. Proteção de Dados</Text>
+        <Text style={styles.h1}>15. Proteção de Dados</Text>
         <Text style={styles.p}>
           O tratamento dos seus dados pessoais é regido pela nossa Política de Privacidade, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018).
         </Text>
 
-        <Text style={styles.h1}>15. Alterações dos Termos</Text>
+        <Text style={styles.h1}>16. Alterações dos Termos</Text>
         <Text style={styles.p}>
           Estes Termos de Uso podem ser atualizados periodicamente. Alterações significativas serão notificadas por meio do aplicativo e/ou e-mail. O uso continuado da Plataforma após a publicação das alterações constitui aceitação dos novos Termos.
         </Text>
 
-        <Text style={styles.h1}>16. Legislação Aplicável e Foro</Text>
+        <Text style={styles.h1}>17. Legislação Aplicável e Foro</Text>
         <Text style={styles.p}>
           Estes Termos de Uso são regidos pelas leis da República Federativa do Brasil. Para dirimir qualquer controvérsia decorrente destes Termos, fica eleito o foro da comarca de Salvador, Estado da Bahia, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
         </Text>
@@ -177,4 +193,5 @@ const styles = StyleSheet.create({
   p: { fontSize: 14, color: '#374151', lineHeight: 22, marginTop: 4 },
   bullet: { fontSize: 14, color: '#374151', lineHeight: 22, marginLeft: 8 },
   bold: { fontWeight: '700' },
+  highlight: { fontSize: 14, color: '#3730a3', lineHeight: 22, marginTop: 4, marginBottom: 8, backgroundColor: '#eef2ff', borderLeftWidth: 4, borderLeftColor: '#4f46e5', borderRadius: 6, paddingHorizontal: 12, paddingVertical: 10, fontWeight: '600' },
 });
