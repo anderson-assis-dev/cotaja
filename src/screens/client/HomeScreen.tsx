@@ -302,33 +302,38 @@ export default function HomeScreen() {
         {!loadingOrders && activeOrders.length > 0 && (
           <View style={styles.section}>
             <SectionHeader title="Pedidos ativos" onPress={goToOrders} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-              {activeOrders.map((order: any) => {
-                const st = statusLabel(order.status);
-                return (
-                  <TouchableOpacity
-                    key={order.id}
-                    style={styles.orderCard}
-                    onPress={goToOrders}
-                    activeOpacity={0.8}
-                  >
-                    <View style={[styles.orderStatusBadge, { backgroundColor: st.bg }]}>
-                      <Text style={[styles.orderStatusText, { color: st.color }]}>{st.label}</Text>
+            {activeOrders.map((order: any) => {
+              const st = statusLabel(order.status);
+              return (
+                <TouchableOpacity
+                  key={order.id}
+                  style={styles.pastOrderRow}
+                  onPress={goToOrders}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.pastOrderIconBg, { backgroundColor: st.bg }]}>
+                    <Icon name="assignment" size={18} color={st.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.pastOrderTitle} numberOfLines={1}>{order.title}</Text>
+                    <Text style={styles.pastOrderCategory} numberOfLines={1}>{order.category}</Text>
+                  </View>
+                  {order.proposals?.length > 0 ? (
+                    <View style={styles.orderProposalPill}>
+                      <Icon name="gavel" size={12} color="#4f46e5" />
+                      <Text style={styles.orderProposalCount}>
+                        {order.proposals.length}
+                      </Text>
                     </View>
-                    <Text style={styles.orderCardTitle} numberOfLines={2}>{order.title}</Text>
-                    <Text style={styles.orderCardCategory} numberOfLines={1}>{order.category}</Text>
-                    {order.proposals?.length > 0 && (
-                      <View style={styles.orderProposalPill}>
-                        <Icon name="gavel" size={12} color="#4f46e5" />
-                        <Text style={styles.orderProposalCount}>
-                          {order.proposals.length} proposta{order.proposals.length > 1 ? 's' : ''}
-                        </Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                  ) : (
+                    <View style={[styles.pastOrderBadge, { backgroundColor: st.bg }]}>
+                      <Text style={[styles.pastOrderBadgeText, { color: st.color }]}>{st.label}</Text>
+                    </View>
+                  )}
+                  <Icon name="chevron-right" size={16} color="#d1d5db" />
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 
