@@ -151,7 +151,7 @@ export default function TermsOfUseScreen() {
 
         <Text style={styles.h1}>Contato</Text>
         <Text style={styles.p}>Em caso de dúvidas ou solicitações relacionadas a estes Termos de Uso:</Text>
-        <Text style={styles.p}><Text style={styles.bold}>E-mail:</Text> suporte@cotaja.com.br</Text>
+        <Text style={styles.p}><Text style={styles.bold}>E-mail:</Text> ti@cotaja.io</Text>
         </View>
       </ScrollView>
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />

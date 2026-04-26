@@ -36,8 +36,8 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.h1}>1. Controlador dos Dados</Text>
         <Text style={styles.p}>O controlador responsável pelo tratamento dos seus dados pessoais é:</Text>
         <Text style={styles.bullet}>• <Text style={styles.bold}>Razão Social:</Text> CotaJá Tecnologia Ltda.</Text>
-        <Text style={styles.bullet}>• <Text style={styles.bold}>E-mail do Encarregado (DPO):</Text> privacidade@cotaja.com.br</Text>
-        <Text style={styles.bullet}>• <Text style={styles.bold}>Website:</Text> https://cotaja.com.br</Text>
+        <Text style={styles.bullet}>• <Text style={styles.bold}>E-mail do Encarregado (DPO):</Text> ti@cotaja.io</Text>
+        <Text style={styles.bullet}>• <Text style={styles.bold}>Website:</Text> https://cotaja.io</Text>
 
         <Text style={styles.h1}>2. Dados Pessoais que Coletamos</Text>
         <Text style={styles.p}>Coletamos os seguintes dados pessoais para a operação e melhoria dos nossos serviços:</Text>
@@ -133,7 +133,7 @@ export default function PrivacyPolicyScreen() {
         <Text style={styles.bullet}>• <Text style={styles.bold}>Oposição:</Text> opor-se ao tratamento realizado com base em hipóteses de dispensa de consentimento, caso haja descumprimento da LGPD</Text>
         <Text style={styles.bullet}>• <Text style={styles.bold}>Revisão de decisões automatizadas:</Text> solicitar a revisão de decisões tomadas unicamente com base em tratamento automatizado de dados pessoais (incluindo o Score IA de fornecedores)</Text>
         <Text style={styles.p}>
-          Para exercer qualquer um destes direitos, entre em contato pelo e-mail privacidade@cotaja.com.br. Responderemos sua solicitação em até 15 (quinze) dias úteis, conforme previsto na LGPD.
+          Para exercer qualquer um destes direitos, entre em contato pelo e-mail ti@cotaja.io. Responderemos sua solicitação em até 15 (quinze) dias úteis, conforme previsto na LGPD.
         </Text>
 
         <Text style={styles.h1}>8. Uso de Localização</Text>
@@ -185,8 +185,8 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={styles.h1}>Contato do Encarregado de Dados (DPO)</Text>
         <Text style={styles.p}>Para exercer seus direitos, esclarecer dúvidas ou fazer solicitações relacionadas à privacidade:</Text>
-        <Text style={styles.p}><Text style={styles.bold}>E-mail:</Text> privacidade@cotaja.com.br</Text>
-        <Text style={styles.p}><Text style={styles.bold}>Suporte geral:</Text> suporte@cotaja.com.br</Text>
+        <Text style={styles.p}><Text style={styles.bold}>E-mail:</Text> ti@cotaja.io</Text>
+        <Text style={styles.p}><Text style={styles.bold}>Suporte geral:</Text> ti@cotaja.io</Text>
         </View>
       </ScrollView>
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
