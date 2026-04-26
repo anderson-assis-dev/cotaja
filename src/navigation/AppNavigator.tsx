@@ -240,6 +240,7 @@ function ProviderHomeStackNavigator() {
     <ProviderHomeStack.Navigator screenOptions={{ headerShown: false }}>
       <ProviderHomeStack.Screen name="ProviderHome" component={ProviderHomeScreen} />
       <ProviderHomeStack.Screen name="ProviderVisibility" component={ProviderVisibilityScreen} />
+      <ProviderHomeStack.Screen name="ProviderSearch" component={ProviderSearchScreen} />
     </ProviderHomeStack.Navigator>
   );
 }
@@ -281,16 +282,6 @@ function AuctionsStackNavigator() {
     );
 }
 
-const SearchStack = createNativeStackNavigator();
-function SearchStackNavigator() {
-    return (
-        <SearchStack.Navigator screenOptions={{ headerShown: false }}>
-            <SearchStack.Screen name="ProviderSearch" component={ProviderSearchScreen} />
-            <SearchStack.Screen name="ProviderAuction" component={AuctionScreen} />
-            <SearchStack.Screen name="SendProposal" component={SendProposalScreen} />
-        </SearchStack.Navigator>
-    );
-}
 
 function ClientTabNavigator({ route }: any) {
   const clientInfo = route?.params?.clientInfo || {};
@@ -396,7 +387,6 @@ function ProviderTabNavigator() {
             options={{ title: 'Serviços' }}
             initialParams={{ initialScreen: 'MyServices' }}
         />
-        <Tab.Screen name="SearchTab" component={SearchStackNavigator} options={{ title: 'Buscar' }}/>
         <Tab.Screen name="AuctionsTab" component={AuctionsStackNavigator} options={{ title: 'Leilões' }}/>
         <Tab.Screen name="ProfileTab" component={ProfileScreen} options={{ title: 'Perfil' }}/>
     </Tab.Navigator>

@@ -89,7 +89,7 @@ export default function ProviderHomeScreen() {
   }, [insets.top]);
 
   const handleBannerAction = (action: string | null) => {
-    if (action === 'search') navigation.navigate('SearchTab');
+    if (action === 'search') navigation.navigate('ProviderSearch');
     else if (action === 'services') navigation.navigate('MyServicesTab');
     else if (action === 'auctions') navigation.navigate('AuctionsTab', { screen: 'ProviderAuction', params: {} });
   };
