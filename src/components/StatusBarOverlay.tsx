@@ -17,8 +17,6 @@ export const StatusBarOverlay: React.FC<StatusBarOverlayProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
 
-  console.log('StatusBarOverlay render - show:', show, 'opacity:', opacity);
-
   useEffect(() => {
     if (forceLight) {
       StatusBar.setBarStyle('light-content', true);

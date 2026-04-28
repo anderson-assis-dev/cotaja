@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, ActivityIndicator, StyleSheet, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { ratingService } from '../../services/api';
+import { requestCameraPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
@@ -53,6 +54,11 @@ export default function RateProviderScreen() {
     }
   };
   const handleCamera = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      Alert.alert('Permissão Necessária', 'Permita o acesso à câmera nas configurações do dispositivo.');
+      return;
+    }
     const result = await launchCamera({ mediaType: 'photo', quality: 0.7 });
     if (result.assets && result.assets.length > 0) {
       const asset = result.assets[0];

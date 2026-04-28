@@ -15,8 +15,6 @@ export const useStatusBarOverlay = ({ threshold = 50 }: UseStatusBarOverlayProps
 
     const opacity = Math.min(Math.max(offsetY, 0) / threshold, 1);
 
-    console.log('Setting opacity to:', opacity);
-
     setState({
       showStatusBarOverlay: offsetY > 0,
       statusBarOpacity: opacity

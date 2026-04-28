@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch, Alert, TextInput, Modal, Platform } from 'react-native';
 import { useNavigation, NavigationProp, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard, Trash2 } from 'lucide-react-native';
+import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard, Trash2, KeyRound } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
@@ -40,6 +40,10 @@ export default function ProfileScreen() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [securityCode, setSecurityCode] = useState('');
+  const [editingCode, setEditingCode] = useState(false);
+  const [newCode, setNewCode] = useState('');
+  const [savingCode, setSavingCode] = useState(false);
 
   const loadPermissionsState = useCallback(async () => {
     const notifPref = await AsyncStorage.getItem('push_notifications_pref');
@@ -50,13 +54,50 @@ export default function ProfileScreen() {
     setLocationEnabled(locPref === 'true');
   }, []);
 
+  const loadSecurityCode = useCallback(async () => {
+    if (user?.profile_type !== 'provider') return;
+    try {
+      const response = await authService.getSecurityCode();
+      if (response.success) {
+        setSecurityCode(response.data.security_code || '');
+      }
+    } catch {}
+  }, [user?.profile_type]);
+
+  const handleSaveSecurityCode = async () => {
+    if (!newCode || newCode.length !== 4) {
+      showError('O código deve ter exatamente 4 dígitos.');
+      return;
+    }
+    if (!/^\d+$/.test(newCode)) {
+      showError('O código deve conter apenas números.');
+      return;
+    }
+    setSavingCode(true);
+    try {
+      const response = await authService.updateSecurityCode(newCode);
+      if (response.success) {
+        setSecurityCode(newCode);
+        setEditingCode(false);
+        setNewCode('');
+        showSuccess('Código de segurança atualizado!');
+      }
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Erro ao atualizar código.');
+    } finally {
+      setSavingCode(false);
+    }
+  };
+
   useEffect(() => {
     loadPermissionsState();
-  }, [loadPermissionsState]);
+    loadSecurityCode();
+  }, [loadPermissionsState, loadSecurityCode]);
 
   useFocusEffect(
     useCallback(() => {
       loadPermissionsState();
+      loadSecurityCode();
       StatusBar.setBarStyle('dark-content', true);
       StatusBar.setBackgroundColor('#f0f2f5');
     }, [loadPermissionsState]),
@@ -196,6 +237,69 @@ export default function ProfileScreen() {
             <Text style={styles.itemText}>Carteira & Pagamentos</Text>
             <ChevronRight size={18} color="#9ca3af" />
           </TouchableOpacity>
+          {user.profile_type === 'provider' && (
+            <>
+              <View style={styles.sep} />
+              <TouchableOpacity
+                style={styles.item}
+                onPress={() => { setEditingCode(true); setNewCode(securityCode); }}
+                activeOpacity={0.7}
+              >
+                <KeyRound size={22} color="#374151" />
+                <Text style={styles.itemText}>Código de Segurança</Text>
+                <Text style={styles.securityCodeInline}>
+                  {securityCode
+                    ? securityCode.split('').join(' ')
+                    : '_ _ _ _'}
+                </Text>
+                <ChevronRight size={18} color="#9ca3af" />
+              </TouchableOpacity>
+
+              <Modal visible={editingCode} transparent animationType="fade">
+                <TouchableOpacity
+                  style={styles.modalOverlay}
+                  activeOpacity={1}
+                  onPress={() => { setEditingCode(false); setNewCode(''); }}
+                >
+                  <TouchableOpacity activeOpacity={1} style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Código de Segurança</Text>
+                    <Text style={styles.modalSubtitle}>
+                      Digite um código de 4 dígitos. Informe-o ao cliente para confirmar sua identidade.
+                    </Text>
+                    <TextInput
+                      style={styles.securityCodeInput}
+                      value={newCode}
+                      onChangeText={(t) => setNewCode(t.replace(/\D/g, '').slice(0, 4))}
+                      keyboardType="numeric"
+                      maxLength={4}
+                      placeholder="0 0 0 0"
+                      placeholderTextColor="#9ca3af"
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={() => { if (newCode.length === 4 && !savingCode) handleSaveSecurityCode(); }}
+                    />
+                    <TouchableOpacity
+                      style={[styles.modalSaveBtn, (savingCode || newCode.length !== 4) && { opacity: 0.5 }]}
+                      onPress={handleSaveSecurityCode}
+                      disabled={savingCode || newCode.length !== 4}
+                    >
+                      {savingCode ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={styles.modalSaveBtnText}>Salvar</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.modalCancelBtn}
+                      onPress={() => { setEditingCode(false); setNewCode(''); }}
+                    >
+                      <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </Modal>
+            </>
+          )}
         </View>
 
         <Text style={styles.groupLabel}>Suporte</Text>
@@ -388,6 +492,76 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: '#d1d5db',
     marginLeft: 58,
+  },
+  securityCodeInline: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#4f46e5',
+    letterSpacing: 3,
+    marginRight: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-start',
+    paddingTop: 120,
+    paddingHorizontal: 24,
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  securityCodeInput: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#111827',
+    letterSpacing: 12,
+    textAlign: 'center',
+    width: '100%',
+  },
+  modalSaveBtn: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#4f46e5',
+    marginTop: 16,
+  },
+  modalSaveBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  modalCancelBtn: {
+    width: '100%',
+    alignItems: 'center',
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  modalCancelBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#6b7280',
   },
 });
 

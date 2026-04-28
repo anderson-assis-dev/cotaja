@@ -643,7 +643,7 @@ export default function SearchScreen() {
         </View>
       </Modal>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

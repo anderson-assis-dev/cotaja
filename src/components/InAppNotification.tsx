@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, Animated, StyleSheet, DeviceEventEmitter,
 } from 'react-native';
-import { MessageSquare } from 'lucide-react-native';
+import { MessageSquare, Navigation } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navigationRef } from '../navigation/navigationRef';
 import { useAuth } from '../contexts/AuthContext';
@@ -56,24 +56,25 @@ const InAppNotification: React.FC<{ children: React.ReactNode }> = ({ children }
   const handleTap = useCallback(() => {
     const notif = currentNotifRef.current;
     dismiss();
-    if (notif?.type === 'chat_message' && notif?.order_id) {
-      const orderId = notif.order_id;
-      if (!navigationRef.isReady()) return;
-      try {
-        if (user?.profile_type === 'provider') {
-          (navigationRef as any).navigate('Provider', {
-            screen: 'MyServicesTab',
-            params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-          });
-        } else {
-          (navigationRef as any).navigate('Client', {
-            screen: 'MyOrdersTab',
-            params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-          });
-        }
-      } catch (e) {
-        console.log('[InAppNotification] Erro ao navegar:', e);
+    if (!notif?.order_id || !navigationRef.isReady()) return;
+    const orderId = notif.order_id;
+    const params = notif.type === 'tracking_started'
+      ? { orderId, openTracking: true }
+      : { orderId };
+    try {
+      if (user?.profile_type === 'provider') {
+        (navigationRef as any).navigate('Provider', {
+          screen: 'MyServicesTab',
+          params: { screen: 'AcceptedOrder', params, initial: false },
+        });
+      } else {
+        (navigationRef as any).navigate('Client', {
+          screen: 'MyOrdersTab',
+          params: { screen: 'AcceptedOrder', params, initial: false },
+        });
       }
+    } catch (e) {
+      console.log('[InAppNotification] Erro ao navegar:', e);
     }
   }, [dismiss, user]);
 
@@ -101,8 +102,11 @@ const InAppNotification: React.FC<{ children: React.ReactNode }> = ({ children }
           onPress={handleTap}
           activeOpacity={0.9}
         >
-          <View style={styles.iconBox}>
-            <MessageSquare size={18} color="#ffffff" />
+          <View style={[styles.iconBox, notification?.type === 'tracking_started' && { backgroundColor: '#10b981' }]}>
+            {notification?.type === 'tracking_started'
+              ? <Navigation size={18} color="#ffffff" />
+              : <MessageSquare size={18} color="#ffffff" />
+            }
           </View>
           <View style={styles.textBox}>
             <Text style={styles.title} numberOfLines={1}>

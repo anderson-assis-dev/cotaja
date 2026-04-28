@@ -1,24 +1,29 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
-  ActivityIndicator, Image, FlatList, KeyboardAvoidingView, Platform, Modal, StatusBar
+  ActivityIndicator, Image, FlatList, KeyboardAvoidingView, Platform, Modal, StatusBar, Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Clock, Check, CheckCheck, Send, RotateCcw, AlertCircle } from 'lucide-react-native';
+import { Clock, Check, CheckCheck, Send, RotateCcw, AlertCircle, Navigation } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Geolocation from '@react-native-community/geolocation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Config from 'react-native-config';
+import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import {
-  chatService, orderActionService, orderService,
+  chatService, orderActionService, orderService, authService, trackingService,
   Message, Order
 } from '../../services/api';
 import { SkeletonBlock } from '../../components/Skeleton';
 import { OrderTimeline } from '../../components/OrderTimeline';
+import TrackingMap from '../../components/TrackingMap';
 
 type RouteParams = {
-  AcceptedOrder: { orderId: number };
+  AcceptedOrder: { orderId: number; openTracking?: boolean };
 };
 
 type TabType = 'chat' | 'schedule' | 'info';
@@ -37,6 +42,8 @@ export default function AcceptedOrderScreen() {
   const flatListRef = useRef<FlatList>(null);
 
   const orderId = route.params?.orderId;
+  const openTracking = route.params?.openTracking;
+  const hasAutoOpenedTracking = useRef(false);
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [order, setOrder] = useState<Order | null>(null);
@@ -47,15 +54,43 @@ export default function AcceptedOrderScreen() {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showSecurityCodeModal, setShowSecurityCodeModal] = useState(false);
+  const [securityCode, setSecurityCode] = useState('');
+  const securityCodeInputRef = useRef<TextInput>(null);
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isScheduling, setIsScheduling] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
 
-  const isClient = user?.id === order?.client_id;
-  const isProvider = user?.id === order?.provider_id;
+  const providerDistKm = useMemo(() => {
+    if (!providerLocation || !order?.latitude || !order?.longitude) return null;
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(Number(order.latitude) - providerLocation.lat);
+    const dLng = toRad(Number(order.longitude) - providerLocation.lng);
+    const sinA = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(providerLocation.lat)) * Math.cos(toRad(Number(order.latitude))) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(sinA), Math.sqrt(1 - sinA));
+  }, [providerLocation, order]);
+  const providerNearby = providerDistKm !== null && providerDistKm <= 3;
+
+  const [showMap, setShowMap] = useState(false);
+  const showMapRef = useRef(false);
+  const [mapToken, setMapToken] = useState('');
+  const [providerLocation, setProviderLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [routePolyline, setRoutePolyline] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [routeDistance, setRouteDistance] = useState<number | undefined>(undefined);
+  const [routeDuration, setRouteDuration] = useState<number | undefined>(undefined);
+  const [isTrackingActive, setIsTrackingActive] = useState(false);
+  const [isStartingRoute, setIsStartingRoute] = useState(false);
+  const locationWatchId = useRef<number | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  const isClient = !!(user?.id && order?.client_id && Number(user.id) === Number(order.client_id));
+  const isProvider = !!(user?.id && order?.provider_id && Number(user.id) === Number(order.provider_id));
 
   useEffect(() => {
     StatusBar.setBarStyle('light-content', true);
@@ -73,7 +108,10 @@ export default function AcceptedOrderScreen() {
     }
   }, [orderId]);
 
+  const isLoadingMessages = useRef(false);
   const loadMessages = useCallback(async () => {
+    if (isLoadingMessages.current) return;
+    isLoadingMessages.current = true;
     try {
       const response = await chatService.getMessages(orderId);
       if (response.success) {
@@ -85,11 +123,17 @@ export default function AcceptedOrderScreen() {
           const pendingMsgs = prev.filter(m => m._status === 'sending' || m._status === 'error');
           const serverIds = new Set(serverMessages.map(m => m.id));
           const stillPending = pendingMsgs.filter(m => !serverIds.has(m.id));
-          return [...serverMessages, ...stillPending];
+          const next = [...serverMessages, ...stillPending];
+          if (next.length === prev.length && next.every((m, i) => m.id === prev[i]?.id && m._status === prev[i]?._status)) {
+            return prev;
+          }
+          return next;
         });
       }
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
+    } finally {
+      isLoadingMessages.current = false;
     }
   }, [orderId]);
 
@@ -112,9 +156,8 @@ export default function AcceptedOrderScreen() {
     useCallback(() => {
       if (orderId) {
         loadOrder();
-        loadMessages();
       }
-    }, [orderId, loadOrder, loadMessages])
+    }, [orderId, loadOrder])
   );
 
   const handleSendMessage = async () => {
@@ -256,6 +299,256 @@ export default function AcceptedOrderScreen() {
       setIsConfirming(false);
     }
   };
+
+  const handleStartService = () => {
+    if (!isClient) return;
+    setSecurityCode('');
+    setShowSecurityCodeModal(true);
+    setTimeout(() => securityCodeInputRef.current?.focus(), 100);
+  };
+
+  const handleVerifySecurityCode = async () => {
+    if (securityCode.length !== 4) {
+      showError('Digite o código de 4 dígitos.');
+      return;
+    }
+    setIsVerifyingCode(true);
+    try {
+      const response = await authService.verifySecurityCode(orderId, securityCode.trim());
+      if (response.success) {
+        setShowSecurityCodeModal(false);
+        Alert.alert(
+          'Identidade Confirmada ✓',
+          `O prestador ${response.data.provider_name} foi verificado com sucesso. Você pode prosseguir com o serviço com segurança.`,
+          [{ text: 'OK' }],
+        );
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Erro ao verificar código.';
+      showError(msg);
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const getSocketUrl = () => {
+    const apiUrl = Config.API_BASE_URL || 'http://localhost:3000/api';
+    return apiUrl.replace(/\/api\/?$/, '');
+  };
+
+  const applyRouteData = (data: any) => {
+    if (data.polyline?.length > 0) {
+      setRoutePolyline(data.polyline.map((p: any) => ({ latitude: p.latitude, longitude: p.longitude })));
+    }
+    if (data.distance != null) setRouteDistance(data.distance);
+    if (data.duration != null) setRouteDuration(data.duration);
+  };
+
+  const handleStartRoute = async () => {
+    if (!isProvider || !order) return;
+    setIsStartingRoute(true);
+    try {
+      const tokenRes = await trackingService.getMapToken();
+      setMapToken(tokenRes.data.token);
+
+      const pos = await new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+        Geolocation.getCurrentPosition(
+          (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+          (error) => reject(error),
+          { enableHighAccuracy: true, timeout: 15000 }
+        );
+      });
+
+      setProviderLocation(pos);
+
+      const authToken = await AsyncStorage.getItem('auth_token');
+      const socket = io(`${getSocketUrl()}/tracking`, {
+        auth: { token: authToken },
+        transports: ['websocket'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('join-order', orderId);
+      });
+
+      socket.on('joined', () => {
+        socket.emit('start-tracking', { latitude: pos.lat, longitude: pos.lng });
+      });
+
+      socket.on('location-update', (data: any) => {
+        console.log('[PROVIDER WS] location-update:', JSON.stringify({ provider_lat: data.provider_lat, provider_lng: data.provider_lng }));
+        setProviderLocation({ lat: data.provider_lat, lng: data.provider_lng });
+        applyRouteData(data);
+      });
+
+      socket.on('tracking-started', (data: any) => {
+        applyRouteData(data);
+      });
+
+      socketRef.current = socket;
+      setIsTrackingActive(true);
+      setShowMap(true);
+      showMapRef.current = true;
+
+      locationWatchId.current = Geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setProviderLocation({ lat: latitude, lng: longitude });
+          socketRef.current?.emit('location-update', { latitude, longitude });
+        },
+        () => {},
+        { enableHighAccuracy: true, distanceFilter: 10, interval: 3000, fastestInterval: 2000 }
+      ) as unknown as number;
+    } catch (error: any) {
+      showError('Não foi possível iniciar o trajeto. Verifique a permissão de localização.');
+    } finally {
+      setIsStartingRoute(false);
+    }
+  };
+
+  const handleStopRoute = () => {
+    if (locationWatchId.current !== null) {
+      Geolocation.clearWatch(locationWatchId.current);
+      locationWatchId.current = null;
+    }
+    socketRef.current?.emit('stop-tracking');
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+    setIsTrackingActive(false);
+    setShowMap(false);
+    showMapRef.current = false;
+    setRoutePolyline([]);
+    setRouteDistance(undefined);
+    setRouteDuration(undefined);
+    setProviderLocation(null);
+  };
+
+  const handleViewProviderRoute = async () => {
+    if (!isClient || !order) return;
+    setIsStartingRoute(true);
+    try {
+      const tokenRes = await trackingService.getMapToken();
+      setMapToken(tokenRes.data.token);
+
+      const authToken = await AsyncStorage.getItem('auth_token');
+      const socket = io(`${getSocketUrl()}/tracking`, {
+        auth: { token: authToken },
+        transports: ['websocket'],
+      });
+
+      socket.on('connect', () => {
+        socket.emit('join-order', orderId);
+      });
+
+      socket.on('tracking-active', (data: any) => {
+        console.log('[CLIENT WS] tracking-active:', JSON.stringify({ provider_lat: data.provider_lat, provider_lng: data.provider_lng, distance: data.distance, duration: data.duration, polylineLen: data.polyline?.length }));
+        setProviderLocation({ lat: data.provider_lat, lng: data.provider_lng });
+        applyRouteData(data);
+        setIsTrackingActive(true);
+        setShowMap(true);
+        showMapRef.current = true;
+        setIsStartingRoute(false);
+      });
+
+      socket.on('tracking-started', (data: any) => {
+        console.log('[CLIENT WS] tracking-started:', JSON.stringify({ provider_lat: data.provider_lat, provider_lng: data.provider_lng, distance: data.distance, duration: data.duration, polylineLen: data.polyline?.length }));
+        setProviderLocation({ lat: data.provider_lat, lng: data.provider_lng });
+        applyRouteData(data);
+        setIsTrackingActive(true);
+        setShowMap(true);
+        showMapRef.current = true;
+        setIsStartingRoute(false);
+      });
+
+      socket.on('location-update', (data: any) => {
+        console.log('[CLIENT WS] location-update:', JSON.stringify({ provider_lat: data.provider_lat, provider_lng: data.provider_lng, polylineLen: data.polyline?.length }));
+        setProviderLocation({ lat: data.provider_lat, lng: data.provider_lng });
+        applyRouteData(data);
+      });
+
+      socket.on('tracking-stopped', () => {
+        showSuccess('O prestador encerrou o trajeto.');
+        handleCloseMap();
+      });
+
+      socketRef.current = socket;
+
+      setTimeout(() => {
+        if (!showMapRef.current) {
+          setIsStartingRoute(false);
+          showError('O prestador ainda não iniciou o trajeto.');
+          socket.disconnect();
+          socketRef.current = null;
+        }
+      }, 5000);
+    } catch (error: any) {
+      showError('Erro ao carregar rastreamento.');
+      setIsStartingRoute(false);
+    }
+  };
+
+  const handleCloseMap = () => {
+    socketRef.current?.disconnect();
+    socketRef.current = null;
+    setShowMap(false);
+    showMapRef.current = false;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (locationWatchId.current !== null) {
+        Geolocation.clearWatch(locationWatchId.current);
+      }
+      socketRef.current?.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || !orderId) return;
+
+    let checkSocket: Socket | null = null;
+    let mounted = true;
+
+    const checkTracking = async () => {
+      const authToken = await AsyncStorage.getItem('auth_token');
+      const socketUrl = `${getSocketUrl()}/tracking`;
+
+      checkSocket = io(socketUrl, {
+        auth: { token: authToken },
+        transports: ['websocket'],
+      });
+
+      checkSocket.on('connect', () => {
+        checkSocket?.emit('join-order', orderId);
+      });
+
+      checkSocket.on('tracking-active', () => {
+        if (mounted) setIsTrackingActive(true);
+      });
+
+      checkSocket.on('tracking-started', () => {
+        if (mounted) setIsTrackingActive(true);
+      });
+
+      checkSocket.on('tracking-stopped', () => {
+        if (mounted) setIsTrackingActive(false);
+      });
+    };
+
+    checkTracking();
+
+    return () => {
+      mounted = false;
+      checkSocket?.disconnect();
+    };
+  }, [isClient, orderId]);
+
+  useEffect(() => {
+    if (openTracking && isClient && order && isTrackingActive && !hasAutoOpenedTracking.current) {
+      hasAutoOpenedTracking.current = true;
+      handleViewProviderRoute();
+    }
+  }, [openTracking, isClient, order, isTrackingActive]);
 
   if (!orderId) {
     return (
@@ -503,6 +796,62 @@ export default function AcceptedOrderScreen() {
                 Você receberá lembretes 1 dia e 1 hora antes do serviço
               </Text>
             </View>
+          )}
+
+          {bothConfirmed && isClient && (
+            <View>
+              <TouchableOpacity
+                style={[styles.startServiceBtn, !providerNearby && styles.startServiceBtnDisabled]}
+                onPress={handleStartService}
+                disabled={isVerifyingCode || !providerNearby}
+                activeOpacity={0.8}
+              >
+                {isVerifyingCode ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Icon name="verified-user" size={20} color="#ffffff" />
+                    <Text style={styles.startServiceBtnText}>Verificar Prestador e Iniciar Serviço</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              {!providerNearby && (
+                <Text style={styles.proximityHint}>
+                  {providerDistKm !== null
+                    ? `Prestador a ${providerDistKm.toFixed(1)} km — disponível a menos de 3 km`
+                    : 'Aguardando localização do prestador...'}
+                </Text>
+              )}
+            </View>
+          )}
+
+          {bothConfirmed && isProvider && !isTrackingActive && (
+            <TouchableOpacity
+              style={styles.startRouteBtn}
+              onPress={handleStartRoute}
+              disabled={isStartingRoute}
+              activeOpacity={0.8}
+            >
+              {isStartingRoute ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <>
+                  <Navigation size={20} color="#ffffff" />
+                  <Text style={styles.startRouteBtnText}>Iniciar Trajeto</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {bothConfirmed && isProvider && isTrackingActive && (
+            <TouchableOpacity
+              style={styles.stopRouteBtn}
+              onPress={handleStopRoute}
+              activeOpacity={0.8}
+            >
+              <Icon name="stop" size={20} color="#ef4444" />
+              <Text style={styles.stopRouteBtnText}>Encerrar Trajeto</Text>
+            </TouchableOpacity>
           )}
         </View>
       ) : (
@@ -759,6 +1108,23 @@ export default function AcceptedOrderScreen() {
       {activeTab === 'schedule' && renderScheduleTab()}
       {activeTab === 'info' && renderInfoTab()}
 
+      {isClient && isTrackingActive && (
+        <TouchableOpacity
+          style={styles.floatingTrackingBtn}
+          onPress={handleViewProviderRoute}
+          disabled={isStartingRoute}
+          activeOpacity={0.8}
+        >
+          {isStartingRoute ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <>
+              <Navigation size={18} color="#ffffff" />
+              <Text style={styles.floatingTrackingBtnText}>Ver Trajeto do Prestador</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
 
       <Modal visible={showCancelModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -800,6 +1166,88 @@ export default function AcceptedOrderScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={showSecurityCodeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Código de Segurança</Text>
+            <Text style={styles.modalSubtitle}>
+              Digite o código de 4 dígitos informado pelo prestador.
+            </Text>
+
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => securityCodeInputRef.current?.focus()}
+              style={styles.otpRow}
+            >
+              {Array.from({ length: 4 }).map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.otpBox,
+                    securityCode.length === i && styles.otpBoxActive,
+                    securityCode.length > i && styles.otpBoxFilled,
+                  ]}
+                >
+                  <Text style={styles.otpChar}>{securityCode[i] ?? ''}</Text>
+                </View>
+              ))}
+            </TouchableOpacity>
+            <TextInput
+              ref={securityCodeInputRef}
+              value={securityCode}
+              onChangeText={(t) => setSecurityCode(t.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+              style={styles.hiddenOtpInput}
+              caretHidden
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, { backgroundColor: securityCode.length === 4 ? '#4f46e5' : '#9ca3af' }, isVerifyingCode && { opacity: 0.7 }]}
+                onPress={handleVerifySecurityCode}
+                disabled={isVerifyingCode || securityCode.length !== 4}
+              >
+                {isVerifyingCode ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.modalConfirmBtnText}>Verificar</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => { setShowSecurityCodeModal(false); setSecurityCode(''); }}
+              >
+                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showMap} animationType="slide" presentationStyle="fullScreen">
+        {showMap && mapToken && providerLocation && order && console.log('[MAP PROPS]', JSON.stringify({ providerLat: providerLocation.lat, providerLng: providerLocation.lng, destLat: Number(order.latitude), destLng: Number(order.longitude), polylineLen: routePolyline.length })) as any}
+        {showMap && mapToken && providerLocation && order && (
+          <TrackingMap
+            mapToken={mapToken}
+            providerLat={providerLocation.lat}
+            providerLng={providerLocation.lng}
+            destLat={Number(order.latitude)}
+            destLng={Number(order.longitude)}
+            routePolyline={routePolyline}
+            distance={routeDistance}
+            duration={routeDuration}
+            providerName={order.provider?.name}
+            clientName={order.client?.name}
+            providerAvatar={(order.provider as any)?.avatar_base64}
+            clientAvatar={(order.client as any)?.avatar_base64}
+            address={order.address}
+            isProvider={isProvider}
+            onClose={isProvider ? handleStopRoute : handleCloseMap}
+          />
+        )}
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -1003,4 +1451,72 @@ const styles = StyleSheet.create({
     borderRadius: 10, backgroundColor: '#ef4444',
   },
   modalConfirmBtnText: { fontSize: 15, fontWeight: '700', color: '#ffffff' },
+
+  otpRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginVertical: 20,
+  },
+  otpBox: {
+    width: 56,
+    height: 64,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f9fafb',
+  },
+  otpBoxActive: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#ede9fe',
+  },
+  otpBoxFilled: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#ffffff',
+  },
+  otpChar: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  hiddenOtpInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 1,
+    height: 1,
+  },
+
+  startServiceBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#4f46e5', borderRadius: 10, paddingVertical: 14, marginTop: 16,
+  },
+  startServiceBtnDisabled: { backgroundColor: '#a5b4fc' },
+  proximityHint: { textAlign: 'center', fontSize: 12, color: '#6b7280', marginTop: 6 },
+  startServiceBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  trackingBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#3b82f6', borderRadius: 10, paddingVertical: 14, marginTop: 10,
+  },
+  trackingBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  startRouteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#10b981', borderRadius: 10, paddingVertical: 14, marginTop: 16,
+  },
+  startRouteBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
+  stopRouteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#fecaca',
+    borderRadius: 10, paddingVertical: 14, marginTop: 10,
+  },
+  stopRouteBtnText: { color: '#ef4444', fontSize: 15, fontWeight: '700' },
+  floatingTrackingBtn: {
+    position: 'absolute', bottom: 24, left: 16, right: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#3b82f6', borderRadius: 14, paddingVertical: 14,
+    shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  floatingTrackingBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700' },
 });

@@ -399,7 +399,7 @@ export default function HomeScreen() {
         <View style={{ height: insets.bottom + 28 }} />
       </ScrollView>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

@@ -668,7 +668,6 @@ export default function OrderDetailsScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
       />
 
 
@@ -758,14 +757,6 @@ export default function OrderDetailsScreen() {
                   <Text style={styles.sectionLabel}>Descrição do Serviço</Text>
                   <Text style={styles.sectionText}>{selectedOrder.description}</Text>
                 </View>
-                <OrderTimeline
-                  apiStatus={selectedOrder.apiStatus}
-                  hasProposals={selectedOrder.proposals.length > 0}
-                  hasAcceptedProposal={!!selectedOrder.acceptedProposalId}
-                  hasScheduledDate={!!selectedOrder.scheduledDate}
-                  bothScheduleConfirmed={!!(selectedOrder.scheduleConfirmedByClient && selectedOrder.scheduleConfirmedByProvider)}
-                  createdAt={selectedOrder.created_at}
-                />
                 {(() => {
                   const docs=(selectedOrder.attachments||[]).filter((att:any)=>!isImageAttachment(att));
                   if(docs.length===0)return null;
@@ -788,6 +779,14 @@ export default function OrderDetailsScreen() {
                 })()}
               </View>
 
+              <OrderTimeline
+                apiStatus={selectedOrder.apiStatus}
+                hasProposals={selectedOrder.proposals.length > 0}
+                hasAcceptedProposal={!!selectedOrder.acceptedProposalId}
+                hasScheduledDate={!!selectedOrder.scheduledDate}
+                bothScheduleConfirmed={!!(selectedOrder.scheduleConfirmedByClient && selectedOrder.scheduleConfirmedByProvider)}
+                createdAt={selectedOrder.created_at}
+              />
 
               {selectedOrder.status === 'Em andamento' ? (
                 <>
@@ -1582,6 +1581,7 @@ const styles = StyleSheet.create({
   sectionBlock:{
     paddingHorizontal:16,
     paddingTop:14,
+    paddingBottom:16,
   },
   sectionLabel:{
     fontSize:14,

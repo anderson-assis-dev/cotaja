@@ -90,6 +90,14 @@ class PushNotificationService {
                 });
               }
             }
+            if (data.type === 'tracking_started') {
+              DeviceEventEmitter.emit('in_app_notification', {
+                title,
+                message: body,
+                type: data.type,
+                order_id: data.order_id ? parseInt(data.order_id) : undefined,
+              });
+            }
           }
         }
 
@@ -214,6 +222,14 @@ class PushNotificationService {
                 });
               }
             }
+            if (data.type === 'tracking_started') {
+              DeviceEventEmitter.emit('in_app_notification', {
+                title,
+                message,
+                type: data.type,
+                order_id: data.order_id ? parseInt(data.order_id) : undefined,
+              });
+            }
 
             if (!this.isOnChatScreen(data.order_id)) {
               PushNotification.localNotification({
@@ -309,6 +325,27 @@ class PushNotificationService {
             }
           } catch (e) {
             console.log('[Push] Erro ao navegar para agendamento:', e);
+          }
+        });
+      }
+
+      if (type === 'tracking_started' && orderId) {
+        AsyncStorage.getItem('user').then(json => {
+          const profile = json ? JSON.parse(json)?.profile_type : null;
+          try {
+            if (profile === 'provider') {
+              (navigationRef as any).navigate('Provider', {
+                screen: 'MyServicesTab',
+                params: { screen: 'AcceptedOrder', params: { orderId, openTracking: true }, initial: false },
+              });
+            } else {
+              (navigationRef as any).navigate('Client', {
+                screen: 'MyOrdersTab',
+                params: { screen: 'AcceptedOrder', params: { orderId, openTracking: true }, initial: false },
+              });
+            }
+          } catch (e) {
+            console.log('[Push] Erro ao navegar para tracking:', e);
           }
         });
       }

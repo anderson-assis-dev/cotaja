@@ -931,7 +931,7 @@ export default function WalletScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

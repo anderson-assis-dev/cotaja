@@ -175,7 +175,7 @@ export default function ProviderVisibilityScreen() {
         <View style={styles.content}>{renderContent()}</View>
       </ScrollView>
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

@@ -221,7 +221,6 @@ export default function SecurityScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
       />
     </KeyboardAvoidingView>
   );
