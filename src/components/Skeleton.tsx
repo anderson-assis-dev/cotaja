@@ -35,32 +35,32 @@ export function SkeletonBlock({ width = '100%', height = 16, borderRadius = 8, s
 export function OrderCardSkeleton() {
   return (
     <View style={sk.card}>
-      
+
       <SkeletonBlock width="75%" height={20} style={{ marginBottom: 10 }} />
 
-      
+
       <View style={[sk.row, { marginBottom: 16, gap: 6 }]}>
         <SkeletonBlock width={28} height={28} borderRadius={14} />
         <SkeletonBlock width={140} height={26} borderRadius={12} />
         <SkeletonBlock width={80} height={26} borderRadius={12} />
       </View>
 
-      
+
       <SkeletonBlock width="55%" height={14} style={{ marginBottom: 16 }} />
 
-      
+
       <View style={[sk.row, { marginBottom: 16, gap: 4 }]}>
         <SkeletonBlock width={16} height={16} borderRadius={4} />
         <SkeletonBlock width="80%" height={14} />
       </View>
 
-      
+
       <View style={sk.proposalBox}>
         <SkeletonBlock width="60%" height={16} style={{ marginBottom: 8 }} />
         <SkeletonBlock width="85%" height={14} />
       </View>
 
-      
+
       <View style={[sk.row, { justifyContent: 'space-between' }]}>
         <SkeletonBlock width={100} height={14} />
         <SkeletonBlock width={110} height={14} />
@@ -108,31 +108,35 @@ export function SearchSkeleton() {
 export function HomeScreenSkeleton() {
   return (
     <View style={sk.homeContainer}>
-      
-      <View style={sk.homeHeaderBackground} />
-
-      
-      <View style={sk.homeHeader}>
-        <SkeletonBlock width="65%" height={26} style={{ marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} borderRadius={6} />
-        <SkeletonBlock width="80%" height={15} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} borderRadius={6} />
+      <View style={[sk.homeHeader, { backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }]}>
+        <SkeletonBlock width="45%" height={14} style={{ marginBottom: 6 }} borderRadius={6} />
+        <SkeletonBlock width="60%" height={26} style={{ marginBottom: 4 }} borderRadius={6} />
+        <SkeletonBlock width="75%" height={14} style={{ marginBottom: 16 }} borderRadius={6} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <SkeletonBlock width="85%" height={44} borderRadius={12} />
+          <SkeletonBlock width={40} height={40} borderRadius={20} />
+        </View>
       </View>
 
-      
       <View style={sk.homeContent}>
-        
-        <SkeletonBlock width={100} height={22} style={{ marginBottom: 16 }} />
-        <View style={sk.homeGrid}>
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={sk.homeServiceCard}>
-              <SkeletonBlock width={48} height={48} borderRadius={24} />
-              <SkeletonBlock width="80%" height={16} style={{ marginTop: 12 }} />
-              <SkeletonBlock width="60%" height={13} style={{ marginTop: 6 }} />
+        <View style={[sk.homeGrid, { marginBottom: 20 }]}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <View key={i} style={sk.clientCategoryItem}>
+              <SkeletonBlock width={52} height={52} borderRadius={26} />
+              <SkeletonBlock width="80%" height={12} style={{ marginTop: 8 }} borderRadius={4} />
             </View>
           ))}
         </View>
 
-        
-        <SkeletonBlock width={250} height={22} style={{ marginTop: 8, marginBottom: 16 }} />
+        <SkeletonBlock width="100%" height={140} borderRadius={20} style={{ marginBottom: 20 }} />
+
+        <View style={[sk.row, { justifyContent: 'space-around', marginBottom: 20 }]}>
+          <SkeletonBlock width={80} height={14} borderRadius={6} />
+          <SkeletonBlock width={140} height={14} borderRadius={6} />
+          <SkeletonBlock width={110} height={14} borderRadius={6} />
+        </View>
+
+        <SkeletonBlock width={140} height={18} style={{ marginBottom: 12 }} borderRadius={6} />
         <OrderCardSkeleton />
       </View>
     </View>
@@ -142,48 +146,41 @@ export function HomeScreenSkeleton() {
 export function ProviderHomeScreenSkeleton() {
   return (
     <View style={sk.homeContainer}>
-      <View style={sk.homeHeaderBackground} />
-
-      
-      <View style={sk.homeHeader}>
-        <SkeletonBlock width="55%" height={26} style={{ marginBottom: 8, backgroundColor: 'rgba(255,255,255,0.25)' }} borderRadius={6} />
-        <SkeletonBlock width="72%" height={15} style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} borderRadius={6} />
+      <View style={[sk.homeHeader, { backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }]}>
+        <SkeletonBlock width="30%" height={14} style={{ marginBottom: 6 }} borderRadius={6} />
+        <SkeletonBlock width="50%" height={26} style={{ marginBottom: 4 }} borderRadius={6} />
+        <SkeletonBlock width="70%" height={14} style={{ marginBottom: 16 }} borderRadius={6} />
+        <SkeletonBlock width="100%" height={44} borderRadius={12} />
       </View>
 
-      
       <View style={sk.homeContent}>
-        
-        <View style={sk.providerStatsCard}>
-          <View style={[sk.providerStatsRow, { marginBottom: 0 }]}>
-            <View style={{ alignItems: 'center' }}>
-              <SkeletonBlock width={70} height={14} style={{ marginBottom: 8 }} />
-              <SkeletonBlock width={40} height={26} />
-            </View>
-            <View style={{ alignItems: 'center' }}>
-              <SkeletonBlock width={80} height={14} style={{ marginBottom: 8 }} />
-              <SkeletonBlock width={30} height={26} />
-            </View>
-            <View style={{ alignItems: 'center' }}>
-              <SkeletonBlock width={50} height={14} style={{ marginBottom: 8 }} />
-              <SkeletonBlock width={30} height={26} />
-            </View>
-          </View>
+        <SkeletonBlock width="100%" height={56} borderRadius={12} style={{ marginBottom: 16 }} />
+
+        <SkeletonBlock width="100%" height={140} borderRadius={20} style={{ marginBottom: 8 }} />
+        <View style={[sk.row, { justifyContent: 'center', gap: 8, marginBottom: 20 }]}>
+          {[1, 2, 3].map(i => (
+            <SkeletonBlock key={i} width={8} height={8} borderRadius={4} />
+          ))}
         </View>
 
-        
-        <SkeletonBlock width={100} height={22} style={{ marginBottom: 16 }} />
-        <View style={sk.homeGrid}>
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={sk.homeServiceCard}>
+        <SkeletonBlock width={80} height={16} style={{ marginBottom: 12 }} borderRadius={6} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <View key={i} style={{ alignItems: 'center', gap: 6 }}>
               <SkeletonBlock width={48} height={48} borderRadius={24} />
-              <SkeletonBlock width="80%" height={16} style={{ marginTop: 12 }} />
-              <SkeletonBlock width="60%" height={13} style={{ marginTop: 6 }} />
+              <SkeletonBlock width={44} height={11} borderRadius={4} />
             </View>
           ))}
         </View>
 
-        
-        <SkeletonBlock width={180} height={22} style={{ marginTop: 8, marginBottom: 16 }} />
+        <View style={[sk.row, { justifyContent: 'space-around', marginTop: 20, marginBottom: 20, backgroundColor: '#ffffff', borderRadius: 10, padding: 12 }]}>
+          <SkeletonBlock width={70} height={14} borderRadius={6} />
+          <SkeletonBlock width={80} height={14} borderRadius={6} />
+          <SkeletonBlock width={60} height={14} borderRadius={6} />
+        </View>
+
+        <SkeletonBlock width={150} height={18} style={{ marginBottom: 12 }} borderRadius={6} />
+        <OrderCardSkeleton />
         <OrderCardSkeleton />
       </View>
     </View>
@@ -242,6 +239,11 @@ const sk = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+  },
+  clientCategoryItem: {
+    width: '23%',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   homeServiceCard: {
     backgroundColor: '#ffffff',

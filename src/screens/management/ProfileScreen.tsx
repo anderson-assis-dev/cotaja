@@ -23,7 +23,7 @@ type RootStackParamList = {
 
 const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/cotaja.io',
-  whatsapp: 'https://wa.me/557197022550',
+  whatsapp: 'https://wa.me/551142102257',
   youtube: 'https://youtube.com/@cotajaseumarketplacedeservicos',
   facebook: 'https://www.facebook.com/share/1ArvGRTDmo/',
   tiktok: 'https://www.tiktok.com/@cotaja.seu.market',

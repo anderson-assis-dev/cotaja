@@ -59,9 +59,11 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Este app usa Face ID para autenticação biométrica segura</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>O Cotaja precisa acessar sua localização para preencher o endereço do serviço automaticamente.</string>
+	<string>O Cotaja precisa acessar sua localização em segundo plano para que o cliente possa acompanhar o trajeto do prestador em tempo real.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>O Cotaja precisa acessar sua localização em segundo plano para que o cliente possa acompanhar o trajeto do prestador em tempo real.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>O Cotaja precisa acessar sua localização para preencher o endereço do serviço automaticamente.</string>
+	<string>O Cotaja precisa acessar sua localização para preencher o endereço do serviço e rastrear o trajeto.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Este app precisa de acesso para salvar fotos na biblioteca</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -76,7 +78,9 @@
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>location</string>
 		<string>remote-notification</string>
+		<string>fetch</string>
 	</array>
 	<key>UIDeviceFamily</key>
 	<array>

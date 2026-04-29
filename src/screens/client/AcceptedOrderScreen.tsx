@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
   ActivityIndicator, Image, FlatList, KeyboardAvoidingView, Platform, Modal, StatusBar, Alert,
+  TouchableWithoutFeedback, Keyboard, NativeModules, PermissionsAndroid,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -22,8 +23,28 @@ import { SkeletonBlock } from '../../components/Skeleton';
 import { OrderTimeline } from '../../components/OrderTimeline';
 import TrackingMap from '../../components/TrackingMap';
 
+const { LocationTracking } = NativeModules;
+
+const requestBackgroundLocation = async (): Promise<void> => {
+  if (Platform.OS !== 'android') return;
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+      {
+        title: 'Permissão de localização em segundo plano',
+        message: 'O Cotaja precisa rastrear sua localização mesmo quando o app está minimizado para que o cliente possa acompanhar o trajeto.',
+        buttonPositive: 'Permitir',
+        buttonNegative: 'Não permitir',
+      }
+    );
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      console.warn('[Tracking] Background location not granted');
+    }
+  } catch {}
+};
+
 type RouteParams = {
-  AcceptedOrder: { orderId: number; openTracking?: boolean };
+  AcceptedOrder: { orderId: number; openTracking?: boolean; resumeTracking?: boolean };
 };
 
 type TabType = 'chat' | 'schedule' | 'info';
@@ -43,7 +64,9 @@ export default function AcceptedOrderScreen() {
 
   const orderId = route.params?.orderId;
   const openTracking = route.params?.openTracking;
+  const resumeTracking = route.params?.resumeTracking;
   const hasAutoOpenedTracking = useRef(false);
+  const hasAutoResumedTracking = useRef(false);
 
   const [activeTab, setActiveTab] = useState<TabType>('chat');
   const [order, setOrder] = useState<Order | null>(null);
@@ -65,18 +88,6 @@ export default function AcceptedOrderScreen() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
 
-  const providerDistKm = useMemo(() => {
-    if (!providerLocation || !order?.latitude || !order?.longitude) return null;
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const R = 6371;
-    const dLat = toRad(Number(order.latitude) - providerLocation.lat);
-    const dLng = toRad(Number(order.longitude) - providerLocation.lng);
-    const sinA = Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(providerLocation.lat)) * Math.cos(toRad(Number(order.latitude))) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(sinA), Math.sqrt(1 - sinA));
-  }, [providerLocation, order]);
-  const providerNearby = providerDistKm !== null && providerDistKm <= 3;
-
   const [showMap, setShowMap] = useState(false);
   const showMapRef = useRef(false);
   const [mapToken, setMapToken] = useState('');
@@ -88,6 +99,18 @@ export default function AcceptedOrderScreen() {
   const [isStartingRoute, setIsStartingRoute] = useState(false);
   const locationWatchId = useRef<number | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  const providerDistKm = useMemo(() => {
+    if (!providerLocation || !order?.latitude || !order?.longitude) return null;
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const R = 6371;
+    const dLat = toRad(Number(order.latitude) - providerLocation.lat);
+    const dLng = toRad(Number(order.longitude) - providerLocation.lng);
+    const sinA = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(providerLocation.lat)) * Math.cos(toRad(Number(order.latitude))) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(sinA), Math.sqrt(1 - sinA));
+  }, [providerLocation, order]);
+  const providerNearby = providerDistKm !== null && providerDistKm <= 3;
 
   const isClient = !!(user?.id && order?.client_id && Number(user.id) === Number(order.client_id));
   const isProvider = !!(user?.id && order?.provider_id && Number(user.id) === Number(order.provider_id));
@@ -151,6 +174,12 @@ export default function AcceptedOrderScreen() {
     const interval = setInterval(loadMessages, 10000);
     return () => clearInterval(interval);
   }, [activeTab, loadMessages]);
+
+  useEffect(() => {
+    if (activeTab !== 'schedule') return;
+    const interval = setInterval(loadOrder, 8000);
+    return () => clearInterval(interval);
+  }, [activeTab, loadOrder]);
 
   useFocusEffect(
     useCallback(() => {
@@ -348,6 +377,8 @@ export default function AcceptedOrderScreen() {
     if (!isProvider || !order) return;
     setIsStartingRoute(true);
     try {
+      await requestBackgroundLocation();
+      if (Platform.OS === 'android') LocationTracking?.startService();
       const tokenRes = await trackingService.getMapToken();
       setMapToken(tokenRes.data.token);
 
@@ -375,6 +406,18 @@ export default function AcceptedOrderScreen() {
         socket.emit('start-tracking', { latitude: pos.lat, longitude: pos.lng });
       });
 
+      socket.on('tracking-error', (data: any) => {
+        if (data?.reason === 'order_inactive') {
+          socket.disconnect();
+          socketRef.current = null;
+          if (Platform.OS === 'android') LocationTracking?.stopService();
+          AsyncStorage.removeItem('active_tracking_order').catch(() => {});
+          setIsTrackingActive(false);
+          setIsStartingRoute(false);
+          showError('Este pedido está encerrado e não pode ser rastreado.');
+        }
+      });
+
       socket.on('location-update', (data: any) => {
         console.log('[PROVIDER WS] location-update:', JSON.stringify({ provider_lat: data.provider_lat, provider_lng: data.provider_lng }));
         setProviderLocation({ lat: data.provider_lat, lng: data.provider_lng });
@@ -389,6 +432,8 @@ export default function AcceptedOrderScreen() {
       setIsTrackingActive(true);
       setShowMap(true);
       showMapRef.current = true;
+
+      await AsyncStorage.setItem('active_tracking_order', String(orderId));
 
       locationWatchId.current = Geolocation.watchPosition(
         (position) => {
@@ -411,6 +456,8 @@ export default function AcceptedOrderScreen() {
       Geolocation.clearWatch(locationWatchId.current);
       locationWatchId.current = null;
     }
+    if (Platform.OS === 'android') LocationTracking?.stopService();
+    AsyncStorage.removeItem('active_tracking_order').catch(() => {});
     socketRef.current?.emit('stop-tracking');
     socketRef.current?.disconnect();
     socketRef.current = null;
@@ -505,6 +552,7 @@ export default function AcceptedOrderScreen() {
 
   useEffect(() => {
     if (!isClient || !orderId) return;
+    if (order?.status === 'completed' || order?.status === 'cancelled') return;
 
     let checkSocket: Socket | null = null;
     let mounted = true;
@@ -545,10 +593,22 @@ export default function AcceptedOrderScreen() {
 
   useEffect(() => {
     if (openTracking && isClient && order && isTrackingActive && !hasAutoOpenedTracking.current) {
+      if (order.status === 'completed' || order.status === 'cancelled') return;
       hasAutoOpenedTracking.current = true;
       handleViewProviderRoute();
     }
   }, [openTracking, isClient, order, isTrackingActive]);
+
+  useEffect(() => {
+    if (resumeTracking && isProvider && order && !hasAutoResumedTracking.current) {
+      if (order.status === 'completed' || order.status === 'cancelled') {
+        AsyncStorage.removeItem('active_tracking_order').catch(() => {});
+        return;
+      }
+      hasAutoResumedTracking.current = true;
+      handleStartRoute();
+    }
+  }, [resumeTracking, isProvider, order]);
 
   if (!orderId) {
     return (
@@ -600,7 +660,7 @@ export default function AcceptedOrderScreen() {
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.navigate('MyServicesTab' as never)}>
             <Icon name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{order.title}</Text>
@@ -1127,45 +1187,54 @@ export default function AcceptedOrderScreen() {
       )}
 
       <Modal visible={showCancelModal} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Cancelar Pedido</Text>
-            <Text style={styles.modalSubtitle}>
-              Informe o motivo do cancelamento. O {isClient ? 'prestador' : 'cliente'} será notificado.
-            </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+              <TouchableWithoutFeedback>
+                <View style={styles.modalContent}>
+                  <Text style={styles.modalTitle}>Cancelar Pedido</Text>
+                  <Text style={styles.modalSubtitle}>
+                    Informe o motivo do cancelamento. O {isClient ? 'prestador' : 'cliente'} será notificado.
+                  </Text>
 
-            <TextInput
-              style={styles.cancelInput}
-              placeholder="Motivo do cancelamento..."
-              placeholderTextColor="#9ca3af"
-              value={cancelReason}
-              onChangeText={setCancelReason}
-              multiline
-              numberOfLines={4}
-              maxLength={500}
-            />
+                  <TextInput
+                    style={styles.cancelInput}
+                    placeholder="Motivo do cancelamento..."
+                    placeholderTextColor="#9ca3af"
+                    value={cancelReason}
+                    onChangeText={setCancelReason}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={500}
+                  />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalConfirmBtn, isCancelling && { opacity: 0.7 }]}
-                onPress={handleCancelOrder}
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Text style={styles.modalConfirmBtnText}>Confirmar Cancelamento</Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => { setShowCancelModal(false); setCancelReason(''); }}
-              >
-                <Text style={styles.modalCancelBtnText}>Voltar</Text>
-              </TouchableOpacity>
-            </View>
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalConfirmBtn, isCancelling && { opacity: 0.7 }]}
+                      onPress={handleCancelOrder}
+                      disabled={isCancelling}
+                    >
+                      {isCancelling ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <Text style={styles.modalConfirmBtnText}>Confirmar Cancelamento</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.modalCancelBtn}
+                      onPress={() => { Keyboard.dismiss(); setShowCancelModal(false); setCancelReason(''); }}
+                    >
+                      <Text style={styles.modalCancelBtnText}>Voltar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       <Modal visible={showSecurityCodeModal} transparent animationType="fade">

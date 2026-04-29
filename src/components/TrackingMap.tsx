@@ -76,14 +76,17 @@ export default function TrackingMap({
     }
   }, [routePolyline, isMapReady]);
 
-  useEffect(() => {
-    if (isMapReady && webViewRef.current && distance != null && duration != null) {
-      webViewRef.current.injectJavaScript(`
-        updateETA(${distance}, ${duration});
-        true;
-      `);
-    }
-  }, [distance, duration, isMapReady]);
+  const formattedDuration = useMemo(() => {
+    if (duration == null) return null;
+    const mins = Math.round(duration / 60);
+    if (mins < 60) return `${mins} min`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}min`;
+  }, [duration]);
+
+  const formattedDistance = useMemo(() => {
+    if (distance == null) return null;
+    return `${(distance / 1000).toFixed(1)} km`;
+  }, [distance]);
 
   const safeProviderName = (providerName || 'Prestador').replace(/"/g, '\\"');
   const safeClientName = (clientName || 'Cliente').replace(/"/g, '\\"');
@@ -117,28 +120,7 @@ export default function TrackingMap({
       color: #fff; font-size: 18px; font-weight: 700;
       line-height: 38px; text-align: center; width: 100%;
     }
-    .eta-pill {
-      position: absolute;
-      bottom: ${insets.bottom + 20}px;
-      left: 16px;
-      background: rgba(255,255,255,0.95);
-      backdrop-filter: blur(10px);
-      padding: 10px 16px;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-    }
-    .eta-pill .eta {
-      font-size: 20px;
-      font-weight: 800;
-      color: #111827;
-    }
-    .eta-pill .distance {
-      font-size: 13px;
-      color: #6b7280;
-    }
+
   </style>
   <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"
     crossorigin async
@@ -286,25 +268,11 @@ export default function TrackingMap({
       map.showItems([providerAnnotation, clientAnnotation], { padding: padding, animate: true });
     }
 
-    function updateETA(distMeters, durSeconds) {
-      var distKm = (distMeters / 1000).toFixed(1);
-      var mins = Math.round(durSeconds / 60);
-      var etaStr = mins < 60 ? mins + " min" : Math.floor(mins/60) + "h " + (mins%60) + "min";
 
-      var pill = document.querySelector('.eta-pill');
-      if (pill) {
-        pill.querySelector('.eta').textContent = etaStr;
-        pill.querySelector('.distance').textContent = distKm + " km";
-      }
-    }
   </script>
 </head>
 <body>
   <div id="map"></div>
-  <div class="eta-pill">
-    <span class="eta">Calculando...</span>
-    <span class="distance"></span>
-  </div>
 </body>
 </html>
   `, []);
@@ -357,6 +325,21 @@ export default function TrackingMap({
           </Text>
         </View>
       </View>
+      {(formattedDuration || formattedDistance) && (
+        <View style={[styles.etaOverlay, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.etaCard}>
+            <View style={styles.etaItem}>
+              <Navigation size={18} color="#4f46e5" />
+              <Text style={styles.etaTime}>{formattedDuration ?? '—'}</Text>
+            </View>
+            <View style={styles.etaDivider} />
+            <View style={styles.etaItem}>
+              <MapPin size={16} color="#6b7280" />
+              <Text style={styles.etaDist}>{formattedDistance ?? '—'}</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -425,5 +408,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     flex: 1,
+  },
+  etaOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  etaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.97)',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  etaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  etaTime: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  etaDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#e5e7eb',
+  },
+  etaDist: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
   },
 });

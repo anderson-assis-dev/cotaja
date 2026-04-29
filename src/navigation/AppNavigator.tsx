@@ -430,6 +430,27 @@ export default function AppNavigator() {
     }
   }, [user, isInitializing]);
 
+  useEffect(() => {
+    if (!isInitializing && user?.profile_type === 'provider') {
+      AsyncStorage.getItem('active_tracking_order').then(saved => {
+        if (saved) {
+          const orderId = Number(saved);
+          if (!Number.isNaN(orderId)) {
+            setTimeout(() => {
+              navigationRef.current?.navigate('Provider' as never, {
+                screen: 'MyServicesTab',
+                params: {
+                  screen: 'AcceptedOrder',
+                  params: { orderId, resumeTracking: true },
+                },
+              } as never);
+            }, 500);
+          }
+        }
+      });
+    }
+  }, [isInitializing, user]);
+
   const getActiveRouteName = (state: any): string => {
     const route = state.routes[state.index];
     if (route.state) {
