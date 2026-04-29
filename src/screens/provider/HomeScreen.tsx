@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useState, useCallback, useRef } from 'react';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
+const BANNER_ITEM_WIDTH = SCREEN_WIDTH - 40;
+const BANNER_GAP = 12;
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { orderService, Order } from '../../services/api';
@@ -77,7 +79,7 @@ export default function ProviderHomeScreen() {
     bannerTimer.current = setInterval(() => {
       setBannerIndex(prev => {
         const next = (prev + 1) % BANNERS.length;
-        bannerRef.current?.scrollToIndex({ index: next, animated: true });
+        bannerRef.current?.scrollToOffset({ offset: next * (BANNER_ITEM_WIDTH + BANNER_GAP), animated: true });
         return next;
       });
     }, 4000);
@@ -250,11 +252,14 @@ export default function ProviderHomeScreen() {
               data={BANNERS}
               keyExtractor={(b) => b.id}
               horizontal
-              pagingEnabled
+              pagingEnabled={false}
+              snapToInterval={BANNER_ITEM_WIDTH + BANNER_GAP}
+              snapToAlignment="start"
+              decelerationRate="fast"
               showsHorizontalScrollIndicator={false}
               scrollEnabled={false}
               onMomentumScrollEnd={(e) => {
-                const idx = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 40));
+                const idx = Math.round(e.nativeEvent.contentOffset.x / (BANNER_ITEM_WIDTH + BANNER_GAP));
                 setBannerIndex(idx);
               }}
               renderItem={({ item: b }) => (
@@ -449,7 +454,6 @@ export default function ProviderHomeScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
       />
     </View>
   );
@@ -568,8 +572,8 @@ const styles = StyleSheet.create({
   /* Banner carousel */
   bannerSection: { marginBottom: 20 },
   bannerCard: {
-    width: SCREEN_WIDTH - 40,
-    marginHorizontal: 0,
+    width: BANNER_ITEM_WIDTH,
+    marginRight: BANNER_GAP,
     borderRadius: 20,
     padding: 22,
     minHeight: 160,

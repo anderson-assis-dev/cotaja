@@ -553,10 +553,9 @@ export default function MyOrdersHomeScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
       />
 
-      
+
       <Modal
         visible={showDetails}
         animationType="slide"
@@ -572,7 +571,7 @@ export default function MyOrdersHomeScreen() {
 
           {selectedOrder && (
             <ScrollView style={styles.modalContent}>
-              
+
               <View style={styles.orderInfoCard}>
                 <View style={styles.orderInfoHeader}>
                   <Text style={styles.orderInfoTitle}>{selectedOrder.title}</Text>
@@ -607,7 +606,7 @@ export default function MyOrdersHomeScreen() {
                   <Text style={styles.modalLocationText}>{selectedOrder.location}</Text>
                 </View>
 
-                
+
                 <View style={styles.orderActionsContainer}>
                   {(selectedOrder.status!=='Cancelado'&&selectedOrder.status!=='Concluído')&&(
                     <>
@@ -662,7 +661,7 @@ export default function MyOrdersHomeScreen() {
                 </View>
               </View>
 
-              
+
               <View style={styles.attachmentsSection}>
                 <Text style={styles.attachmentsSectionTitle}>
                   <Icon name="attach-file" size={20} color="#4f46e5" /> Anexos ({selectedOrder.attachments?.length || 0})
@@ -787,7 +786,7 @@ export default function MyOrdersHomeScreen() {
                 )}
               </View>
 
-              
+
               {selectedOrder.status === 'Em andamento' ? (
                 <TouchableOpacity
                   style={{
@@ -825,7 +824,7 @@ export default function MyOrdersHomeScreen() {
                 </View>
               ) : (
                 <>
-                  
+
                   {selectedOrder.proposals.length > 0 ? (
                     <View style={styles.proposalsBox}>
                       <Text style={styles.proposalsTitle}>Propostas Recebidas</Text>
@@ -917,7 +916,7 @@ export default function MyOrdersHomeScreen() {
                 </>
               )}
 
-              
+
               {(selectedOrder.status === 'Aguardando propostas' || selectedOrder.status === 'Pausado') && (
                 <TouchableOpacity
                   style={styles.closeOrderButton}
@@ -937,7 +936,7 @@ export default function MyOrdersHomeScreen() {
           )}
         </View>
 
-        
+
         {avatarViewerVisible && avatarViewerImage ? (
           <ImageViewer
             visible={true}
@@ -947,7 +946,7 @@ export default function MyOrdersHomeScreen() {
           />
         ) : null}
 
-        
+
         {imageViewerVisible && selectedOrder && (() => {
           const imageAttachments = (selectedOrder.attachments || [])
             .filter(isImageAttachment)
@@ -964,7 +963,7 @@ export default function MyOrdersHomeScreen() {
           ) : null;
         })()}
 
-        
+
         <FileViewer
           visible={fileViewerVisible}
           url={fileViewerUrl}

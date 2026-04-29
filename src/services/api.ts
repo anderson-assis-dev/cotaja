@@ -102,6 +102,7 @@ export interface User {
   premium_since?: string | null;
   premium_until?: string | null;
   stripe_subscription_id?: string | null;
+  security_code?: string;
 }
 
 export interface AuthResponse {
@@ -299,6 +300,21 @@ export const authService = {
 
   async verifyActivation(email: string, token: string): Promise<AuthResponse> {
     const response = await api.post('/auth/verify-activation', { email, token });
+    return response.data;
+  },
+
+  async getSecurityCode(): Promise<{ success: boolean; data: { security_code: string } }> {
+    const response = await api.get('/auth/security-code');
+    return response.data;
+  },
+
+  async updateSecurityCode(securityCode: string): Promise<{ success: boolean; message: string; data: { security_code: string } }> {
+    const response = await api.put('/auth/security-code', { security_code: securityCode });
+    return response.data;
+  },
+
+  async verifySecurityCode(orderId: number, code: string): Promise<{ success: boolean; message: string; data: { provider_name: string; verified: boolean } }> {
+    const response = await api.post('/auth/verify-security-code', { order_id: orderId, code });
     return response.data;
   },
 
@@ -830,6 +846,18 @@ export const orderActionService = {
 
   async confirmSchedule(orderId: number): Promise<{ success: boolean; message: string; data: Order }> {
     const response = await api.post(`/orders/${orderId}/confirm-schedule`);
+    return response.data;
+  },
+};
+
+export const trackingService = {
+  async getDirections(originLat: number, originLng: number, destLat: number, destLng: number): Promise<{ success: boolean; data: { distance: number; duration: number; polyline: { latitude: number; longitude: number }[]; steps: any[] } }> {
+    const response = await api.get('/tracking/directions', { params: { origin_lat: originLat, origin_lng: originLng, dest_lat: destLat, dest_lng: destLng } });
+    return response.data;
+  },
+
+  async getMapToken(): Promise<{ success: boolean; data: { token: string } }> {
+    const response = await api.get('/tracking/map-token');
     return response.data;
   },
 };

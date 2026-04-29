@@ -820,7 +820,6 @@ export default function SendProposalScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
       />
 
 

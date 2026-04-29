@@ -9,6 +9,7 @@ import Geolocation from '@react-native-community/geolocation';
 import Config from 'react-native-config';
 import { orderService, geocodingService, GeocodedAddress } from '../../services/api';
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
+import { requestCameraPermission } from '../../utils/permissions';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { useToast } from '../../contexts/ToastContext';
@@ -338,6 +339,14 @@ export default function CreateOrderScreen() {
     if (imageCount >= LIMITS.image) {
       console.log(`Limite atingido: Você pode adicionar no máximo ${LIMITS.image} imagens`);
       return;
+    }
+
+    if (useCamera) {
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        Alert.alert('Permissão Necessária', 'Permita o acesso à câmera nas configurações do dispositivo.');
+        return;
+      }
     }
 
     const result = useCamera
@@ -1042,8 +1051,6 @@ export default function CreateOrderScreen() {
       <StatusBarOverlay
         show={showStatusBarOverlay}
         opacity={statusBarOpacity}
-        backgroundColor="#fff"
-        forceLight
       />
     </View>
   );

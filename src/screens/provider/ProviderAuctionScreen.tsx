@@ -730,7 +730,7 @@ export default function AuctionScreen() {
       </ScrollView>
 
 
-      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Image, Modal, TextInput, StyleSheet, Dimensions, KeyboardAvoidingView, Platform, Keyboard, PermissionsAndroid, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Image, Modal, TextInput, StyleSheet, Dimensions, KeyboardAvoidingView, Keyboard, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -7,6 +7,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { serviceService, Service, orderService, Order } from '../../services/api';
 import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType, PhotoQuality } from 'react-native-image-picker';
+import { requestCameraPermission } from '../../utils/permissions';
 import { formatPrice } from '../../utils/formatters';
 import { useToast } from '../../contexts/ToastContext';
 import React from 'react';
@@ -84,28 +85,6 @@ export default function MyServicesScreen() {
         animated: true,
       });
     }, 100);
-  };
-
-  const requestCameraPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.CAMERA,
-          {
-            title: 'Permissão da Câmera',
-            message: 'Este app precisa de acesso à câmera para tirar fotos.',
-            buttonNeutral: 'Perguntar Depois',
-            buttonNegative: 'Cancelar',
-            buttonPositive: 'OK',
-          },
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.warn(err);
-        return false;
-      }
-    }
-    return true;
   };
 
   const selectImageSource = () => {
@@ -819,7 +798,7 @@ export default function MyServicesScreen() {
     </Modal>
 
 
-    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} backgroundColor="#fff" />
+    <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
     </View>
   );
 }
