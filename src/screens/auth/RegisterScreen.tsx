@@ -11,6 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
+import { requestLocationPermission } from '../../utils/permissions';
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
@@ -113,7 +114,12 @@ export default function RegisterScreen() {
     }
   };
 
-  const getLocationByGPS = () => {
+  const getLocationByGPS = async () => {
+    const granted = await requestLocationPermission();
+    if (!granted) {
+      showError('Ative a localização nas configurações do dispositivo.');
+      return;
+    }
     setLoadingLocation(true);
     Geolocation.getCurrentPosition(
       async (pos) => {

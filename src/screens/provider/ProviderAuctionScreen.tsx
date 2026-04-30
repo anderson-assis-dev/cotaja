@@ -12,6 +12,7 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
 import { SkeletonBlock } from '../../components/Skeleton';
 import Geolocation from '@react-native-community/geolocation';
+import { requestLocationPermission } from '../../utils/permissions';
 
 type RootStackParamList = {
   SendProposal: { demand: Auction };
@@ -158,11 +159,16 @@ export default function AuctionScreen() {
   const [providerLocation, setProviderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   useEffect(() => {
-    Geolocation.getCurrentPosition(
-      (pos) => setProviderLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      () => {},
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-    );
+    const getLocation = async () => {
+      const granted = await requestLocationPermission();
+      if (!granted) return;
+      Geolocation.getCurrentPosition(
+        (pos) => setProviderLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        () => {},
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      );
+    };
+    getLocation();
   }, []);
 
   const [cepFilter, setCepFilter] = useState('');

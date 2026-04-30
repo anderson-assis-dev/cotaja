@@ -22,6 +22,7 @@ import {
 import { SkeletonBlock } from '../../components/Skeleton';
 import { OrderTimeline } from '../../components/OrderTimeline';
 import TrackingMap from '../../components/TrackingMap';
+import { requestLocationPermission } from '../../utils/permissions';
 
 const { LocationTracking } = NativeModules;
 
@@ -377,6 +378,12 @@ export default function AcceptedOrderScreen() {
     if (!isProvider || !order) return;
     setIsStartingRoute(true);
     try {
+      const locationGranted = await requestLocationPermission();
+      if (!locationGranted) {
+        showError('Permissão de localização necessária para iniciar o trajeto.');
+        setIsStartingRoute(false);
+        return;
+      }
       await requestBackgroundLocation();
       if (Platform.OS === 'android') LocationTracking?.startService();
       const tokenRes = await trackingService.getMapToken();

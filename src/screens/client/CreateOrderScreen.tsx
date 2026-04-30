@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Image, PermissionsAndroid } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Platform, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
@@ -9,7 +9,7 @@ import Geolocation from '@react-native-community/geolocation';
 import Config from 'react-native-config';
 import { orderService, geocodingService, GeocodedAddress } from '../../services/api';
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
-import { requestCameraPermission } from '../../utils/permissions';
+import { requestCameraPermission, requestLocationPermission } from '../../utils/permissions';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { useToast } from '../../contexts/ToastContext';
@@ -250,22 +250,11 @@ export default function CreateOrderScreen() {
     setIsLoadingLocation(true);
 
     try {
-      if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Permissão de Localização',
-            message: 'Cotaja precisa acessar sua localização para preencher o endereço automaticamente.',
-            buttonNeutral: 'Perguntar depois',
-            buttonNegative: 'Cancelar',
-            buttonPositive: 'OK',
-          },
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          showError('Não foi possível obter sua localização.');
-          setIsLoadingLocation(false);
-          return;
-        }
+      const granted = await requestLocationPermission();
+      if (!granted) {
+        showError('Não foi possível obter sua localização.');
+        setIsLoadingLocation(false);
+        return;
       }
 
       Geolocation.getCurrentPosition(
