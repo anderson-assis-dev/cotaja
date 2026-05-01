@@ -86,6 +86,10 @@ export default function CreateOrderScreen() {
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressionType, setCompressionType] = useState<'image' | 'video'>('image');
   const { showStatusBarOverlay, statusBarOpacity, handleScroll } = useStatusBarOverlay();
+  const parseCoordinate = (value: unknown) => {
+    const coordinate = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(coordinate) ? coordinate : null;
+  };
 
   useEffect(() => {
     if (editMode && orderData) {
@@ -109,8 +113,8 @@ export default function CreateOrderScreen() {
       setCity(orderData.city || '');
       setAddressState(orderData.state || '');
       setZipCode(orderData.zip_code || '');
-      if (orderData.latitude) setLatitude(parseFloat(orderData.latitude));
-      if (orderData.longitude) setLongitude(parseFloat(orderData.longitude));
+      if (orderData.latitude) setLatitude(parseCoordinate(orderData.latitude));
+      if (orderData.longitude) setLongitude(parseCoordinate(orderData.longitude));
 
       if (orderData.attachments && Array.isArray(orderData.attachments)) {
         const existingAttachments: Attachment[] = orderData.attachments.map((att: ExistingAttachment) => {
@@ -152,8 +156,8 @@ export default function CreateOrderScreen() {
       setCity(prefillOrderData.city || '');
       setAddressState((prefillOrderData.state || '').toUpperCase().slice(0, 2));
       setZipCode(prefillOrderData.zip_code || '');
-      if (prefillOrderData.latitude) setLatitude(prefillOrderData.latitude);
-      if (prefillOrderData.longitude) setLongitude(prefillOrderData.longitude);
+      if (prefillOrderData.latitude) setLatitude(parseCoordinate(prefillOrderData.latitude));
+      if (prefillOrderData.longitude) setLongitude(parseCoordinate(prefillOrderData.longitude));
     } else if (!editMode && prefillCategory) {
       setCategory(prefillCategory);
     }
@@ -220,8 +224,8 @@ export default function CreateOrderScreen() {
       try {
         const response = await geocodingService.searchAddress(
           text,
-          latitude || undefined,
-          longitude || undefined
+          latitude ?? undefined,
+          longitude ?? undefined
         );
         if (response.success && response.data) {
           setAddressSearchResults(response.data.slice(0, 5));
@@ -240,8 +244,8 @@ export default function CreateOrderScreen() {
     setCity(address.city || '');
     setAddressState(address.state || '');
     setZipCode(address.zip_code || '');
-    if (address.latitude) setLatitude(address.latitude);
-    if (address.longitude) setLongitude(address.longitude);
+    if (address.latitude) setLatitude(parseCoordinate(address.latitude));
+    if (address.longitude) setLongitude(parseCoordinate(address.longitude));
     setShowSearchResults(false);
     setAddressSearchResults([]);
   };
@@ -567,8 +571,8 @@ export default function CreateOrderScreen() {
                 city,
                 state: addressState,
                 zip_code: zipCode,
-                latitude: latitude || undefined,
-                longitude: longitude || undefined,
+                latitude: latitude ?? undefined,
+                longitude: longitude ?? undefined,
                 attachments: newAttachments,
                 removedAttachments: editMode ? removedAttachments : undefined,
               };
@@ -726,8 +730,8 @@ export default function CreateOrderScreen() {
                   {isLoadingLocation ? 'Obtendo localização...' : 'Usar minha localização'}
                 </Text>
               </TouchableOpacity>
-
-              {latitude && longitude && (
+          
+              {latitude !== null && longitude !== null && (
                 <View style={styles.coordinatesInfo}>
                   <Icon name="place" size={14} color="#059669" />
                   <Text style={styles.coordinatesText}>
