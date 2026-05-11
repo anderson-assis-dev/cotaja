@@ -30,8 +30,8 @@ const mockAuctions: Auction[] = [
     endTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
     clientId: 'client_123',
     proposals: [
-      { id: 'p1', provider: { name: 'João Silva', rating: 4.8, avatar: require('../../../assets/splash-icon.png') }, price: 'R$ 2.800,00', deadline: '12 dias', description: 'Tenho experiência em pintura residencial.' },
-      { id: 'p2', provider: { name: 'Maria Santos', rating: 4.9, avatar: require('../../../assets/splash-icon.png') }, price: 'R$ 3.200,00', deadline: '10 dias', description: 'Especialista em pintura com 10 anos de exp.' },
+      { id: 'p1', provider: { name: 'João Silva', rating: 4.8, avatar: require('../../../assets/splash-logo.PNG') }, price: 'R$ 2.800,00', deadline: '12 dias', description: 'Tenho experiência em pintura residencial.' },
+      { id: 'p2', provider: { name: 'Maria Santos', rating: 4.9, avatar: require('../../../assets/splash-logo.PNG') }, price: 'R$ 3.200,00', deadline: '10 dias', description: 'Especialista em pintura com 10 anos de exp.' },
     ],
   },
   {
@@ -40,7 +40,7 @@ const mockAuctions: Auction[] = [
     endTime: new Date(Date.now() + 48 * 60 * 60 * 1000),
     clientId: 'client_123',
     proposals: [
-      { id: 'p3', provider: { name: 'Tech Solutions', rating: 5.0, avatar: require('../../../assets/splash-icon.png') }, price: 'R$ 15.000,00', deadline: '45 dias', description: 'Desenvolvimento nativo para iOS e Android.' },
+      { id: 'p3', provider: { name: 'Tech Solutions', rating: 5.0, avatar: require('../../../assets/splash-logo.PNG') }, price: 'R$ 15.000,00', deadline: '45 dias', description: 'Desenvolvimento nativo para iOS e Android.' },
     ],
   },
 ];

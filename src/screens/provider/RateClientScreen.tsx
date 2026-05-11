@@ -29,7 +29,7 @@ const mockService: MockService = {
   title: 'Pintura de apartamento',
   client: {
     name: 'Maria Silva',
-    avatar: require('../../../assets/splash-icon.png'),
+    avatar: require('../../../assets/splash-logo.PNG'),
   },
   date: '15/03/2024',
 };

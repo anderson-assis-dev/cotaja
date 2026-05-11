@@ -14,7 +14,7 @@ import { ImageViewer } from '../../components/ImageViewer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const defaultCompanyImage = require('../../../assets/icon.png');
+const defaultCompanyImage = require('../../../assets/logo.PNG');
 type Company = { id: string; name: string; category: string; rating: number; ratingsCount: number; description: string; phone: string; image: any; serviceCategories?: string[]; completedServices?: number; _raw?: any; };
 type ProviderRatingItem={id?:number;provider_id?:string;client_id?:string;rating?:number;comment?:string|null;attachments?:any[]|null;created_at?:string;client_name?:string;client_avatar_base64?:string;};
 const normalizeAvatarUri = (avatar?: string) => {
