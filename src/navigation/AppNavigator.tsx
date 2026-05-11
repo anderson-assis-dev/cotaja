@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../contexts/AuthContext';
-import { View, StyleSheet, StatusBar, Alert } from 'react-native';
+import { StyleSheet, StatusBar } from 'react-native';
 import { HomeScreenSkeleton, ProviderHomeScreenSkeleton } from '../components/Skeleton';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
