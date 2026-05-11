@@ -10,7 +10,7 @@ export default function InitialScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.content}>
         <Image
-          source={require('../../assets/logo.png')}
+          source={require('../../assets/logo.PNG')}
           style={[styles.logo, { tintColor: 'white' }]}
           resizeMode="contain"
         />

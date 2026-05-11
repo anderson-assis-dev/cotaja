@@ -12,19 +12,19 @@ const slides = [
     id: '1',
     title: 'Bem-vindo ao Cotaja',
     description: 'A plataforma que conecta clientes e prestadores de serviços de forma simples e segura.',
-    image: require('../../../assets/logo.png'),
+    image: require('../../../assets/logo.PNG'),
   },
   {
     id: '2',
     title: 'Encontre Profissionais',
     description: 'Busque e contrate profissionais qualificados para realizar seus serviços.',
-    image: require('../../../assets/logo.png'),
+    image: require('../../../assets/logo.PNG'),
   },
   {
     id: '3',
     title: 'Ofereça seus Serviços',
     description: 'Cadastre-se como prestador e encontre novos clientes para seus serviços.',
-    image: require('../../../assets/logo.png'),
+    image: require('../../../assets/logo.PNG'),
   },
 ];
 

@@ -49,7 +49,7 @@ export default function SplashScreen() {
         }}
       >
         <Image
-          source={require('../../../assets/logo.png')}
+          source={require('../../../assets/logo.PNG')}
           style={[styles.logo, { tintColor: 'white' }]}
           resizeMode="contain"
         />
