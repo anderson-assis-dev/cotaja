@@ -6,7 +6,6 @@ import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import Geolocation from '@react-native-community/geolocation';
-import Config from 'react-native-config';
 import { orderService, geocodingService, GeocodedAddress } from '../../services/api';
 import { formatCurrency, extractNumericValue, formatDeadline, validateDeadline } from '../../utils/formatters';
 import { requestCameraPermission, requestLocationPermission } from '../../utils/permissions';
@@ -488,11 +487,6 @@ export default function CreateOrderScreen() {
     setAttachments(newAttachments);
   };
 
-  const getAttachmentIcon = (attachment: Attachment) => {
-    if (attachment.fileType === 'image') return 'image';
-    if (attachment.fileType === 'video') return 'videocam';
-    return 'insert-drive-file';
-  };
 
   const handleSubmit = async () => {
     console.log('🔵 handleSubmit chamado');
