@@ -87,7 +87,7 @@ export default function LoginScreen() {
               <View style={styles.circle1} />
               <View style={styles.circle2} />
               <View style={styles.circle3} />
-              <Image source={require('../../assets/logo.PNG')} style={styles.logo} resizeMode="contain" />
+              <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
               <Text style={styles.headerTagline}>Marketplace de Serviços</Text>
             </View>
 

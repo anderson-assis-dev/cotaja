@@ -18,7 +18,7 @@ export default function InitialScreen() {
         <View style={styles.circle3} />
 
         <Image
-          source={require('../../assets/logo.PNG')}
+          source={require('../../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />

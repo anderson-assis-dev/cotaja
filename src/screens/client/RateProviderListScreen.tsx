@@ -8,7 +8,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { OrderCardSkeleton } from '../../components/Skeleton';
 
-const defaultCompanyImage = require('../../../assets/logo.PNG');
+const defaultCompanyImage = require('../../../assets/logo.png');
 
 type Company = {
   id: string;
