@@ -13,10 +13,35 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
+import { authService } from '../../services/api';
 
 export default function PushNotificationSettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isTestingToken, setIsTestingToken] = useState(false);
+  const { user, refreshUser } = useAuth();
+  const { showError } = useToast();
+  const [emailEnabled, setEmailEnabled] = useState(user?.email_unsubscribed !== 1);
+  const [savingEmailPref, setSavingEmailPref] = useState(false);
+
+  React.useEffect(() => {
+    setEmailEnabled(user?.email_unsubscribed !== 1);
+  }, [user?.email_unsubscribed]);
+
+  const handleToggleEmail = async (value: boolean) => {
+    setEmailEnabled(value); // otimista
+    setSavingEmailPref(true);
+    try {
+      await authService.updateNotificationPreferences(value);
+      await refreshUser();
+    } catch (error: any) {
+      setEmailEnabled(!value); // reverte em caso de erro
+      showError(error.response?.data?.message || 'Não foi possível atualizar a preferência de e-mail.');
+    } finally {
+      setSavingEmailPref(false);
+    }
+  };
 
   const {
     isInitialized,
@@ -90,7 +115,26 @@ export default function PushNotificationSettingsScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>Configurações de Notificação</Text>
 
-        
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Notificações por e-mail</Text>
+          <View style={styles.emailPrefRow}>
+            <View style={styles.emailPrefTextWrap}>
+              <Text style={styles.emailPrefLabel}>Receber e-mails de notificação</Text>
+              <Text style={styles.emailPrefDesc}>
+                Avisos de propostas, lembretes e novidades. Você pode cancelar a qualquer momento.
+              </Text>
+            </View>
+            <Switch
+              value={emailEnabled}
+              onValueChange={handleToggleEmail}
+              disabled={savingEmailPref}
+              trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
+              thumbColor={emailEnabled ? '#4f46e5' : '#f3f4f6'}
+            />
+          </View>
+        </View>
+
+
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Status do Serviço</Text>
 
@@ -273,6 +317,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     color: '#374151',
+  },
+  emailPrefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  emailPrefTextWrap: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  emailPrefLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  emailPrefDesc: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
   },
   statusRow: {
     flexDirection: 'row',

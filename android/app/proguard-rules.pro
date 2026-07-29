@@ -36,3 +36,12 @@
 
 # React Native Config
 -keep class com.cotaja_rn.BuildConfig { *; }
+
+# ONNX Runtime (liveness) — classes acessadas via JNI, não podem ser removidas.
+-keep class ai.onnxruntime.** { *; }
+-keep class com.microsoft.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**
+
+# React Native VisionCamera (câmera do liveness)
+-keep class com.mrousavy.camera.** { *; }
+-dontwarn com.mrousavy.camera.**

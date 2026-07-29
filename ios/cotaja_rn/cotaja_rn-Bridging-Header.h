@@ -15,3 +15,6 @@
 
 // Push Notification iOS
 #import <RNCPushNotificationIOS/RNCPushNotificationIOS.h>
+
+// Deep linking (abre cotaja:// com o app aberto/em background - warm start)
+#import <React/RCTLinkingManager.h>

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, StatusBar, Switch, Alert, TextInput, Modal, Platform } from 'react-native';
 import { useNavigation, NavigationProp, CommonActions, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard, Trash2, KeyRound } from 'lucide-react-native';
+import { Camera, FileText, Wallet, User, Lock, LogOut, ChevronRight, CreditCard, Shield, Bell, Mail, MapPin, Instagram, Youtube, MessageCircle, Facebook, Music2, Clapperboard, Trash2, KeyRound } from 'lucide-react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Linking } from 'react-native';
@@ -39,6 +39,8 @@ export default function ProfileScreen() {
   const { showSuccess, showError } = useToast();
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(Number(user?.email_unsubscribed ?? 0) !== 1);
+  const [savingEmailPref, setSavingEmailPref] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [securityCode, setSecurityCode] = useState('');
   const [editingCode, setEditingCode] = useState(false);
@@ -110,6 +112,24 @@ export default function ProfileScreen() {
       await pushNotificationService.initialize();
     } else {
       await pushNotificationService.clearToken();
+    }
+  };
+
+  useEffect(() => {
+    setEmailNotificationsEnabled(Number(user?.email_unsubscribed ?? 0) !== 1);
+  }, [user?.email_unsubscribed]);
+
+  const handleToggleEmailNotifications = async (value: boolean) => {
+    setEmailNotificationsEnabled(value); // otimista
+    setSavingEmailPref(true);
+    try {
+      await authService.updateNotificationPreferences(value);
+      await refreshUser();
+    } catch (error: any) {
+      setEmailNotificationsEnabled(!value); // reverte
+      showError(error.response?.data?.message || 'Não foi possível atualizar a preferência de e-mail.');
+    } finally {
+      setSavingEmailPref(false);
     }
   };
 
@@ -327,6 +347,18 @@ export default function ProfileScreen() {
               onValueChange={handleToggleNotifications}
               trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
               thumbColor={notificationsEnabled ? '#4f46e5' : '#f3f4f6'}
+            />
+          </View>
+          <View style={styles.sep} />
+          <View style={styles.item}>
+            <Mail size={22} color="#374151" />
+            <Text style={styles.itemText}>Notificações por e-mail</Text>
+            <Switch
+              value={emailNotificationsEnabled}
+              onValueChange={handleToggleEmailNotifications}
+              disabled={savingEmailPref}
+              trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
+              thumbColor={emailNotificationsEnabled ? '#4f46e5' : '#f3f4f6'}
             />
           </View>
           <View style={styles.sep} />

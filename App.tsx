@@ -6,6 +6,7 @@ import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Config from 'react-native-config';
 import AppNavigator from './src/navigation/AppNavigator';
+import { requestInitialPermissions } from './src/utils/permissions';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { PushNotificationProvider } from './src/contexts/PushNotificationContext';
 import { ToastProvider } from './src/contexts/ToastContext';
@@ -13,6 +14,12 @@ import { ToastProvider } from './src/contexts/ToastContext';
 const STRIPE_PUBLISHABLE_KEY = Config.STRIPE_PUBLISHABLE_KEY || '';
 
 export default function App() {
+  useEffect(() => {
+    // Na primeira abertura, solicita câmera + localização (iOS e Android) para
+    // que o cadastro (liveness e CEP automático) funcione sem passos extras.
+    requestInitialPermissions();
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === 'ios') {
       PushNotificationIOS.setApplicationIconBadgeNumber(0);

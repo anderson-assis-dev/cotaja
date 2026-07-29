@@ -136,7 +136,7 @@ export default function PremiumScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBarOverlay opacity={statusBarOpacity} />
+      <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} />
       {showStatusBarOverlay && <View style={[styles.statusBarBg, { height: insets.top }]} />}
 
       <ScrollView

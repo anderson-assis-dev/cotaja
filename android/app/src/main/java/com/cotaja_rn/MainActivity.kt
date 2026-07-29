@@ -1,5 +1,6 @@
 package com.cotaja_rn
 
+import android.content.Intent
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -12,6 +13,16 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "cotaja_rn"
+
+  /**
+   * Necessário para deep links com launchMode="singleTask": quando o app já está
+   * aberto/em background, o Android entrega o link via onNewIntent. Atualizamos o
+   * intent para que o módulo Linking do React Native emita o evento "url".
+   */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
+  }
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

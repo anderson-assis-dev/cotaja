@@ -39,6 +39,26 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     return true
   }
 
+  // MARK: - Deep Linking (warm start)
+  // Abre links cotaja:// quando o app já está aberto ou em background.
+  // (O cold start é tratado via launchOptions em didFinishLaunchingWithOptions.)
+  func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    return RCTLinkingManager.application(app, open: url, options: options)
+  }
+
+  // Universal Links (https://) — preparado caso sejam habilitados no futuro.
+  func application(
+    _ application: UIApplication,
+    continue userActivity: NSUserActivity,
+    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+    return RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
+  }
+
   // MARK: - Remote Notifications
   func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
     print("✅ APNs token retrieved: \(deviceToken)")
@@ -99,7 +119,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     let userInfo = response.notification.request.content.userInfo
     print("🎯 Notification tapped: \(userInfo)")
 
-    // Use didReceive to properly set userInteraction=true on JS side
+    // didReceive(_:) é a forma Swift do didReceiveNotificationResponse: (tap),
+    // que dispara o evento com userInteraction=true no JS (handleNotificationTap).
     RNCPushNotificationIOS.didReceive(response)
 
     completionHandler()

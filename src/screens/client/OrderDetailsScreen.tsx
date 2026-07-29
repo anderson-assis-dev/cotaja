@@ -23,6 +23,8 @@ interface Proposal {
     rating: number;
     avatar: any;
     avatarUri?: string | null;
+    is_premium?: number | boolean;
+    is_verified?: number | boolean;
   };
   price: string;
   deadline: string;
@@ -87,6 +89,8 @@ const convertApiOrderToOrder = (apiOrder: ApiOrder): Order => {
       rating: 4.5,
       avatar: avatarUri ? { uri: avatarUri } : null,
       avatarUri: avatarUri,
+      is_premium: proposal.provider?.is_premium,
+      is_verified: proposal.provider?.is_verified,
     },
     price: `R$ ${formatPrice(proposal.price || 0)}`,
     deadline: `${proposal.deadline || 0} dias`,

@@ -1,8 +1,9 @@
-import { Platform, DeviceEventEmitter } from 'react-native';
+import { Platform, DeviceEventEmitter, Alert } from 'react-native';
 import PushNotification from 'react-native-push-notification';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { navigationRef } from '../navigation/navigationRef';
+import { navigateToDeepLink, DeepLinkTarget } from '../navigation/deepLinkRouter';
 
 class PushNotificationService {
   private deviceToken: string | null = null;
@@ -75,7 +76,7 @@ class PushNotificationService {
 
         if (isUserTap) {
           console.log('[iOS] User tapped notification, navigating...');
-          this.handleNotificationTap(data);
+          this.handleNotificationTap({ ...getDataResult, ...data });
         } else {
           const title = notification._alert?.title || notification.title || data.title || 'Cotaja';
           const body = notification._alert?.body || notification.message || notification.body || data.body || '';
@@ -121,11 +122,13 @@ class PushNotificationService {
 
         if (isUserTap) {
           console.log('[iOS] TAP detected via localNotification, navigating...');
-          const navData = {
+          this.handleNotificationTap({
+            ...getDataResult,
+            ...data,
             type: data.type || getDataResult.type,
             order_id: data.order_id || getDataResult.order_id,
-          };
-          this.handleNotificationTap(navData);
+            deeplink: data.deeplink || getDataResult.deeplink,
+          });
         }
 
         notification.finish && notification.finish(PushNotificationIOS.FetchResult.NoData);
@@ -140,7 +143,7 @@ class PushNotificationService {
         if (notification) {
           console.log('[iOS] Initial notification found (cold start tap):', JSON.stringify(notification));
           const initialData = notification.getData ? notification.getData() : (notification as any)._data || {};
-          if (initialData.type || initialData.order_id) {
+          if (initialData.type || initialData.order_id || initialData.deeplink) {
             this.handleNotificationTap(initialData);
           }
         }
@@ -277,81 +280,55 @@ class PushNotificationService {
   }
 
   private handleNotificationTap(data: any) {
+    // 1) Caminho preferencial: o backend envia um deep link completo no payload.
+    if (data?.deeplink) {
+      navigateToDeepLink(String(data.deeplink));
+      return;
+    }
+
+    // 2) Caso contrário, resolvemos um destino a partir de `type`/`screen`/`order_id`.
+    const target = this.resolveTarget(data);
+    if (target) navigateToDeepLink(target);
+  }
+
+  /** Mapeia o data payload de uma push (legado) para um destino de deep link. */
+  private resolveTarget(data: any): DeepLinkTarget | null {
     const type = data?.type;
     const orderId = data?.order_id ? parseInt(data.order_id) : null;
-    if (!type && !orderId) return;
 
-    const attemptNavigate = (attempt = 0) => {
-      if (!navigationRef.isReady()) {
-        if (attempt < 15) setTimeout(() => attemptNavigate(attempt + 1), 300);
-        return;
-      }
-
-      if (type === 'chat_message' && orderId) {
-        AsyncStorage.getItem('user').then(json => {
-          const profile = json ? JSON.parse(json)?.profile_type : null;
-          try {
-            if (profile === 'provider') {
-              (navigationRef as any).navigate('Provider', {
-                screen: 'MyServicesTab',
-                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-              });
-            } else {
-              (navigationRef as any).navigate('Client', {
-                screen: 'MyOrdersTab',
-                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-              });
-            }
-          } catch (e) {
-            console.log('[Push] Erro ao navegar para chat:', e);
-          }
-        });
-      }
-
-      if (type === 'schedule_reminder' && orderId) {
-        AsyncStorage.getItem('user').then(json => {
-          const profile = json ? JSON.parse(json)?.profile_type : null;
-          try {
-            if (profile === 'provider') {
-              (navigationRef as any).navigate('Provider', {
-                screen: 'MyServicesTab',
-                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-              });
-            } else {
-              (navigationRef as any).navigate('Client', {
-                screen: 'MyOrdersTab',
-                params: { screen: 'AcceptedOrder', params: { orderId }, initial: false },
-              });
-            }
-          } catch (e) {
-            console.log('[Push] Erro ao navegar para agendamento:', e);
-          }
-        });
-      }
-
-      if (type === 'tracking_started' && orderId) {
-        AsyncStorage.getItem('user').then(json => {
-          const profile = json ? JSON.parse(json)?.profile_type : null;
-          try {
-            if (profile === 'provider') {
-              (navigationRef as any).navigate('Provider', {
-                screen: 'MyServicesTab',
-                params: { screen: 'AcceptedOrder', params: { orderId, openTracking: true }, initial: false },
-              });
-            } else {
-              (navigationRef as any).navigate('Client', {
-                screen: 'MyOrdersTab',
-                params: { screen: 'AcceptedOrder', params: { orderId, openTracking: true }, initial: false },
-              });
-            }
-          } catch (e) {
-            console.log('[Push] Erro ao navegar para tracking:', e);
-          }
-        });
-      }
+    // Campo `screen` usado pelas notificações dinâmicas (DynamicNotificationService).
+    const screenMap: Record<string, string> = {
+      new_order: 'new-order',
+      'new-order': 'new-order',
+      new_service: 'add-service',
+      add_service: 'add-service',
+      wallet: 'wallet',
+      profile: 'profile',
+      orders: 'orders',
+      rate: 'rate',
+      order: 'order',
     };
+    if (data?.screen && screenMap[data.screen]) {
+      return { screen: screenMap[data.screen], id: orderId };
+    }
 
-    attemptNavigate();
+    // Tipos transacionais (legado) → destino correspondente.
+    switch (type) {
+      case 'chat_message':
+        return orderId ? { screen: 'chat', id: orderId } : null;
+      case 'schedule_reminder':
+        return orderId ? { screen: 'chat', id: orderId } : null;
+      case 'tracking_started':
+        return orderId ? { screen: 'tracking', id: orderId } : null;
+      case 'new_order':
+      case 'new_proposal':
+      case 'proposal_accepted':
+      case 'proposal_rejected':
+      case 'acceptance_cancelled':
+        return orderId ? { screen: 'order', id: orderId } : null;
+      default:
+        return orderId ? { screen: 'order', id: orderId } : null;
+    }
   }
 
   async sendTokenToBackend(token: string, retryCount = 0) {

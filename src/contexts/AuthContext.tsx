@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import pushNotificationService from '../services/pushNotificationService';
 import biometricService from '../services/biometricService';
 import { globalToastRef } from './ToastContext';
+import { consumePendingDeepLink } from '../navigation/deepLinkRouter';
 
 interface AuthContextType {
   user: User | null;
@@ -12,7 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   isInitializing: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number) => Promise<boolean>;
+  register: (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', cpf?: string, motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number, liveness?: { score: number; imageBase64: string | null }) => Promise<boolean>;
   logout: () => void;
   updateProfileType: (profileType: 'client' | 'provider', serviceCategories?: string[]) => Promise<boolean>;
   refreshUser: () => Promise<boolean>;
@@ -21,6 +22,7 @@ interface AuthContextType {
   hasBiometricCredentials: () => Promise<boolean>;
   deleteAccount: () => Promise<boolean>;
   activateAccount: (email: string, code: string) => Promise<boolean>;
+  submitLiveness: (score: number, imageBase64: string | null) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -95,6 +97,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initializeAuth();
   }, []);
+
+  // Após autenticar (e com o app já inicializado), continua o fluxo de qualquer
+  // deep link que tenha chegado enquanto o usuário ainda não estava logado.
+  useEffect(() => {
+    if (!isInitializing && user) {
+      consumePendingDeepLink();
+    }
+  }, [user, isInitializing]);
 
   const promptBiometricSetup = async (email: string, password: string) => {
     try {
@@ -249,7 +259,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', cpf?: string, motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number): Promise<boolean> => {
+  const register = async (name: string, email: string, phone: string, password: string, passwordConfirmation: string, profileType?: 'client' | 'provider', cpf?: string, motherName?: string, birthDate?: string, categories?: string[], address?: string, zipCode?: string, latitude?: number, longitude?: number, liveness?: { score: number; imageBase64: string | null }): Promise<boolean> => {
     try {
       let fcm_token = null;
       let device_platform = null;
@@ -292,6 +302,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (fcm_token) {
         registerData.fcm_token = fcm_token;
         registerData.device_platform = device_platform;
+      }
+
+      if (liveness) {
+        registerData.liveness_verified = 1;
+        registerData.liveness_score = liveness.score;
+        if (liveness.imageBase64) {
+          registerData.liveness_image_base64 = liveness.imageBase64;
+        }
       }
 
       const response = await authService.register(registerData);
@@ -528,6 +546,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const submitLiveness = async (score: number, imageBase64: string | null): Promise<boolean> => {
+    try {
+      const response = await authService.submitLiveness({
+        liveness_score: score,
+        liveness_image_base64: imageBase64 || undefined,
+      });
+      setUser(response.data.user);
+      await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+      return true;
+    } catch (error: any) {
+      console.error('❌ Erro ao enviar liveness:', error);
+      return false;
+    }
+  };
+
   const isBiometricAvailable = async (): Promise<boolean> => {
     return await biometricService.isBiometricSupported();
   };
@@ -559,6 +592,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     hasBiometricCredentials,
     deleteAccount,
     activateAccount,
+    submitLiveness,
   };
 
   return (

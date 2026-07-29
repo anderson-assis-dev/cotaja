@@ -103,6 +103,9 @@ export interface User {
   premium_until?: string | null;
   stripe_subscription_id?: string | null;
   security_code?: string;
+  email_unsubscribed?: number;
+  liveness_verified?: number;
+  liveness_score?: number;
 }
 
 export interface AuthResponse {
@@ -123,6 +126,9 @@ export interface RegisterData {
   profile_type?: 'client' | 'provider';
   fcm_token?: string;
   device_platform?: string;
+  liveness_verified?: number;
+  liveness_score?: number;
+  liveness_image_base64?: string;
 }
 
 export interface LoginData {
@@ -265,6 +271,11 @@ export const authService = {
     return response.data;
   },
 
+  async updateNotificationPreferences(emailNotifications: boolean): Promise<{ success: boolean; message: string; data: { user: User } }> {
+    const response = await api.put('/notification-preferences', { email_notifications: emailNotifications });
+    return response.data;
+  },
+
   async saveFcmToken(fcmToken: string, devicePlatform?: string): Promise<{ success: boolean; message: string }> {
     const response = await api.post('/fcm-token', {
       fcm_token: fcmToken,
@@ -315,6 +326,11 @@ export const authService = {
 
   async verifySecurityCode(orderId: number, code: string): Promise<{ success: boolean; message: string; data: { provider_name: string; verified: boolean } }> {
     const response = await api.post('/auth/verify-security-code', { order_id: orderId, code });
+    return response.data;
+  },
+
+  async submitLiveness(data: { liveness_score: number; liveness_image_base64?: string }): Promise<{ success: boolean; message: string; data: { user: User } }> {
+    const response = await api.post('/auth/liveness', data);
     return response.data;
   },
 

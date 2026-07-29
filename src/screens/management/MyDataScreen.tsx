@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, Modal, Platform, KeyboardAvoidingView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, User, Phone, Mail, RefreshCw, X, Calendar, Heart } from 'lucide-react-native';
+import { ArrowLeft, User, Phone, Mail, RefreshCw, X, Calendar, Heart, Search } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
 import { authService } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
 
 const maskDate = (text: string) => {
   const digits = text.replace(/\D/g, '').slice(0, 8);
@@ -31,6 +32,18 @@ export default function MyDataScreen() {
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [motherName, setMotherName] = useState('');
   const [birthDate, setBirthDate] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categorySearch, setCategorySearch] = useState('');
+
+  // Na transição Cliente -> Prestador, só pedimos nome da mãe / nascimento se
+  // o usuário ainda não os tiver cadastrado (ex.: nunca foi prestador antes).
+  const needsPersonalData = !user?.mother_name && !user?.birth_date;
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -51,33 +64,41 @@ export default function MyDataScreen() {
 
   const handleChangeProfileType = () => {
     const isClient = user?.profile_type === 'client';
-    const nextType = isClient ? 'provider' : 'client';
-    const nextLabel = isClient ? 'Prestador' : 'Cliente';
 
-    if (isClient && !user?.mother_name && !user?.birth_date) {
+    // Cliente -> Prestador: sempre abre o modal para selecionar a(s) área(s) de
+    // atuação (e dados pessoais, se ainda não cadastrados). A troca só é efetivada
+    // ao confirmar o modal com pelo menos uma categoria.
+    if (isClient) {
       setMotherName('');
       setBirthDate('');
+      setSelectedCategories(user?.service_categories || []);
+      setCategorySearch('');
       setShowProviderModal(true);
       return;
     }
 
+    // Prestador -> Cliente: confirmação simples, sem modal.
     Alert.alert(
       'Alterar tipo de conta',
-      `Deseja alterar sua conta para ${nextLabel}?${isClient ? '\n\nVocê poderá oferecer serviços na plataforma.' : '\n\nVocê passará a buscar serviços como cliente.'}`,
+      'Deseja alterar sua conta para Cliente?\n\nVocê passará a buscar serviços como cliente.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: `Tornar-se ${nextLabel}`,
-          onPress: () => doChangeProfileType(nextType),
+          text: 'Tornar-se Cliente',
+          onPress: () => doChangeProfileType('client'),
         },
       ],
     );
   };
 
-  const doChangeProfileType = async (nextType: 'client' | 'provider', extraData?: { mother_name: string; birth_date: string }) => {
+  const doChangeProfileType = async (
+    nextType: 'client' | 'provider',
+    serviceCategories?: string[],
+    extraData?: { mother_name: string; birth_date: string },
+  ) => {
     try {
       setChangingType(true);
-      await authService.updateProfileType(nextType, undefined, extraData);
+      await authService.updateProfileType(nextType, serviceCategories, extraData);
       await refreshUser();
       showSuccess(`Conta alterada para ${nextType === 'provider' ? 'Prestador' : 'Cliente'}!`);
     } catch (error: any) {
@@ -88,25 +109,36 @@ export default function MyDataScreen() {
   };
 
   const handleConfirmProvider = async () => {
-    if (!motherName.trim()) {
-      showError('Informe o nome da mãe.');
+    let extraData: { mother_name: string; birth_date: string } | undefined;
+
+    if (needsPersonalData) {
+      if (!motherName.trim()) {
+        showError('Informe o nome da mãe.');
+        return;
+      }
+      const dateDigits = birthDate.replace(/\D/g, '');
+      if (dateDigits.length !== 8) {
+        showError('Informe a data de nascimento completa (DD/MM/AAAA).');
+        return;
+      }
+      const day = parseInt(dateDigits.slice(0, 2), 10);
+      const month = parseInt(dateDigits.slice(2, 4), 10);
+      const year = parseInt(dateDigits.slice(4, 8), 10);
+      if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2010) {
+        showError('Data de nascimento inválida.');
+        return;
+      }
+      const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      extraData = { mother_name: motherName.trim(), birth_date: isoDate };
+    }
+
+    if (selectedCategories.length === 0) {
+      showError('Selecione pelo menos uma área de atuação.');
       return;
     }
-    const dateDigits = birthDate.replace(/\D/g, '');
-    if (dateDigits.length !== 8) {
-      showError('Informe a data de nascimento completa (DD/MM/AAAA).');
-      return;
-    }
-    const day = parseInt(dateDigits.slice(0, 2), 10);
-    const month = parseInt(dateDigits.slice(2, 4), 10);
-    const year = parseInt(dateDigits.slice(4, 8), 10);
-    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2010) {
-      showError('Data de nascimento inválida.');
-      return;
-    }
-    const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
     setShowProviderModal(false);
-    await doChangeProfileType('provider', { mother_name: motherName.trim(), birth_date: isoDate });
+    await doChangeProfileType('provider', selectedCategories, extraData);
   };
 
   return (
@@ -233,51 +265,112 @@ export default function MyDataScreen() {
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Dados obrigatórios</Text>
+              <Text style={styles.modalTitle}>Tornar-se Prestador</Text>
               <TouchableOpacity onPress={() => setShowProviderModal(false)} activeOpacity={0.7}>
                 <X size={22} color="#6b7280" />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalDesc}>
-              Para se tornar prestador de serviço, preencha os dados abaixo:
+              {needsPersonalData
+                ? 'Preencha seus dados e selecione as áreas em que deseja atuar:'
+                : 'Selecione as áreas em que deseja atuar como prestador:'}
             </Text>
 
-            <View style={styles.modalField}>
-              <View style={styles.modalFieldIcon}>
-                <Heart size={18} color="#4f46e5" />
-              </View>
-              <View style={styles.modalFieldBody}>
-                <Text style={styles.modalFieldLabel}>Nome da mãe</Text>
+            <ScrollView
+              style={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {needsPersonalData && (
+                <>
+                  <View style={styles.modalField}>
+                    <View style={styles.modalFieldIcon}>
+                      <Heart size={18} color="#4f46e5" />
+                    </View>
+                    <View style={styles.modalFieldBody}>
+                      <Text style={styles.modalFieldLabel}>Nome da mãe</Text>
+                      <TextInput
+                        style={styles.modalInput}
+                        value={motherName}
+                        onChangeText={setMotherName}
+                        placeholder="Nome completo da mãe"
+                        placeholderTextColor="#9ca3af"
+                        autoCapitalize="words"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.modalFieldSep} />
+
+                  <View style={styles.modalField}>
+                    <View style={styles.modalFieldIcon}>
+                      <Calendar size={18} color="#4f46e5" />
+                    </View>
+                    <View style={styles.modalFieldBody}>
+                      <Text style={styles.modalFieldLabel}>Data de nascimento</Text>
+                      <TextInput
+                        style={styles.modalInput}
+                        value={birthDate}
+                        onChangeText={(t) => setBirthDate(maskDate(t))}
+                        placeholder="DD/MM/AAAA"
+                        placeholderTextColor="#9ca3af"
+                        keyboardType="numeric"
+                        maxLength={10}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.modalFieldSep} />
+                </>
+              )}
+
+              <Text style={[styles.modalFieldLabel, { marginTop: needsPersonalData ? 8 : 0, marginBottom: 10 }]}>
+                Áreas de atuação
+              </Text>
+
+              {selectedCategories.length > 0 && (
+                <View style={styles.categoriesContainer}>
+                  {selectedCategories.map(cat => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryBadge, styles.categoryBadgeSelected]}
+                      onPress={() => toggleCategory(cat)}
+                    >
+                      <Text style={[styles.categoryBadgeText, styles.categoryBadgeTextSelected]}>{cat} ✕</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.categorySearchRow}>
+                <Search size={18} color="#9ca3af" />
                 <TextInput
-                  style={styles.modalInput}
-                  value={motherName}
-                  onChangeText={setMotherName}
-                  placeholder="Nome completo da mãe"
+                  style={styles.categorySearchInput}
+                  placeholder="Buscar áreas..."
                   placeholderTextColor="#9ca3af"
-                  autoCapitalize="words"
+                  value={categorySearch}
+                  onChangeText={setCategorySearch}
                 />
               </View>
-            </View>
 
-            <View style={styles.modalFieldSep} />
-
-            <View style={styles.modalField}>
-              <View style={styles.modalFieldIcon}>
-                <Calendar size={18} color="#4f46e5" />
+              <View style={styles.categoriesContainer}>
+                {filterCategories(categorySearch)
+                  .filter(c => !selectedCategories.includes(c.name))
+                  .slice(0, categorySearch ? 50 : 12)
+                  .map(cat => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={styles.categoryBadge}
+                      onPress={() => { toggleCategory(cat.name); setCategorySearch(''); }}
+                    >
+                      <Text style={styles.categoryBadgeText}>{cat.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                {!categorySearch && SERVICE_CATEGORIES.length > 12 && (
+                  <Text style={styles.categoryHint}>Digite para ver mais áreas...</Text>
+                )}
               </View>
-              <View style={styles.modalFieldBody}>
-                <Text style={styles.modalFieldLabel}>Data de nascimento</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={birthDate}
-                  onChangeText={(t) => setBirthDate(maskDate(t))}
-                  placeholder="DD/MM/AAAA"
-                  placeholderTextColor="#9ca3af"
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
-              </View>
-            </View>
+            </ScrollView>
 
             <TouchableOpacity
               style={[styles.modalConfirmBtn, changingType && styles.saveBtnDisabled]}
@@ -511,6 +604,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     marginLeft: 50,
     marginVertical: 8,
+  },
+  modalScroll: {
+    maxHeight: 360,
+  },
+  categorySearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    marginBottom: 12,
+  },
+  categorySearchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+    padding: 0,
+  },
+  categoriesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoryBadge: {
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: '#f9fafb',
+  },
+  categoryBadgeSelected: {
+    borderColor: '#4f46e5',
+    backgroundColor: '#eef2ff',
+  },
+  categoryBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  categoryBadgeTextSelected: {
+    color: '#4f46e5',
+  },
+  categoryHint: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 4,
+    width: '100%',
   },
   modalConfirmBtn: {
     backgroundColor: '#4f46e5',

@@ -58,6 +58,12 @@ react {
 
     /* Autolinking */
     autolinkLibrariesWithApp()
+
+    // Força o Metro a reprocessar do zero ao empacotar o release, garantindo
+    // que o resolver de metro.config.js (que troca os .onnx do Android por um
+    // stub, já que os modelos vão como assets nativos) seja sempre aplicado —
+    // sem isso, o cache do Metro reusa resoluções antigas e reincha o APK.
+    extraPackagerArgs = ["--reset-cache"]
 }
 
 /**
@@ -88,8 +94,8 @@ android {
         applicationId "com.cotaja_rn"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.6"
+        versionCode 15
+        versionName "1.7"
     }
     signingConfigs {
         debug {

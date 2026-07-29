@@ -3,12 +3,14 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, StatusBar } from 'react-native';
+import { StyleSheet, StatusBar, Linking } from 'react-native';
 import { HomeScreenSkeleton, ProviderHomeScreenSkeleton } from '../components/Skeleton';
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { navigationRef } from './navigationRef';
+import { navigateToDeepLink } from './deepLinkRouter';
 import InAppNotification from '../components/InAppNotification';
+import LivenessGate from '../components/LivenessGate';
 
 import InitialScreen from '../screens/InitialScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -51,33 +53,11 @@ import SecurityScreen from '../screens/management/SecurityScreen';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const linking = {
-  prefixes: ['cotaja://'],
-  config: {
-    screens: {
-      Client: {
-        screens: {
-          Home: {
-            screens: {
-              CreateOrder: 'new-order',
-            },
-          },
-          MyOrdersTab: {
-            screens: {
-              OrderDetails: { path: 'order/:order_id', parse: { order_id: Number } },
-              RateProvider:  { path: 'rate/:order_id',  parse: { order_id: Number } },
-            },
-          },
-        },
-      },
-      Provider: {
-        screens: {
-          ProfileTab: 'profile',
-        },
-      },
-    },
-  },
-};
+// Prefixos reconhecidos como deep links do app (scheme custom + universal links).
+// A navegação efetiva é feita manualmente pelo deepLinkRouter (ciente de
+// autenticação e do tipo de perfil), portanto NÃO usamos a navegação automática
+// do React Navigation aqui — apenas capturamos as URLs via Linking API.
+export const DEEP_LINK_PREFIXES = ['cotaja://', 'https://app.cotaja.io', 'https://api.cotaja.io', 'https://cotaja.io', 'https://www.cotaja.io'];
 
 const ClientHomeStack = createNativeStackNavigator();
 function ClientHomeStackNavigator({ route }: any) {
@@ -437,19 +417,33 @@ export default function AppNavigator() {
           const orderId = Number(saved);
           if (!Number.isNaN(orderId)) {
             setTimeout(() => {
-              navigationRef.current?.navigate('Provider' as never, {
+              (navigationRef.current?.navigate as any)?.('Provider', {
                 screen: 'MyServicesTab',
                 params: {
                   screen: 'AcceptedOrder',
                   params: { orderId, resumeTracking: true },
                 },
-              } as never);
+              });
             }, 500);
           }
         }
       });
     }
   }, [isInitializing, user]);
+
+  // Captura deep links abertos via URL (scheme cotaja:// ou universal link),
+  // tanto em cold start quanto com o app já aberto, e roteia pelo deepLinkRouter.
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then((url) => { if (url) navigateToDeepLink(url); })
+      .catch(() => {});
+
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (url) navigateToDeepLink(url);
+    });
+
+    return () => sub.remove();
+  }, []);
 
   const getActiveRouteName = (state: any): string => {
     const route = state.routes[state.index];
@@ -487,7 +481,7 @@ export default function AppNavigator() {
         backgroundColor={isDarkStatus ? "#f3f4f6" : "#4f46e5"}
         translucent={false}
       />
-      <NavigationContainer ref={navigationRef} linking={linking} onStateChange={onNavigationStateChange}>
+      <NavigationContainer ref={navigationRef} onStateChange={onNavigationStateChange}>
         <Stack.Navigator
         initialRouteName={
           !onboardingCompleted ? 'Onboarding'
@@ -561,6 +555,7 @@ export default function AppNavigator() {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    <LivenessGate />
     </InAppNotification>
   );
 }

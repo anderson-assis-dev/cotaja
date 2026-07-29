@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import LivenessScreen, { LivenessResultData } from './LivenessScreen';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
@@ -20,6 +21,7 @@ export default function RegisterScreen() {
   const { showStatusBarOverlay, statusBarOpacity, handleScroll: handleStatusBarScroll } = useStatusBarOverlay({ threshold: 60 });
   const [registering, setRegistering] = useState(false);
   const [locationEnabled, setLocationEnabled] = useState(false);
+  const [showLiveness, setShowLiveness] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('location_enabled_pref').then((v) => setLocationEnabled(v === 'true'));
@@ -30,7 +32,7 @@ export default function RegisterScreen() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [phone, setPhone] = useState('');
-  const [profileType, setProfileType] = useState<'client' | 'provider' | ''>('');
+  const [profileType, setProfileType] = useState<'client' | 'provider'>('client');
   const [showSenha, setShowSenha] = useState(false);
   const [showConfirmarSenha, setShowConfirmarSenha] = useState(false);
   const [motherName, setMotherName] = useState('');
@@ -179,6 +181,12 @@ export default function RegisterScreen() {
       showError('A senha deve ter pelo menos 6 caracteres');
       return;
     }
+    // O cadastro só é concluído após a verificação de liveness (anti-robô).
+    setShowLiveness(true);
+  };
+
+  // Executa o cadastro de fato (com ou sem dados de liveness).
+  const submitRegistration = async (liveness?: { score: number; imageBase64: string | null }) => {
     setRegistering(true);
     try {
       const fullAddress = profileType === 'provider' && addressStreet
@@ -195,6 +203,7 @@ export default function RegisterScreen() {
         profileType === 'provider' ? cep.replace(/\D/g, '') : undefined,
         profileType === 'provider' ? (addressLatitude ?? undefined) : undefined,
         profileType === 'provider' ? (addressLongitude ?? undefined) : undefined,
+        liveness,
       );
       showSuccess('Cadastro realizado! Verifique seu email para ativar sua conta.', 5000);
       navigation.navigate('Login');
@@ -203,6 +212,33 @@ export default function RegisterScreen() {
     } finally {
       setRegistering(false);
     }
+  };
+
+  // Chamado quando o liveness conclui com sucesso (ou o modelo não carrega).
+  const handleLivenessComplete = async (result: LivenessResultData) => {
+    setShowLiveness(false);
+
+    if (result.loadFailed) {
+      // Device sem suporte ao liveness: NÃO bloqueia o cadastro (a validação
+      // será feita de outra forma depois). Conclui o cadastro sem liveness.
+      console.error('[LivenessKit] loadFailed no cadastro:', result.errorMessage);
+      if (__DEV__ && result.errorMessage) {
+        showError(`Liveness (debug): ${result.errorMessage}`, 8000);
+      }
+      await submitRegistration(undefined);
+      return;
+    }
+    if (!result.isLive) {
+      showError('Não foi possível validar que você é uma pessoa real. Refaça o teste de liveness para concluir o cadastro.');
+      return;
+    }
+
+    await submitRegistration({ score: result.confidence, imageBase64: result.imageBase64 });
+  };
+
+  const handleLivenessCancel = () => {
+    setShowLiveness(false);
+    showError('Verificação cancelada. Conclua o teste de liveness para finalizar o cadastro.');
   };
 
   const insets = useSafeAreaInsets();
@@ -294,27 +330,23 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
-            {profileType !== '' && (
-              <>
-                <Text style={styles.label}>CPF / CNPJ</Text>
-                <View style={styles.inputRow}>
-                  <Icon name="badge" size={20} color="#9ca3af" />
-                  <TextInput
-                    ref={cpfInputRef}
-                    value={cpf}
-                    onChangeText={(t) => setCpf(maskCpfCnpj(t))}
-                    placeholder="000.000.000-00"
-                    placeholderTextColor="#9ca3af"
-                    style={styles.input}
-                    keyboardType="numeric"
-                    maxLength={18}
-                    editable={!registering}
-                    returnKeyType="next"
-                    onSubmitEditing={() => phoneInputRef.current?.getElement()?.focus()}
-                  />
-                </View>
-              </>
-            )}
+            <Text style={styles.label}>CPF / CNPJ</Text>
+            <View style={styles.inputRow}>
+              <Icon name="badge" size={20} color="#9ca3af" />
+              <TextInput
+                ref={cpfInputRef}
+                value={cpf}
+                onChangeText={(t) => setCpf(maskCpfCnpj(t))}
+                placeholder="000.000.000-00"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+                keyboardType="numeric"
+                maxLength={18}
+                editable={!registering}
+                returnKeyType="next"
+                onSubmitEditing={() => phoneInputRef.current?.getElement()?.focus()}
+              />
+            </View>
 
             <Text style={styles.label}>Telefone</Text>
             <View style={styles.inputRow}>
@@ -598,6 +630,13 @@ export default function RegisterScreen() {
         </View>
       </ScrollView>
       <StatusBarOverlay show={showStatusBarOverlay} opacity={statusBarOpacity} forceLight />
+
+      <Modal visible={showLiveness} animationType="slide" onRequestClose={handleLivenessCancel}>
+        <LivenessScreen
+          onComplete={handleLivenessComplete}
+          onCancel={handleLivenessCancel}
+        />
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
