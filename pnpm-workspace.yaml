@@ -1,0 +1,2 @@
+patchedDependencies:
+  '@stripe/stripe-react-native': patches/@stripe__stripe-react-native.patch

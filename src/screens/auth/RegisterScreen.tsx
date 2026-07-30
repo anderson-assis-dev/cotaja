@@ -13,6 +13,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
 import { requestLocationPermission } from '../../utils/permissions';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 export default function RegisterScreen() {
   const navigation = useNavigation<any>();
@@ -205,6 +206,7 @@ export default function RegisterScreen() {
         profileType === 'provider' ? (addressLongitude ?? undefined) : undefined,
         liveness,
       );
+      facebookEvents.logCompleteRegistration(profileType);
       showSuccess('Cadastro realizado! Verifique seu email para ativar sua conta.', 5000);
       navigation.navigate('Login');
     } catch (error: any) {

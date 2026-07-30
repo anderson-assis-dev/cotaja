@@ -12,6 +12,7 @@ import { formatPrice } from '../../utils/formatters';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SkeletonBlock } from '../../components/Skeleton';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 interface PaymentMethod {
   id: string;
@@ -200,6 +201,7 @@ export default function WalletScreen() {
         return;
       }
       if (setupIntent) {
+        facebookEvents.logAddPaymentInfo(true);
         showSuccess('Cartão adicionado com sucesso!');
         setShowAddCardModal(false);
         setCardComplete(false);
@@ -237,6 +239,12 @@ export default function WalletScreen() {
               const pmId = wallet.payment_methods[0].id;
               const res = await adService.purchasePackage(pkg.id, pmId);
               if (res.success) {
+                facebookEvents.logPurchase({
+                  amount: pkg.price_cents / 100,
+                  currency: 'BRL',
+                  contentId: String(pkg.id),
+                  contentType: 'ad_package',
+                });
                 showSuccess(res.message || 'Pacote comprado com sucesso!');
                 fetchAds();
               } else {

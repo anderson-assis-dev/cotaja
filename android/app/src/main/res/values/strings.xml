@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Cotaja</string>
+    <string name="facebook_app_id">2389441048201101</string>
+    <string name="facebook_client_token">d137900e58f58511fa47f8f30ddc0662</string>
 </resources>

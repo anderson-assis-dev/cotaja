@@ -15,6 +15,7 @@ import { FileViewer } from '../../components/FileViewer';
 import { getAttachmentUrl, isImageAttachment, isVideoAttachment } from '../../utils/attachmentHelpers';
 import { OrderListSkeleton } from '../../components/Skeleton';
 import { OrderTimeline } from '../../components/OrderTimeline';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 interface Proposal {
   id: string;
@@ -350,6 +351,7 @@ export default function OrderDetailsScreen() {
   const handleOrderPress = (order: Order) => {
     setSelectedOrder(order);
     setShowDetails(true);
+    facebookEvents.logViewContent(order.id, 'order');
   };
 
   const handleRefuseProposal = (orderId: string, proposalId: string) => {

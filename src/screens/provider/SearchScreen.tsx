@@ -8,6 +8,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { orderService } from '../../services/api';
 import { formatPrice } from '../../utils/formatters';
+import { facebookEvents } from '../../services/facebookEventsService';
 import { SERVICE_CATEGORIES, filterCategories, ServiceCategory } from '../../utils/serviceCategories';
 
 type RootStackParamList = {
@@ -60,6 +61,7 @@ export default function ProviderSearchScreen() {
     setLoading(true);
     debounceTimer.current = setTimeout(async () => {
       try {
+        facebookEvents.logSearch(query, 'order');
         const response = await orderService.getAvailableOrders({ search: query });
         if (response.success && Array.isArray(response.data.data)) {
           const demands: Demand[] = response.data.data.map((order: any) => ({

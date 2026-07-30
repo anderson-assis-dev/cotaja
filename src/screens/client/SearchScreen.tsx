@@ -11,6 +11,7 @@ import { getAttachmentName, getAttachmentUrl } from '../../utils/attachmentHelpe
 import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
 import { useToast } from '../../contexts/ToastContext';
 import { ImageViewer } from '../../components/ImageViewer';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -185,6 +186,16 @@ export default function SearchScreen() {
     }
     return list;
   }, [searchQuery, companies]);
+
+  // Loga o evento "Search" do Facebook após o usuário parar de digitar,
+  // evitando disparar um evento a cada tecla pressionada.
+  useEffect(() => {
+    if (searchQuery.length <= 1) return;
+    const timeout = setTimeout(() => {
+      facebookEvents.logSearch(searchQuery, 'provider');
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
 
   const handleCategoryPress = (categoryName: string) => {
     setSearchQuery('');

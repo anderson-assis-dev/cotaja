@@ -33,6 +33,16 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>FacebookAppID</key>
+	<string>2389441048201101</string>
+	<key>FacebookClientToken</key>
+	<string>d137900e58f58511fa47f8f30ddc0662</string>
+	<key>FacebookDisplayName</key>
+	<string>Cotaja</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<true/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<true/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>MKDirectionsApplicationSupportedModes</key>

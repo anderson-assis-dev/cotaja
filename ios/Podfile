@@ -52,5 +52,18 @@ target 'cotaja_rn' do
         config.build_settings['SWIFT_VERSION'] = '5.0'
       end
     end
+
+    # Workaround: fmt (dependência transitiva via Folly) usa consteval de um jeito
+    # que o Clang do Xcode 26.4+ rejeita. https://github.com/facebook/react-native/issues/55601
+    # Compilar só o pod `fmt` em C++17 desativa o code path de consteval na própria
+    # lib (FMT_USE_CONSTEVAL vira 0), sem baixar o padrão C++20 do resto do projeto
+    # (New Architecture depende de C++20). Remover quando o RN atualizar o fmt para >= 12.1.0.
+    installer.pods_project.targets.each do |target|
+      if target.name == 'fmt'
+        target.build_configurations.each do |config|
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
+      end
+    end
   end
 end

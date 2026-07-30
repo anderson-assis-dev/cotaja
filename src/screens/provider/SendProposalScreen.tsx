@@ -13,6 +13,7 @@ import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { ImageViewer } from '../../components/ImageViewer';
 import { getAttachmentUrl as sharedGetAttachmentUrl, isImageAttachment as sharedIsImageAttachment } from '../../utils/attachmentHelpers';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -120,6 +121,12 @@ export default function SendProposalScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [imageViewerVisible, setImageViewerVisible] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (demand?.id) {
+      facebookEvents.logViewContent(demand.id, 'demand');
+    }
+  }, [demand?.id]);
 
   useEffect(() => {
     if (demand) {

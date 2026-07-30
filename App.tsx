@@ -5,6 +5,7 @@ import { Platform, AppState, AppStateStatus } from 'react-native';
 import PushNotificationIOS from '@react-native-community/push-notification-ios';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import Config from 'react-native-config';
+import { Settings as FBSettings } from 'react-native-fbsdk-next';
 import AppNavigator from './src/navigation/AppNavigator';
 import { requestInitialPermissions } from './src/utils/permissions';
 import { AuthProvider } from './src/contexts/AuthContext';
@@ -12,6 +13,11 @@ import { PushNotificationProvider } from './src/contexts/PushNotificationContext
 import { ToastProvider } from './src/contexts/ToastContext';
 
 const STRIPE_PUBLISHABLE_KEY = Config.STRIPE_PUBLISHABLE_KEY || '';
+
+// App ID e Client Token já estão no Info.plist / AndroidManifest.xml;
+// isso apenas ativa o SDK o quanto antes no startup (necessário no iOS
+// desde que o auto-init nativo foi removido no facebook-ios-sdk v9+).
+FBSettings.initializeSDK();
 
 export default function App() {
   useEffect(() => {

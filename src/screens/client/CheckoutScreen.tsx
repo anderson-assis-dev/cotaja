@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { proposalService } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 type Proposal = {
   id: string;
@@ -32,6 +33,17 @@ export default function CheckoutScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const proposal = route.params?.proposal;
+
+  useEffect(() => {
+    if (!proposal) return;
+    const numericPrice = Number(proposal.price.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    facebookEvents.logInitiateCheckout({
+      contentId: proposal.id,
+      contentType: 'proposal',
+      currency: 'BRL',
+      valueToSum: numericPrice,
+    });
+  }, [proposal]);
 
   if (!proposal) {
     return (

@@ -8,6 +8,7 @@ import { useToast } from '../../contexts/ToastContext';
 import { subscriptionService, walletService, SubscriptionStatus } from '../../services/api';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 const BENEFITS = [
   { icon: TrendingUp, text: 'Prioridade no feed de cotações — suas propostas aparecem primeiro para o cliente' },
@@ -78,6 +79,7 @@ export default function PremiumScreen() {
             try {
               const res = await subscriptionService.subscribe(pm.id);
               if (res.success) {
+                facebookEvents.logSubscribe(9.9, 'BRL');
                 showSuccess('Plano Premium ativado com sucesso!');
                 await fetchData();
                 await refreshUser();

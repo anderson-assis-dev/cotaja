@@ -9,6 +9,7 @@ import { requestCameraPermission } from '../../utils/permissions';
 import { useToast } from '../../contexts/ToastContext';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
+import { facebookEvents } from '../../services/facebookEventsService';
 
 export default function RateProviderScreen() {
   const navigation = useNavigation<any>();
@@ -42,6 +43,7 @@ export default function RateProviderScreen() {
       const providerId = String(companyToRate.id);
       const response = await ratingService.createProviderRating(providerId, { rating, comment, attachments });
       if (response.success) {
+        facebookEvents.logRate(5, 'provider');
         showSuccess('Obrigado por seu feedback!');
         navigation.goBack();
       } else {
