@@ -94,8 +94,8 @@ android {
         applicationId "com.cotaja_rn"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.7"
+        versionCode 19
+        versionName "1.8"
     }
     signingConfigs {
         debug {

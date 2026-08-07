@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet,
   ActivityIndicator, Image, FlatList, KeyboardAvoidingView, Platform, Modal, StatusBar, Alert,
-  TouchableWithoutFeedback, Keyboard, NativeModules, PermissionsAndroid,
+  TouchableWithoutFeedback, Keyboard, NativeModules,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,24 +25,6 @@ import TrackingMap from '../../components/TrackingMap';
 import { requestLocationPermission } from '../../utils/permissions';
 
 const { LocationTracking } = NativeModules;
-
-const requestBackgroundLocation = async (): Promise<void> => {
-  if (Platform.OS !== 'android') return;
-  try {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
-      {
-        title: 'Permissão de localização em segundo plano',
-        message: 'O Cotaja precisa rastrear sua localização mesmo quando o app está minimizado para que o cliente possa acompanhar o trajeto.',
-        buttonPositive: 'Permitir',
-        buttonNegative: 'Não permitir',
-      }
-    );
-    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-      console.warn('[Tracking] Background location not granted');
-    }
-  } catch {}
-};
 
 type RouteParams = {
   AcceptedOrder: { orderId: number; openTracking?: boolean; resumeTracking?: boolean };
@@ -378,13 +360,17 @@ export default function AcceptedOrderScreen() {
     if (!isProvider || !order) return;
     setIsStartingRoute(true);
     try {
-      const locationGranted = await requestLocationPermission();
+      // Disclosure + permissão de localização. O aviso já informa que a coleta
+      // continua com o app minimizado enquanto o trajeto estiver ativo.
+      const locationGranted = await requestLocationPermission('tracking');
       if (!locationGranted) {
         showError('Permissão de localização necessária para iniciar o trajeto.');
         setIsStartingRoute(false);
         return;
       }
-      await requestBackgroundLocation();
+      // Foreground service do tipo "location": iniciado aqui, com o app visível
+      // e por ação do prestador, é ele que mantém a coleta viva quando o app é
+      // minimizado — sem precisar de ACCESS_BACKGROUND_LOCATION.
       if (Platform.OS === 'android') LocationTracking?.startService();
       const tokenRes = await trackingService.getMapToken();
       setMapToken(tokenRes.data.token);
@@ -613,7 +599,22 @@ export default function AcceptedOrderScreen() {
         return;
       }
       hasAutoResumedTracking.current = true;
-      handleStartRoute();
+      // Nunca retomar a coleta de localização automaticamente ao abrir o app:
+      // a política de Prominent Disclosure exige uma ação afirmativa do usuário
+      // antes de qualquer nova coleta.
+      Alert.alert(
+        'Retomar o trajeto?',
+        'Você tem um trajeto em andamento neste pedido. Ao retomar, a Cotaja volta a coletar sua localização e a enviá-la ao cliente em tempo real até você finalizar o trajeto.',
+        [
+          {
+            text: 'Não retomar',
+            style: 'cancel',
+            onPress: () => { AsyncStorage.removeItem('active_tracking_order').catch(() => {}); },
+          },
+          { text: 'Retomar', onPress: () => { handleStartRoute(); } },
+        ],
+        { cancelable: false },
+      );
     }
   }, [resumeTracking, isProvider, order]);
 

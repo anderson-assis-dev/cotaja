@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import LivenessScreen, { LivenessResultData } from './LivenessScreen';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,6 @@ import { useToast } from '../../contexts/ToastContext';
 import { TextInputMask } from 'react-native-masked-text';
 import Geolocation from '@react-native-community/geolocation';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStatusBarOverlay } from '../../hooks/useStatusBarOverlay';
 import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { SERVICE_CATEGORIES, filterCategories } from '../../utils/serviceCategories';
@@ -21,12 +20,7 @@ export default function RegisterScreen() {
   const { showError, showSuccess } = useToast();
   const { showStatusBarOverlay, statusBarOpacity, handleScroll: handleStatusBarScroll } = useStatusBarOverlay({ threshold: 60 });
   const [registering, setRegistering] = useState(false);
-  const [locationEnabled, setLocationEnabled] = useState(false);
   const [showLiveness, setShowLiveness] = useState(false);
-
-  useEffect(() => {
-    AsyncStorage.getItem('location_enabled_pref').then((v) => setLocationEnabled(v === 'true'));
-  }, []);
 
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -118,7 +112,7 @@ export default function RegisterScreen() {
   };
 
   const getLocationByGPS = async () => {
-    const granted = await requestLocationPermission();
+    const granted = await requestLocationPermission('address');
     if (!granted) {
       showError('Ative a localização nas configurações do dispositivo.');
       return;
@@ -452,28 +446,24 @@ export default function RegisterScreen() {
                 </View>
 
                 <Text style={styles.sectionLabel}>Localização</Text>
-                {(() => {
-                  let locationLabel = 'Localização desativada no perfil';
-                  if (loadingLocation) locationLabel = 'Buscando localização...';
-                  else if (locationEnabled) locationLabel = 'Usar minha localização atual';
-                  return (
-                    <TouchableOpacity
-                      style={[styles.locationButton, (!locationEnabled || loadingLocation) && styles.locationButtonDisabled]}
-                      onPress={locationEnabled ? getLocationByGPS : () => showError('Ative a permissão de localização no perfil do app para usar este recurso.')}
-                      disabled={registering || loadingLocation}
-                      activeOpacity={0.8}
-                    >
-                      {loadingLocation ? (
-                        <ActivityIndicator color="#4f46e5" size="small" />
-                      ) : (
-                        <Icon name={locationEnabled ? 'my-location' : 'location-off'} size={20} color={locationEnabled ? '#4f46e5' : '#9ca3af'} />
-                      )}
-                      <Text style={[styles.locationButtonText, !locationEnabled && { color: '#9ca3af' }]}>
-                        {locationLabel}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })()}
+                {/* O acesso à localização passa por getLocationByGPS →
+                    requestLocationPermission, que mostra o aviso de uso
+                    (Prominent Disclosure) ANTES de pedir a permissão. */}
+                <TouchableOpacity
+                  style={[styles.locationButton, loadingLocation && styles.locationButtonDisabled]}
+                  onPress={getLocationByGPS}
+                  disabled={registering || loadingLocation}
+                  activeOpacity={0.8}
+                >
+                  {loadingLocation ? (
+                    <ActivityIndicator color="#4f46e5" size="small" />
+                  ) : (
+                    <Icon name="my-location" size={20} color="#4f46e5" />
+                  )}
+                  <Text style={styles.locationButtonText}>
+                    {loadingLocation ? 'Buscando localização...' : 'Usar minha localização atual'}
+                  </Text>
+                </TouchableOpacity>
                 <Text style={styles.locationOrText}>ou informe o CEP manualmente</Text>
 
                 <Text style={styles.label}>CEP</Text>

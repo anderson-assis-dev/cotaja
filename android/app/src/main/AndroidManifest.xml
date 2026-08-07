@@ -6,7 +6,6 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
@@ -14,6 +13,16 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- A Cotaja NÃO usa ACCESS_BACKGROUND_LOCATION. O rastreamento do trajeto
+         roda em um foreground service do tipo "location" (LocationTrackingService),
+         iniciado por ação do prestador com o app visível; nesse estado o Android
+         permite ler localização com o app minimizado usando apenas
+         ACCESS_FINE_LOCATION. Declarar a permissão de segundo plano sujeitaria o
+         app à revisão de background location do Google Play sem nenhum ganho de
+         funcionalidade. O tools:node="remove" garante que nenhuma dependência a
+         reintroduza pelo manifest merger. -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" tools:node="remove" />
 
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />

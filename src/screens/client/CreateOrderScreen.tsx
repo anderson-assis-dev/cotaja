@@ -253,7 +253,7 @@ export default function CreateOrderScreen() {
     setIsLoadingLocation(true);
 
     try {
-      const granted = await requestLocationPermission();
+      const granted = await requestLocationPermission('address');
       if (!granted) {
         showError('Não foi possível obter sua localização.');
         setIsLoadingLocation(false);

@@ -12,7 +12,7 @@ import { StatusBarOverlay } from '../../components/StatusBarOverlay';
 import { formatPrice } from '../../utils/formatters';
 import { SkeletonBlock } from '../../components/Skeleton';
 import Geolocation from '@react-native-community/geolocation';
-import { requestLocationPermission } from '../../utils/permissions';
+import { hasLocationPermission } from '../../utils/permissions';
 
 type RootStackParamList = {
   SendProposal: { demand: Auction };
@@ -158,9 +158,15 @@ export default function AuctionScreen() {
   const { showSuccess, showError } = useToast();
   const [providerLocation, setProviderLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
+  // Ordenar os leilões por proximidade é opcional. No Android apenas
+  // reaproveitamos a permissão já concedida em outro fluxo (com o devido aviso
+  // de uso): não pedimos localização automaticamente ao abrir a tela, o que
+  // violaria a Prominent Disclosure do Google Play. No iOS o fluxo é o de
+  // sempre — `hasLocationPermission` segue direto e o prompt nativo aparece na
+  // primeira leitura.
   useEffect(() => {
     const getLocation = async () => {
-      const granted = await requestLocationPermission();
+      const granted = await hasLocationPermission();
       if (!granted) return;
       Geolocation.getCurrentPosition(
         (pos) => setProviderLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),

@@ -7,10 +7,10 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import Config from 'react-native-config';
 import { Settings as FBSettings } from 'react-native-fbsdk-next';
 import AppNavigator from './src/navigation/AppNavigator';
-import { requestInitialPermissions } from './src/utils/permissions';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { PushNotificationProvider } from './src/contexts/PushNotificationContext';
 import { ToastProvider } from './src/contexts/ToastContext';
+import { LocationDisclosureHost } from './src/components/LocationDisclosure';
 
 const STRIPE_PUBLISHABLE_KEY = Config.STRIPE_PUBLISHABLE_KEY || '';
 
@@ -20,12 +20,6 @@ const STRIPE_PUBLISHABLE_KEY = Config.STRIPE_PUBLISHABLE_KEY || '';
 FBSettings.initializeSDK();
 
 export default function App() {
-  useEffect(() => {
-    // Na primeira abertura, solicita câmera + localização (iOS e Android) para
-    // que o cadastro (liveness e CEP automático) funcione sem passos extras.
-    requestInitialPermissions();
-  }, []);
-
   useEffect(() => {
     if (Platform.OS === 'ios') {
       PushNotificationIOS.setApplicationIconBadgeNumber(0);
@@ -50,6 +44,10 @@ export default function App() {
             <PushNotificationProvider>
               <ToastProvider>
                 <AppNavigator />
+                {/* Prominent Disclosure de localização: precisa estar acima de
+                    toda a navegação para aparecer ANTES do prompt do sistema,
+                    em qualquer tela que peça localização. */}
+                <LocationDisclosureHost />
               </ToastProvider>
             </PushNotificationProvider>
           </AuthProvider>
